@@ -1,0 +1,10 @@
+# Production-like hardening. Structured JSON logs for log aggregation.
+logging:
+  structured:
+    format:
+      console: ecs
+springdoc:
+  api-docs:
+    enabled: ${IVOROVI_OPENAPI_ENABLED:false}
+  swagger-ui:
+    enabled: false

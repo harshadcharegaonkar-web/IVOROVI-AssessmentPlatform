@@ -1,0 +1,154 @@
+# Ivorovi local development stack.
+#   Infrastructure only:     docker compose up -d
+#   Infrastructure + app:    docker compose --profile app up -d --build
+# Secrets come from ./.env (generate with scripts/dev-setup.sh). Nothing here is production configuration.
+name: ivorovi
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  postgres:
+    <<: *restart
+    image: postgres:16.15
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run scripts/dev-setup.sh}
+      IVOROVI_OWNER_PASSWORD: ${IVOROVI_OWNER_PASSWORD:?}
+      IVOROVI_APP_PASSWORD: ${IVOROVI_APP_PASSWORD:?}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ivorovi"]
+      interval: 5s
+      retries: 20
+
+  # Valkey: BSD-licensed, Redis-protocol compatible (Redis >= 7.4 is not OSI-licensed; matters for on-prem redistribution).
+  valkey:
+    <<: *restart
+    image: valkey/valkey:8.1-alpine
+    command: ["valkey-server", "--requirepass", "${REDIS_PASSWORD:?}", "--appendonly", "no"]
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli -a \"$${REDIS_PASSWORD}\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      retries: 20
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+
+  rabbitmq:
+    <<: *restart
+    image: rabbitmq:4.3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ivorovi
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?}
+    ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      retries: 20
+
+  # SeaweedFS: Apache-2.0, S3-compatible object storage for dev/on-prem. The app uses only the S3 API,
+  # so AWS S3, GCS (S3 interop), Ceph RGW, MinIO or any S3-compatible store can replace it.
+  objectstore:
+    <<: *restart
+    image: chrislusf/seaweedfs:4.51
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /etc/s3.json <<JSON
+        {"identities":[{"name":"ivorovi","credentials":[{"accessKey":"$${S3_ACCESS_KEY}","secretKey":"$${S3_SECRET_KEY}"}],"actions":["Admin","Read","Write","List","Tagging"]}]}
+        JSON
+        exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/s3.json -master.volumeSizeLimitMB=256 -volume.max=50
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+    volumes: [objdata:/data]
+    ports: ["127.0.0.1:8333:8333"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8333/status || exit 1"]
+      interval: 5s
+      retries: 30
+
+  mailpit:
+    <<: *restart
+    image: axllent/mailpit:v1.33
+    ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
+
+  keycloak:
+    <<: *restart
+    image: keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:?}
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?}
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_HEALTH_ENABLED: "true"
+      DEV_USER_PASSWORD: ${DEV_USER_PASSWORD:?}
+    volumes:
+      - ./keycloak/realm-ivorovi.json:/opt/keycloak/data/import/realm-ivorovi.json:ro
+    ports: ["127.0.0.1:8180:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 10s
+      retries: 30
+
+  api:
+    profiles: [app]
+    <<: *restart
+    build:
+      context: ../..
+      dockerfile: backend/api/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      IVOROVI_DB_URL: jdbc:postgresql://postgres:5432/ivorovi
+      IVOROVI_DB_APP_PASSWORD: ${IVOROVI_APP_PASSWORD:?}
+      IVOROVI_DB_OWNER_PASSWORD: ${IVOROVI_OWNER_PASSWORD:?}
+      IVOROVI_REDIS_HOST: valkey
+      IVOROVI_REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+      IVOROVI_RABBITMQ_HOST: rabbitmq
+      IVOROVI_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?}
+      IVOROVI_S3_ENDPOINT: http://objectstore:8333
+      IVOROVI_S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      IVOROVI_S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+      IVOROVI_SMTP_HOST: mailpit
+      IVOROVI_OIDC_ISSUER: http://localhost:8180/realms/ivorovi
+      IVOROVI_OIDC_JWKS: http://keycloak:8080/realms/ivorovi/protocol/openid-connect/certs
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      valkey: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      objectstore: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
+
+  web:
+    profiles: [app]
+    <<: *restart
+    build:
+      context: ../../frontend
+      dockerfile: apps/web/Dockerfile
+    environment:
+      OIDC_AUTHORITY: http://localhost:8180/realms/ivorovi
+      OIDC_CLIENT_ID: ivorovi-web
+      API_UPSTREAM: http://api:8080
+    ports: ["127.0.0.1:8081:8080"]
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  objdata:

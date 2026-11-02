@@ -1,0 +1,21 @@
+[versions]
+spring-boot = "4.1.2"
+spring-dependency-management = "1.1.7"
+spring-modulith = "2.1.2"
+springdoc = "3.2.0"
+awssdk = "2.57.8"
+uuid-creator = "6.1.1"
+datafaker = "2.7.0"
+greenmail = "2.1.15"
+
+[libraries]
+spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "spring-modulith" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
+springdoc-webmvc = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuid-creator" }
+datafaker = { module = "net.datafaker:datafaker", version.ref = "datafaker" }
+greenmail = { module = "com.icegreen:greenmail-junit5", version.ref = "greenmail" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "spring-dependency-management" }

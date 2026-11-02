@@ -1,0 +1,111 @@
+# Base configuration. Every environment-specific value comes from environment variables (IVOROVI_*);
+# secrets have no defaults here. See docs/runbooks/configuration.md.
+spring:
+  application:
+    name: ivorovi-api
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${IVOROVI_DB_URL}
+    username: ${IVOROVI_DB_APP_USER:ivorovi_app}
+    password: ${IVOROVI_DB_APP_PASSWORD}
+    hikari:
+      maximum-pool-size: ${IVOROVI_DB_POOL_SIZE:20}
+  flyway:
+    url: ${IVOROVI_DB_URL}
+    user: ${IVOROVI_DB_OWNER_USER:ivorovi_owner}
+    password: ${IVOROVI_DB_OWNER_PASSWORD}
+    schemas: ivorovi
+    default-schema: ivorovi
+    create-schemas: false
+    locations: classpath:db/migration
+    placeholders:
+      appRole: ${IVOROVI_DB_APP_USER:ivorovi_app}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.default_schema: ivorovi
+  data:
+    redis:
+      host: ${IVOROVI_REDIS_HOST:localhost}
+      port: ${IVOROVI_REDIS_PORT:6379}
+      password: ${IVOROVI_REDIS_PASSWORD:}
+      ssl:
+        enabled: ${IVOROVI_REDIS_SSL:false}
+  cache:
+    type: redis
+  rabbitmq:
+    host: ${IVOROVI_RABBITMQ_HOST:localhost}
+    port: ${IVOROVI_RABBITMQ_PORT:5672}
+    username: ${IVOROVI_RABBITMQ_USER:ivorovi}
+    password: ${IVOROVI_RABBITMQ_PASSWORD}
+    virtual-host: ${IVOROVI_RABBITMQ_VHOST:/}
+    publisher-confirm-type: simple
+  mail:
+    host: ${IVOROVI_SMTP_HOST:localhost}
+    port: ${IVOROVI_SMTP_PORT:1025}
+    username: ${IVOROVI_SMTP_USER:}
+    password: ${IVOROVI_SMTP_PASSWORD:}
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  shutdown: graceful
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+
+logging:
+  pattern:
+    correlation: "[tenant=%X{tenantId:-} user=%X{userId:-} trace=%X{traceId:-}] "
+
+ivorovi:
+  deployment:
+    mode: ${IVOROVI_DEPLOYMENT_MODE:SAAS}
+    environment: ${IVOROVI_ENVIRONMENT:PRODUCTION}
+  security:
+    oidc:
+      issuer: ${IVOROVI_OIDC_ISSUER}
+      jwk-set-uri: ${IVOROVI_OIDC_JWKS}
+      audience: ${IVOROVI_OIDC_AUDIENCE:ivorovi-api}
+  features:
+    # e.g. "ai.*" on an on-premises deployment without an approved AI provider
+    deployment-disabled: ${IVOROVI_FEATURES_DEPLOYMENT_DISABLED:}
+  outbox:
+    exchange: ivorovi.events
+    batch-size: 100
+    publisher-enabled: true
+    poll-interval: 1s
+  storage:
+    endpoint: ${IVOROVI_S3_ENDPOINT:}
+    region: ${IVOROVI_S3_REGION:ap-south-1}
+    bucket: ${IVOROVI_S3_BUCKET:ivorovi}
+    access-key: ${IVOROVI_S3_ACCESS_KEY:}
+    secret-key: ${IVOROVI_S3_SECRET_KEY:}
+    path-style: ${IVOROVI_S3_PATH_STYLE:true}
+    create-bucket: ${IVOROVI_S3_CREATE_BUCKET:false}
+  mail:
+    from: ${IVOROVI_MAIL_FROM:no-reply@ivorovi.invalid}
+
+springdoc:
+  api-docs:
+    enabled: ${IVOROVI_OPENAPI_ENABLED:true}
+  swagger-ui:
+    enabled: ${IVOROVI_OPENAPI_ENABLED:true}

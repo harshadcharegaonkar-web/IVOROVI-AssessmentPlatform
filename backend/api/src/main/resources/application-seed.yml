@@ -1,0 +1,7 @@
+# One-shot synthetic data generation: no web server, no outbox publishing.
+spring:
+  main:
+    web-application-type: none
+ivorovi:
+  outbox:
+    publisher-enabled: false

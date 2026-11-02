@@ -1,0 +1,20 @@
+# Local development defaults (the compose stack). Secrets still come from deploy/compose/.env.
+spring:
+  datasource:
+    url: ${IVOROVI_DB_URL:jdbc:postgresql://localhost:5432/ivorovi}
+  flyway:
+    url: ${IVOROVI_DB_URL:jdbc:postgresql://localhost:5432/ivorovi}
+    locations: classpath:db/migration,classpath:db/devdata
+ivorovi:
+  deployment:
+    environment: DEVELOPMENT
+  security:
+    oidc:
+      issuer: ${IVOROVI_OIDC_ISSUER:http://localhost:8180/realms/ivorovi}
+      jwk-set-uri: ${IVOROVI_OIDC_JWKS:http://localhost:8180/realms/ivorovi/protocol/openid-connect/certs}
+  storage:
+    endpoint: ${IVOROVI_S3_ENDPOINT:http://localhost:8333}
+    create-bucket: true
+logging:
+  level:
+    com.ivorovi: DEBUG

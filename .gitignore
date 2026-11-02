@@ -1,0 +1,12 @@
+deploy/compose/.env
+.gradle/
+build/
+**/build/
+node_modules/
+dist/
+.idea/
+*.iml
+.DS_Store
+playwright-report/
+test-results/
+.vite/
