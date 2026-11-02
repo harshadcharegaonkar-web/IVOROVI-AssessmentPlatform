@@ -18,6 +18,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
@@ -35,6 +37,8 @@ class OrgUnitIT extends IntegrationTest {
     private static final UUID ORG_ADMIN_ROLE = UUID.fromString("01920000-0000-7000-8000-000000000002");
     private static final UUID INSTITUTION_ADMIN_ROLE = UUID.fromString("01920000-0000-7000-8000-000000000003");
     private static final UUID FACULTY_ROLE = UUID.fromString("01920000-0000-7000-8000-000000000007");
+
+    @Autowired StringRedisTemplate redis;
 
     private UUID tenant;
     private Fixture.Caller admin;
@@ -56,6 +60,15 @@ class OrgUnitIT extends IntegrationTest {
                 INSERT INTO role_assignment (id, tenant_id, user_account_id, role_id, scope_type, scope_id)
                 VALUES (?, ?, ?, ?, ?, ?)""").params(UUID.randomUUID(), tenant, id, role, scopeType, scopeId).update();
         return new Fixture.Caller(subject, tenant);
+    }
+
+    /** Runs one statement as the application role with the tenant bound, as the API's connections are. */
+    private static void appJdbcAsTenant(UUID tenantId, String sql) throws Exception {
+        try (var c = java.sql.DriverManager.getConnection(com.ivorovi.support.Containers.jdbcUrl(), "ivorovi_app",
+                com.ivorovi.support.Containers.APP_PASSWORD); var st = c.createStatement()) {
+            st.execute("SELECT set_config('app.tenant_id', '" + tenantId + "', false)");
+            st.executeUpdate(sql);
+        }
     }
 
     private ResultActions as(Fixture.Caller c, MockHttpServletRequestBuilder r) throws Exception {
@@ -310,6 +323,151 @@ class OrgUnitIT extends IntegrationTest {
             as(BELA_ORG_ADMIN_B, delete("/api/v1/org-units/" + mine).param("version", "0")).andExpect(status().isNotFound());
             as(BELA_ORG_ADMIN_B, get("/api/v1/org-units").param("q", "C")).andExpect(jsonPath("$.items[*].id",
                     org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(mine.toString()))));
+        }
+    }
+
+    /** Increment 1.1 acceptance review (2026-11-02): the six final verification checks. */
+    @Nested
+    class AcceptanceChecks {
+
+        @Test
+        void check1_moveRecalculatesInheritedPermissionsForTheWholeSubtree() throws Exception {
+            UUID a = created(create(admin, "COLLEGE", null, "A", "A"));
+            UUID b = created(create(admin, "COLLEGE", null, "B", "B"));
+            UUID campus = created(create(admin, "CAMPUS", a, "K", "K"));
+            UUID dept = created(create(admin, "DEPARTMENT", campus, "D", "D"));
+            Fixture.Caller adminA = user(INSTITUTION_ADMIN_ROLE, "ORG_UNIT", a);
+            Fixture.Caller adminB = user(INSTITUTION_ADMIN_ROLE, "ORG_UNIT", b);
+            Fixture.Caller facultyB = user(FACULTY_ROLE, "ORG_UNIT", b);
+            for (UUID id : new UUID[] {campus, dept}) {
+                as(adminA, get("/api/v1/org-units/" + id)).andExpect(status().isOk());
+                as(adminB, get("/api/v1/org-units/" + id)).andExpect(status().isForbidden());
+                as(facultyB, get("/api/v1/org-units/" + id)).andExpect(status().isForbidden());
+            }
+            move(admin, campus, b).andExpect(status().isOk());
+            for (UUID id : new UUID[] {campus, dept}) {               // the moved unit and its descendants
+                as(adminA, get("/api/v1/org-units/" + id)).andExpect(status().isForbidden());
+                as(adminB, get("/api/v1/org-units/" + id)).andExpect(status().isOk());
+                as(facultyB, get("/api/v1/org-units/" + id)).andExpect(status().isOk());
+            }
+            // write permissions follow too: B's administrator can now manage the department, A's cannot
+            statusChange(adminA, dept, "deactivate").andExpect(status().isForbidden());
+            statusChange(adminB, dept, "deactivate").andExpect(status().isOk());
+            as(adminB, get("/api/v1/org-units")).andExpect(jsonPath("$.totalElements").value(3));   // B, campus, dept
+            as(adminA, get("/api/v1/org-units")).andExpect(jsonPath("$.totalElements").value(1));   // A only
+        }
+
+        @Test
+        void check2_moveEvictsCachedPathsOfEveryAffectedUnit() throws Exception {
+            UUID a = created(create(admin, "COLLEGE", null, "A", "A"));
+            UUID b = created(create(admin, "COLLEGE", null, "B", "B"));
+            UUID campus = created(create(admin, "CAMPUS", a, "K", "K"));
+            UUID dept = created(create(admin, "DEPARTMENT", campus, "D", "D"));
+            Fixture.Caller scoped = user(INSTITUTION_ADMIN_ROLE, "ORG_UNIT", a);
+            as(scoped, get("/api/v1/org-units/" + campus)).andExpect(status().isOk());
+            as(scoped, get("/api/v1/org-units/" + dept)).andExpect(status().isOk());
+            String campusKey = "ivorovi:orgpath:t:" + tenant + ":" + campus;
+            String deptKey = "ivorovi:orgpath:t:" + tenant + ":" + dept;
+            String otherKey = "ivorovi:orgpath:t:" + tenant + ":" + a;
+            as(scoped, get("/api/v1/org-units/" + a)).andExpect(status().isOk());
+            assertThat(redis.hasKey(campusKey)).isTrue();
+            assertThat(redis.hasKey(deptKey)).isTrue();                 // descendant path cached before the move
+
+            move(admin, campus, b).andExpect(status().isOk());
+            assertThat(redis.hasKey(campusKey)).isFalse();
+            assertThat(redis.hasKey(deptKey)).isFalse();                // descendants evicted too
+            assertThat(redis.hasKey(otherKey)).isTrue();                // unaffected units keep their entries
+
+            // reloaded paths are the new ones
+            as(scoped, get("/api/v1/org-units/" + dept)).andExpect(status().isForbidden());
+            String reloaded = redis.opsForValue().get(deptKey);
+            assertThat(reloaded).contains(b.toString().replace("-", "")).doesNotContain(a.toString().replace("-", ""));
+        }
+
+        @Test
+        void check3_crossTenantMovesAreRejectedInBothDirections() throws Exception {
+            UUID mine = created(create(admin, "COLLEGE", null, "C", "C"));
+            UUID dept = created(create(admin, "DEPARTMENT", mine, "D", "D"));
+            // my unit under another tenant's parent: the parent does not exist for this tenant
+            move(admin, dept, INST_B1).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("invalid_parent"));
+            // another tenant's unit moved under mine: not found (RLS), nothing changes
+            as(admin, post("/api/v1/org-units/" + INST_B1 + "/move").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0,\"newParentId\":\"" + mine + "\"}")).andExpect(status().isNotFound());
+            // and the other tenant cannot pull my unit under theirs
+            as(BELA_ORG_ADMIN_B, post("/api/v1/org-units/" + dept + "/move").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0,\"newParentId\":\"" + INST_B1 + "\"}")).andExpect(status().isNotFound());
+            assertThat(ownerJdbc().sql("SELECT parent_id FROM org_unit WHERE id = ?").param(dept).query(UUID.class).single()).isEqualTo(mine);
+            assertThat(ownerJdbc().sql("SELECT tenant_id FROM org_unit WHERE id = ?").param(INST_B1).query(UUID.class).single()).isEqualTo(TENANT_B);
+            // the database refuses a cross-tenant parent even if the service were bypassed (composite foreign key)
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> ownerJdbc()
+                    .sql("UPDATE org_unit SET parent_id = ? WHERE id = ?").params(INST_B1, dept).update())
+                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        }
+
+        @Test
+        void check4_historyAndAuditRemainIntactAfterMoveAndDeactivation() throws Exception {
+            UUID a = created(create(admin, "COLLEGE", null, "A", "A"));
+            UUID b = created(create(admin, "COLLEGE", null, "B", "B"));
+            UUID dept = created(create(admin, "DEPARTMENT", a, "D", "D"));
+            String historyBefore = ownerJdbc().sql("""
+                    SELECT string_agg(id || change_type || coalesce(before::text,'') || coalesce(after::text,''), '|' ORDER BY changed_at)
+                    FROM org_unit_history WHERE org_unit_id = ?""").param(dept).query(String.class).single();
+            String auditBefore = ownerJdbc().sql("""
+                    SELECT string_agg(seq || ':' || hash, '|' ORDER BY seq) FROM audit_event WHERE tenant_id = ?""")
+                    .param(tenant).query(String.class).single();
+
+            move(admin, dept, b).andExpect(status().isOk());
+            statusChange(admin, dept, "deactivate").andExpect(status().isOk());
+
+            String historyAfter = ownerJdbc().sql("""
+                    SELECT string_agg(id || change_type || coalesce(before::text,'') || coalesce(after::text,''), '|' ORDER BY changed_at)
+                    FROM org_unit_history WHERE org_unit_id = ?""").param(dept).query(String.class).single();
+            String auditAfter = ownerJdbc().sql("""
+                    SELECT string_agg(seq || ':' || hash, '|' ORDER BY seq) FROM audit_event WHERE tenant_id = ?""")
+                    .param(tenant).query(String.class).single();
+            assertThat(historyAfter).startsWith(historyBefore);           // earlier entries unchanged, new ones appended
+            assertThat(auditAfter).startsWith(auditBefore);
+            as(admin, get("/api/v1/org-units/" + dept + "/history")).andExpect(jsonPath("$.totalElements").value(3))
+                    .andExpect(jsonPath("$.items[*].changeType").value(org.hamcrest.Matchers.contains("DEACTIVATED", "MOVED", "CREATED")));
+            as(admin, get("/api/v1/audit-events/verification")).andExpect(status().isOk()).andExpect(jsonPath("$.valid").value(true));
+            // the application role cannot rewrite history
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> appJdbcAsTenant(tenant,
+                    "UPDATE org_unit_history SET reason = 'tampered' WHERE org_unit_id = '" + dept + "'"))
+                    .hasMessageContaining("permission denied");
+        }
+
+        @Test
+        void check5_unitsWithAnyDependentCannotBeDeleted() throws Exception {
+            UUID withChild = created(create(admin, "COLLEGE", null, "P", "Parent"));
+            created(create(admin, "DEPARTMENT", withChild, "D", "Child"));
+            UUID withGrant = created(create(admin, "COLLEGE", null, "G", "Granted"));
+            user(FACULTY_ROLE, "ORG_UNIT", withGrant);
+            UUID withOverride = created(create(admin, "COLLEGE", null, "F", "Feature override"));
+            as(admin, put("/api/v1/features/module.proctoring/override").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"orgUnitId\":\"" + withOverride + "\",\"enabled\":false}")).andExpect(status().isOk());
+            as(admin, get("/api/v1/org-units/" + withOverride)).andExpect(jsonPath("$.dependents.featureOverrides").value(1));
+            for (UUID id : new UUID[] {withChild, withGrant, withOverride}) {
+                as(admin, delete("/api/v1/org-units/" + id).param("version", String.valueOf(version(id))))
+                        .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("org_unit_has_dependents"));
+                assertThat(ownerJdbc().sql("SELECT count(*) FROM org_unit WHERE id = ?").param(id).query(Long.class).single()).isEqualTo(1);
+            }
+            // deactivation is the alternative workflow for a unit in use
+            statusChange(admin, withGrant, "deactivate").andExpect(status().isOk());
+        }
+
+        @Test
+        void check6_theOrganizationIsTheTenantNotAUnitType() throws Exception {
+            create(admin, "ORGANIZATION", null, "ORG", "Organization as a unit").andExpect(status().isBadRequest());
+            assertThat(ownerJdbc().sql("""
+                    SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'org_unit'::regclass AND contype = 'c'
+                      AND pg_get_constraintdef(oid) LIKE '%unit_type%' AND pg_get_constraintdef(oid) LIKE '%UNIVERSITY%'
+                      AND pg_get_constraintdef(oid) NOT LIKE '%parent_id%'""").query(String.class).single())
+                    .contains("UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT").doesNotContain("ORGANIZATION");
+            // every unit belongs to exactly one tenant; top-level units hang directly under the tenant
+            UUID college = created(create(admin, "COLLEGE", null, "C", "C"));
+            as(admin, get("/api/v1/org-units/" + college)).andExpect(jsonPath("$.unit.parentId").doesNotExist())
+                    .andExpect(jsonPath("$.ancestors.length()").value(0));
+            assertThat(ownerJdbc().sql("SELECT tenant_id FROM org_unit WHERE id = ?").param(college).query(UUID.class).single()).isEqualTo(tenant);
         }
     }
 

@@ -127,3 +127,18 @@ navigation and listing, then reverted. Test data is removed through the API befo
 * Legacy `/api/v1/institutions` is removed (D-P1-05); the UI routes `/institutions…` are replaced by `/organization…`.
 
 Evidence: `docs/design/evidence/1.1/` (desktop, tablet and mobile screenshots of every new screen).
+
+## Final verification checks (acceptance review, 2026-11-02)
+
+The product owner approved 1.1 subject to six checks. Each is an automated test in
+`OrgUnitIT.AcceptanceChecks` (real PostgreSQL, Valkey and RabbitMQ via Testcontainers). All six pass;
+no product change was required.
+
+| # | Check | Test | What it proves |
+|---|---|---|---|
+| 1 | Moving a unit recalculates inherited permissions | `check1_moveRecalculatesInheritedPermissionsForTheWholeSubtree` | After moving a campus (with a department) from college A to B: A's administrator loses read and manage on the campus **and** its department; B's administrator and B-scoped faculty gain them; list visibility follows |
+| 2 | Moving invalidates affected caches | `check2_moveEvictsCachedPathsOfEveryAffectedUnit` | The cached scope paths (`ivorovi:orgpath:t:{tenant}:{unit}`) of the moved unit and every descendant are evicted after commit; unaffected units keep theirs; reloaded paths contain the new ancestor. Principal and feature caches hold grants and overrides by unit id, which a move does not change |
+| 3 | Cross-tenant moves are rejected | `check3_crossTenantMovesAreRejectedInBothDirections` | Own unit under another tenant's parent → 422 `invalid_parent`; another tenant's unit → 404 (RLS) for either side; data unchanged; the composite foreign key refuses a cross-tenant parent even for the schema owner |
+| 4 | History and audit stay intact after move/deactivate | `check4_historyAndAuditRemainIntactAfterMoveAndDeactivation` | Earlier history rows and audit `seq`/`hash` values are byte-identical afterwards (new entries only appended); audit chain verification is valid; the application role is denied `UPDATE` on `org_unit_history` |
+| 5 | Units with dependent records cannot be deleted | `check5_unitsWithAnyDependentCannotBeDeleted` | Children, scoped role assignments and feature overrides each block deletion (409 `org_unit_has_dependents`, row still present); deactivation remains available |
+| 6 | The organization is the tenant boundary | `check6_theOrganizationIsTheTenantNotAUnitType` | `ORGANIZATION` is rejected as a unit type (400); the database check constraint allows only UNIVERSITY, COLLEGE, CAMPUS, DEPARTMENT; top-level units have no parent and belong to exactly one tenant |
