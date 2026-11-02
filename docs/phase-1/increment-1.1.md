@@ -1,6 +1,6 @@
 # Increment 1.1: organization hierarchy
 
-* Status: **In progress** (authorized 2026-11-02)
+* Status: **Implemented and verified locally; awaiting product-owner review** (authorized 2026-11-02). Increment 1.2 not started.
 * Depends on: increment 1.0 (signed off)
 
 ## Functionality
@@ -91,3 +91,39 @@ organization distribution.
 6. Cross-tenant suite extended to every new endpoint and table.
 7. All screens follow the approved design system at 1440/1024/390 px with no horizontal scrolling and a clean axe scan; Playwright covers the workflows.
 8. Increment 1.0 functionality has no regressions; backend, frontend, E2E and GitHub CI are green.
+
+## Results (2026-11-02)
+
+| Check | Result |
+|---|---|
+| Backend tests (JUnit + Testcontainers, real PostgreSQL/Valkey/RabbitMQ) | **113 passed**, 0 failed (`./gradlew check`; includes `OrgUnitIT`, extended `TenantIsolationIT`, `AuthorizationIT`, `FeatureFlagIT`, `ErrorHandlingIT`, Modulith verification) |
+| Migration test | `OrgUnitIT` migration case: Phase 0 institutions → top-level colleges with the same ids, grants and overrides |
+| Upgrade of the existing dev database (Phase 0/1.0 data at V202611021000) | 12 institutions → 12 colleges (same ids, migration history rows); 600 INSTITUTION grants → 600 ORG_UNIT; 1 override preserved; `institution` dropped |
+| Smoke test with real Keycloak tokens | **19 passed**, 0 failed (`scripts/smoke-test.sh`) |
+| Frontend unit tests | **36 passed** (api-client 3, ui 11, web 22) |
+| Typecheck / lint | clean |
+| Bundle budget | initial **173.3 kB gzip** (152.0 kB Brotli, 564.3 kB raw) ≤ 180 kB; largest lazy chunk 34.1 kB ≤ 40 kB. Lower than 1.0 (175.8 kB) after marking `@ivorovi/ui` side-effect free, which keeps page-only Radix parts (Tabs) out of the initial payload |
+| Playwright (real Keycloak + API + DB), desktop 1440, tablet 1024, mobile Pixel 7 | **34 passed**, 0 failed: 1.0 suite updated for org units (regression) + 1.1 suite (hierarchy, lifecycle, listings, scoped admin, System Settings, overflow at tablet/mobile on every new screen) |
+| Accessibility | axe WCAG 2.1 AA: no serious/critical violations on dashboard, hierarchy, department listing, unit detail, System Settings |
+| GitHub Actions | recorded in the tracker after push |
+
+E2E workflows covered: create a stand-alone college (client validation, server-side duplicate code `au` → field
+error), add campus and department via "Add sub-unit", breadcrumbs, edit, move with reason, history (created /
+updated / moved), refused deactivation of a parent with active children, deactivate/activate a leaf, "Delete (in
+use)" guard, delete bottom-up, audit filter + chain verification; listing search/status/parent filters, sort,
+empty state; scoped administrator (Ines, AIT subtree): no foreign units in the tree, 403 → "Access denied" on
+another college, no top-level creation, no System Settings; terminology change ("School") reflected in the
+navigation and listing, then reverted. Test data is removed through the API before and after the suite.
+
+### Defects found during verification
+* **KI-28 (backend, fixed):** unknown JSON fields were ignored. Strict rejection with `400 unknown_field`.
+* **KI-29 (frontend, fixed):** the create form reused its Idempotency-Key after a 4xx, so a corrected submission
+  was rejected as "key used for a different request". The key now rotates once the server has answered.
+* **KI-30 (accessibility, fixed):** breadcrumb links and the selected tree row's type label were below 4.5:1.
+
+### Not delivered / deviations
+* Pixel-diff visual baselines (KI-26) are **not** automated yet; re-planned for 1.2.
+* Assigning administrators from a unit page (needs 1.4 APIs) and logo upload (needs ADR-0006 scanning) remain deferred, as stated above.
+* Legacy `/api/v1/institutions` is removed (D-P1-05); the UI routes `/institutions…` are replaced by `/organization…`.
+
+Evidence: `docs/design/evidence/1.1/` (desktop, tablet and mobile screenshots of every new screen).

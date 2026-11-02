@@ -1,46 +1,45 @@
-import { unwrap } from "@ivorovi/api-client";
 import { Field, PageHeader, Select } from "@ivorovi/ui";
-import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
-import { useApi } from "../../api/ApiProvider";
 import { useInstitutionContext } from "../../session/InstitutionContext";
 import { useSession } from "../../session/SessionProvider";
+import { ancestorIds, useOrgTree } from "../../session/useOrgTree";
+import { useOrgLabels } from "../../session/useOrgLabels";
 import { FeatureConfigurationPanel } from "./FeatureConfigurationPanel";
 
+/** Feature settings for the organization, or for one university/college (inherited by its sub-units). */
 export function FeaturesPage() {
-  const api = useApi();
   const { access } = useSession();
+  const labels = useOrgLabels();
+  const tree = useOrgTree();
   const [params, setParams] = useSearchParams();
-  const tenantWide = access.has("feature.read");
-  const scoped = access.institutionsWith("feature.read");
-
-  const institutions = useQuery({
-    queryKey: ["institutions", "all-for-features"],
-    queryFn: async () => unwrap(await api.GET("/api/v1/institutions", { params: { query: { size: 100, sort: "name" } } })),
-  });
-  const options = (institutions.data?.items ?? []).filter((i) => tenantWide || scoped.includes(i.id!));
   const { selectedId } = useInstitutionContext();
-  const requested = params.get("institution") ?? selectedId;
-  const institutionId = requested && options.some((o) => o.id === requested) ? requested : tenantWide ? null : options[0]?.id ?? null;
-  const name = options.find((o) => o.id === institutionId)?.name;
+  const tenantWide = access.has("feature.read");
+  const nodes = tree.data ?? [];
+  const options = nodes.filter((n) => (n.type === "UNIVERSITY" || n.type === "COLLEGE")
+    && access.hasInOrgUnit("feature.read", n.id, ancestorIds(nodes, n.id)));
+  const requested = params.get("unit") ?? selectedId;
+  const orgUnitId = requested && options.some((o) => o.id === requested) ? requested : tenantWide ? null : options[0]?.id ?? null;
+  const name = options.find((o) => o.id === orgUnitId)?.name;
 
   return (
     <>
       <PageHeader title="Features" description="Control which modules, assessment types, AI capabilities and integrations are available." />
       <div className="mb-4 max-w-sm">
-        <Field label="Scope" hint="Institutions can switch off features enabled for the organization, but cannot exceed it.">
+        <Field label="Scope" hint={`${labels.plural("CAMPUS")} and ${labels.plural("DEPARTMENT").toLowerCase()} inherit from their institution. Lower levels can switch features off, never on.`}>
           {(p) => (
-            <Select {...p} value={institutionId ?? ""} onChange={(e) => setParams(e.target.value ? { institution: e.target.value } : {})}>
+            <Select {...p} value={orgUnitId ?? ""} onChange={(e) => setParams(e.target.value ? { unit: e.target.value } : {})}>
               {tenantWide && <option value="">Whole organization</option>}
-              {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              {options.map((o) => <option key={o.id} value={o.id}>{o.name} ({labels.singular(o.type!)})</option>)}
             </Select>
           )}
         </Field>
       </div>
-      {(tenantWide || institutionId) && (
-        <FeatureConfigurationPanel key={institutionId ?? "tenant"} institutionId={institutionId} {...(name ? { institutionName: name } : {})} />
+      {(tenantWide || orgUnitId) && (
+        <FeatureConfigurationPanel key={orgUnitId ?? "tenant"} orgUnitId={orgUnitId}
+          ancestorIds={ancestorIds(nodes, orgUnitId)} {...(name ? { unitName: name } : {})} />
       )}
     </>
   );
 }
+
 export default FeaturesPage;

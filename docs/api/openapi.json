@@ -20,7 +20,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Settings"
+                  "$ref" : "#/components/schemas/TenantSettings"
                 }
               }
             }
@@ -35,7 +35,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/UpdateRequest"
+                "$ref" : "#/components/schemas/TenantSettingsUpdateRequest"
               }
             }
           },
@@ -47,7 +47,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Settings"
+                  "$ref" : "#/components/schemas/TenantSettings"
                 }
               }
             }
@@ -222,7 +222,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/CreateRequest"
+                "$ref" : "#/components/schemas/OrgUnitCreateRequest"
               }
             }
           },
@@ -234,7 +234,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Detail"
+                  "$ref" : "#/components/schemas/OrgUnitDetail"
                 }
               }
             }
@@ -260,7 +260,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/MoveRequest"
+                "$ref" : "#/components/schemas/OrgUnitMoveRequest"
               }
             }
           },
@@ -272,7 +272,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Detail"
+                  "$ref" : "#/components/schemas/OrgUnitDetail"
                 }
               }
             }
@@ -298,7 +298,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/StatusRequest"
+                "$ref" : "#/components/schemas/OrgUnitStatusRequest"
               }
             }
           },
@@ -310,7 +310,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Detail"
+                  "$ref" : "#/components/schemas/OrgUnitDetail"
                 }
               }
             }
@@ -336,7 +336,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/StatusRequest"
+                "$ref" : "#/components/schemas/OrgUnitStatusRequest"
               }
             }
           },
@@ -348,7 +348,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Detail"
+                  "$ref" : "#/components/schemas/OrgUnitDetail"
                 }
               }
             }
@@ -420,7 +420,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Detail"
+                  "$ref" : "#/components/schemas/OrgUnitDetail"
                 }
               }
             }
@@ -471,7 +471,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/UpdateRequest"
+                "$ref" : "#/components/schemas/OrgUnitUpdateRequest"
               }
             }
           },
@@ -483,7 +483,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Detail"
+                  "$ref" : "#/components/schemas/OrgUnitDetail"
                 }
               }
             }
@@ -530,7 +530,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseHistoryEntry"
+                  "$ref" : "#/components/schemas/PageResponseOrgUnitHistoryEntry"
                 }
               }
             }
@@ -551,7 +551,7 @@
                 "schema" : {
                   "type" : "array",
                   "items" : {
-                    "$ref" : "#/components/schemas/TreeNode"
+                    "$ref" : "#/components/schemas/OrgUnitTreeNode"
                   }
                 }
               }
@@ -571,7 +571,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Summary"
+                  "$ref" : "#/components/schemas/OrgUnitSummaryResponse"
                 }
               }
             }
@@ -831,24 +831,13 @@
   },
   "components" : {
     "schemas" : {
-      "Label" : {
-        "type" : "object",
-        "properties" : {
-          "singular" : {
-            "type" : "string"
-          },
-          "plural" : {
-            "type" : "string"
-          }
-        }
-      },
-      "UpdateRequest" : {
+      "TenantSettingsUpdateRequest" : {
         "type" : "object",
         "properties" : {
           "labels" : {
             "type" : "object",
             "additionalProperties" : {
-              "$ref" : "#/components/schemas/Label"
+              "$ref" : "#/components/schemas/UnitTypeLabel"
             }
           },
           "timeZone" : {
@@ -863,13 +852,24 @@
         },
         "required" : [ "version" ]
       },
-      "Settings" : {
+      "UnitTypeLabel" : {
+        "type" : "object",
+        "properties" : {
+          "singular" : {
+            "type" : "string"
+          },
+          "plural" : {
+            "type" : "string"
+          }
+        }
+      },
+      "TenantSettings" : {
         "type" : "object",
         "properties" : {
           "labels" : {
             "type" : "object",
             "additionalProperties" : {
-              "$ref" : "#/components/schemas/Label"
+              "$ref" : "#/components/schemas/UnitTypeLabel"
             }
           },
           "timeZone" : {
@@ -935,7 +935,7 @@
           }
         }
       },
-      "CreateRequest" : {
+      "OrgUnitCreateRequest" : {
         "type" : "object",
         "properties" : {
           "type" : {
@@ -975,70 +975,6 @@
           }
         },
         "required" : [ "code", "name", "type" ]
-      },
-      "Ancestor" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "type" : {
-            "type" : "string",
-            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
-          },
-          "code" : {
-            "type" : "string"
-          },
-          "name" : {
-            "type" : "string"
-          }
-        }
-      },
-      "Dependents" : {
-        "type" : "object",
-        "properties" : {
-          "children" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "activeChildren" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "roleAssignments" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "featureOverrides" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
-      },
-      "Detail" : {
-        "type" : "object",
-        "properties" : {
-          "unit" : {
-            "$ref" : "#/components/schemas/OrgUnit"
-          },
-          "ancestors" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/Ancestor"
-            }
-          },
-          "childCounts" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "integer",
-              "format" : "int64"
-            }
-          },
-          "dependents" : {
-            "$ref" : "#/components/schemas/Dependents"
-          }
-        }
       },
       "OrgUnit" : {
         "type" : "object",
@@ -1100,7 +1036,71 @@
           }
         }
       },
-      "MoveRequest" : {
+      "OrgUnitAncestor" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "OrgUnitDependents" : {
+        "type" : "object",
+        "properties" : {
+          "children" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeChildren" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "roleAssignments" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "featureOverrides" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "OrgUnitDetail" : {
+        "type" : "object",
+        "properties" : {
+          "unit" : {
+            "$ref" : "#/components/schemas/OrgUnit"
+          },
+          "ancestors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrgUnitAncestor"
+            }
+          },
+          "childCounts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "dependents" : {
+            "$ref" : "#/components/schemas/OrgUnitDependents"
+          }
+        }
+      },
+      "OrgUnitMoveRequest" : {
         "type" : "object",
         "properties" : {
           "newParentId" : {
@@ -1119,7 +1119,7 @@
         },
         "required" : [ "version" ]
       },
-      "StatusRequest" : {
+      "OrgUnitStatusRequest" : {
         "type" : "object",
         "properties" : {
           "version" : {
@@ -1130,6 +1130,43 @@
             "type" : "string",
             "maxLength" : 500,
             "minLength" : 0
+          }
+        },
+        "required" : [ "version" ]
+      },
+      "OrgUnitUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          },
+          "shortName" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "branding" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
           }
         },
         "required" : [ "version" ]
@@ -1161,7 +1198,7 @@
           }
         }
       },
-      "HistoryEntry" : {
+      "OrgUnitHistoryEntry" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -1195,13 +1232,13 @@
           }
         }
       },
-      "PageResponseHistoryEntry" : {
+      "PageResponseOrgUnitHistoryEntry" : {
         "type" : "object",
         "properties" : {
           "items" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/HistoryEntry"
+              "$ref" : "#/components/schemas/OrgUnitHistoryEntry"
             }
           },
           "page" : {
@@ -1222,7 +1259,7 @@
           }
         }
       },
-      "TreeNode" : {
+      "OrgUnitTreeNode" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -1253,7 +1290,7 @@
           }
         }
       },
-      "Distribution" : {
+      "InstitutionDistribution" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -1277,7 +1314,7 @@
           }
         }
       },
-      "Summary" : {
+      "OrgUnitSummaryResponse" : {
         "type" : "object",
         "properties" : {
           "active" : {
@@ -1297,7 +1334,7 @@
           "institutions" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/Distribution"
+              "$ref" : "#/components/schemas/InstitutionDistribution"
             }
           }
         }

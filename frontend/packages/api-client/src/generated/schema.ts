@@ -4,6 +4,24 @@
  */
 
 export interface paths {
+    "/api/v1/tenant/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Organization settings: unit-type display labels and time zone (all signed-in users) */
+        get: operations["get"];
+        /** Update organization settings (requires tenant.settings.manage) */
+        put: operations["update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/features/{key}/override": {
         parameters: {
             query?: never;
@@ -12,11 +30,80 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set a tenant-level (no institutionId) or institution-level override (requires feature.manage in scope) */
+        /** Set an organization-level (no orgUnitId) or university/college override (requires feature.manage in scope) */
         put: operations["setOverride"];
         post?: never;
         /** Remove an override so the value is inherited again */
         delete: operations["clearOverride"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List organization units visible to the caller (search, filters, sort, pagination) */
+        get: operations["list"];
+        put?: never;
+        /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move a unit (and its subtree) under a new parent, or to the top level */
+        post: operations["move"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deactivate a unit (not allowed while it has active sub-units) */
+        post: operations["deactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units/{id}/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate a unit (its parent must be active) */
+        post: operations["activate"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -56,6 +143,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/org-units/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unit details with ancestors (breadcrumb), child counts and dependents */
+        get: operations["get_1"];
+        put?: never;
+        post?: never;
+        /** Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead) */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        /** Edit code, name, short name, attributes or branding (optimistic version) */
+        patch: operations["update_1"];
+        trace?: never;
+    };
+    "/api/v1/org-units/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Change history of a unit (newest first) */
+        get: operations["history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All visible units (flat, with parent ids) for building the hierarchy tree */
+        get: operations["tree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/org-units/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts by type and status, and campuses/departments per institution (visible units) */
+        get: operations["summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications": {
         parameters: {
             query?: never;
@@ -64,7 +221,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first) */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -107,40 +264,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/institutions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List institutions visible to the caller (search, sort, pagination) */
-        get: operations["list_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/institutions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get one institution */
-        get: operations["get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/features": {
         parameters: {
             query?: never;
@@ -148,7 +271,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Effective features for the caller's tenant, optionally for one institution */
+        /** Effective features for the organization, or for any unit (inherited down the hierarchy) */
         get: operations["effective"];
         put?: never;
         post?: never;
@@ -165,7 +288,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Feature configuration with all layers (requires feature.read in scope) */
+        /** Feature configuration for the organization or a university/college (requires feature.read in scope) */
         get: operations["configuration"];
         put?: never;
         post?: never;
@@ -213,9 +336,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        TenantSettingsUpdateRequest: {
+            labels?: {
+                [key: string]: components["schemas"]["UnitTypeLabel"];
+            };
+            timeZone?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        UnitTypeLabel: {
+            singular?: string;
+            plural?: string;
+        };
+        TenantSettings: {
+            labels?: {
+                [key: string]: components["schemas"]["UnitTypeLabel"];
+            };
+            timeZone?: string;
+            /** Format: int64 */
+            version?: number;
+        };
         OverrideRequest: {
             /** Format: uuid */
-            institutionId?: string;
+            orgUnitId?: string;
             enabled: boolean;
         };
         FeatureConfigurationView: {
@@ -226,9 +369,177 @@ export interface components {
             institutionOverridable?: boolean;
             deploymentDisabled?: boolean;
             tenantOverride?: boolean;
-            institutionOverride?: boolean;
+            unitOverride?: boolean;
+            inheritedEnabled?: boolean;
+            inheritedSource?: string;
             enabled?: boolean;
             source?: string;
+        };
+        OrgUnitCreateRequest: {
+            /** @enum {string} */
+            type: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
+            /** Format: uuid */
+            parentId?: string;
+            code: string;
+            name: string;
+            shortName?: string;
+            attributes?: {
+                [key: string]: string;
+            };
+            branding?: {
+                [key: string]: string;
+            };
+        };
+        OrgUnit: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            parentId?: string;
+            parentName?: string;
+            /** @enum {string} */
+            type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
+            code?: string;
+            name?: string;
+            shortName?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            path?: string;
+            attributes?: {
+                [key: string]: string;
+            };
+            branding?: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        OrgUnitAncestor: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
+            code?: string;
+            name?: string;
+        };
+        OrgUnitDependents: {
+            /** Format: int64 */
+            children?: number;
+            /** Format: int64 */
+            activeChildren?: number;
+            /** Format: int64 */
+            roleAssignments?: number;
+            /** Format: int64 */
+            featureOverrides?: number;
+        };
+        OrgUnitDetail: {
+            unit?: components["schemas"]["OrgUnit"];
+            ancestors?: components["schemas"]["OrgUnitAncestor"][];
+            childCounts?: {
+                [key: string]: number;
+            };
+            dependents?: components["schemas"]["OrgUnitDependents"];
+        };
+        OrgUnitMoveRequest: {
+            /** Format: uuid */
+            newParentId?: string;
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        OrgUnitStatusRequest: {
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        OrgUnitUpdateRequest: {
+            /** Format: int64 */
+            version: number;
+            code?: string;
+            name?: string;
+            shortName?: string;
+            attributes?: {
+                [key: string]: string;
+            };
+            branding?: {
+                [key: string]: string;
+            };
+        };
+        PageResponseOrgUnit: {
+            items?: components["schemas"]["OrgUnit"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        OrgUnitHistoryEntry: {
+            /** Format: uuid */
+            id?: string;
+            changeType?: string;
+            /** Format: date-time */
+            changedAt?: string;
+            /** Format: uuid */
+            changedBy?: string;
+            changedByName?: string;
+            reason?: string;
+            before?: {
+                [key: string]: unknown;
+            };
+            after?: {
+                [key: string]: unknown;
+            };
+        };
+        PageResponseOrgUnitHistoryEntry: {
+            items?: components["schemas"]["OrgUnitHistoryEntry"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        OrgUnitTreeNode: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            parentId?: string;
+            /** @enum {string} */
+            type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
+            code?: string;
+            name?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** Format: int32 */
+            childCount?: number;
+        };
+        InstitutionDistribution: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
+            name?: string;
+            /** Format: int64 */
+            campuses?: number;
+            /** Format: int64 */
+            departments?: number;
+        };
+        OrgUnitSummaryResponse: {
+            active?: {
+                [key: string]: number;
+            };
+            inactive?: {
+                [key: string]: number;
+            };
+            institutions?: components["schemas"]["InstitutionDistribution"][];
         };
         Notification: {
             /** Format: uuid */
@@ -281,26 +592,6 @@ export interface components {
             branding?: {
                 [key: string]: unknown;
             };
-        };
-        InstitutionView: {
-            /** Format: uuid */
-            id?: string;
-            code?: string;
-            name?: string;
-            status?: string;
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        PageResponseInstitutionView: {
-            items?: components["schemas"]["InstitutionView"][];
-            /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int32 */
-            totalPages?: number;
         };
         EffectiveFeature: {
             key?: string;
@@ -357,6 +648,50 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TenantSettings"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantSettingsUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TenantSettings"];
+                };
+            };
+        };
+    };
     setOverride: {
         parameters: {
             query?: never;
@@ -386,7 +721,7 @@ export interface operations {
     clearOverride: {
         parameters: {
             query?: {
-                institutionId?: string;
+                orgUnitId?: string;
             };
             header?: never;
             path: {
@@ -403,6 +738,137 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FeatureConfigurationView"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: {
+                type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
+                parentId?: string;
+                status?: "ACTIVE" | "INACTIVE";
+                q?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseOrgUnit"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgUnitCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    move: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgUnitMoveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    deactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgUnitStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    activate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgUnitStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitDetail"];
                 };
             };
         };
@@ -449,7 +915,142 @@ export interface operations {
             };
         };
     };
-    list: {
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgUnitUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    history: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseOrgUnitHistoryEntry"];
+                };
+            };
+        };
+    };
+    tree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitTreeNode"][];
+                };
+            };
+        };
+    };
+    summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgUnitSummaryResponse"];
+                };
+            };
+        };
+    };
+    list_1: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -515,58 +1116,10 @@ export interface operations {
             };
         };
     };
-    list_1: {
-        parameters: {
-            query?: {
-                q?: string;
-                page?: number;
-                size?: number;
-                sort?: string;
-                direction?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PageResponseInstitutionView"];
-                };
-            };
-        };
-    };
-    get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["InstitutionView"];
-                };
-            };
-        };
-    };
     effective: {
         parameters: {
             query?: {
-                institutionId?: string;
+                orgUnitId?: string;
             };
             header?: never;
             path?: never;
@@ -588,7 +1141,7 @@ export interface operations {
     configuration: {
         parameters: {
             query?: {
-                institutionId?: string;
+                orgUnitId?: string;
             };
             header?: never;
             path?: never;

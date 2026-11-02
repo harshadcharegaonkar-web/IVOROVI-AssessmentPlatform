@@ -3,6 +3,7 @@ import { ChevronDown, GraduationCap, PanelLeftClose, PanelLeftOpen } from "lucid
 import { useState } from "react";
 import { NavLink } from "react-router";
 import { useSession } from "../session/SessionProvider";
+import { useOrgLabels } from "../session/useOrgLabels";
 import { FOOTER_ITEMS, type NavItem, visibleGroups } from "./navigation";
 
 const navFocus = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
@@ -24,13 +25,15 @@ export function Brand({ collapsed, compact }: { collapsed: boolean; compact?: bo
 }
 
 function Item({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+  const labels = useOrgLabels();
   const Icon = item.icon;
+  const text = item.orgType ? labels.plural(item.orgType) : item.label;
   return (
-    <Tooltip content={item.label} disabled={!collapsed}>
+    <Tooltip content={text} disabled={!collapsed}>
       <NavLink
         to={item.to}
-        end={item.to === "/"}
-        aria-label={collapsed ? item.label : undefined}
+        end={item.to === "/" || item.to === "/organization"}
+        aria-label={collapsed ? text : undefined}
         className={({ isActive }) => cn(
           "group relative flex h-10 items-center gap-3 rounded-lg text-sm font-medium transition-colors",
           collapsed ? "justify-center px-0" : "px-3",
@@ -42,7 +45,7 @@ function Item({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
           <>
             {isActive && <span aria-hidden className="absolute inset-y-2 left-0 w-[3px] rounded-r bg-primary" />}
             <Icon aria-hidden className="h-5 w-5 shrink-0" strokeWidth={1.75} />
-            {!collapsed && <span className="truncate">{item.label}</span>}
+            {!collapsed && <span className="truncate">{text}</span>}
           </>
         )}
       </NavLink>

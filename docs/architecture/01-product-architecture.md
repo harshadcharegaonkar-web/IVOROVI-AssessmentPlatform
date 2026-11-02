@@ -70,8 +70,12 @@ Rules that make this work:
 
 ## 4. Multi-tenancy and isolation
 
-**Tenant hierarchy.** `Tenant` (the contracting organization / education group) → `Institution` → `Campus` →
-`Department` → `Program`. A college with no groups is a tenant with one institution.
+**Tenant hierarchy.** `Tenant` (the contracting organization / education group) → **organization units**
+(`org_unit`, increment 1.1): `UNIVERSITY` → `COLLEGE` → `CAMPUS` → `DEPARTMENT`, with optional levels
+(stand-alone colleges, departments directly under a college or university). Universities and colleges are the
+"institutions" (feature overrides, branding). Each unit stores a materialised `ltree` path; parents must be in the
+same tenant (composite FK + RLS), codes are unique among siblings, and cycles are rejected. Unit types are fixed;
+each tenant may configure display labels (e.g. "School"). Programs and courses follow in increment 1.3.
 
 **Isolation (defense in depth):**
 
@@ -97,9 +101,11 @@ from day one, but is not implemented until needed (ADR-0003).
 * **Authorization lives in Ivorovi, not in the IdP.** Model:
   * `Permission`: fixed catalog defined in code, e.g. `assessment.publish`, `result.approve`, `proctor.review`.
   * `Role`: a named bundle of permissions. The 15 system roles are seeded and immutable. Tenants create custom roles.
-  * `RoleAssignment`: (user, role, **scope**) where scope is a node in the hierarchy (tenant / institution /
-    campus / department / program) or a specific resource (e.g. one assessment for an external evaluator).
-  * Effective permission = any assignment whose scope contains the target resource's scope.
+  * `RoleAssignment`: (user, role, **scope**) where scope is `TENANT` or `ORG_UNIT` (implemented), later a
+    specific resource (e.g. one assessment for an external evaluator).
+  * Effective permission = any assignment whose scope contains the target resource's scope. An `ORG_UNIT`
+    assignment covers the unit and its whole subtree (ltree prefix check via `Authz.hasInOrgUnit`; unit paths
+    cached in Valkey with after-commit eviction).
 * **Enforcement:** server-side in every endpoint via `@PreAuthorize("@authz.check('assessment.publish', #id)")`.
   Frontend hiding is cosmetic only. Resource-level checks (e.g. "an evaluator sees only scripts allocated to
   them") live in the module's application service.
@@ -208,8 +214,8 @@ server-side. Candidate code never runs in the API process.
 * Tenant context: `IvoroviJwtAuthenticationConverter` → `TenantContext` (thread-bound, cleared by the outermost
   filter) → `TenantAwareDataSource` sets `app.tenant_id` and `app.platform_context` on **every** connection
   borrow → RLS policies on all tenant tables (a test fails the build if a `tenant_id` table lacks RLS).
-* Feature resolution: deployment ceiling → tenant override or catalog default → institution override, which may
-  only narrow. AI and integration flags default OFF. Overrides are cached per tenant in Valkey (JSON) with
+* Feature resolution: deployment ceiling → tenant override or catalog default → institution chain (university,
+  then college) overrides, each of which may only narrow; campuses and departments inherit. AI and integration flags default OFF. Overrides are cached per tenant in Valkey (JSON) with
   after-commit eviction.
 * Events: transactional outbox → `ivorovi.events` topic exchange with publisher confirms. At-least-once delivery,
   `message_id` = outbox id for consumer de-duplication.

@@ -15,9 +15,9 @@ export function Breadcrumbs({ items, className }: { items: Crumb[]; className?: 
             <li key={`${c.label}-${i}`} className="flex min-w-0 items-center gap-1">
               {i > 0 && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-muted" />}
               {last || !c.to ? (
-                <span aria-current={last ? "page" : undefined} className={last ? "truncate font-medium text-fg" : "truncate text-muted"}>{c.label}</span>
+                <span aria-current={last ? "page" : undefined} className={last ? "truncate font-medium text-fg" : "truncate text-muted-strong"}>{c.label}</span>
               ) : (
-                <Link to={c.to} className="truncate text-muted hover:text-fg">{c.label}</Link>
+                <Link to={c.to} className="truncate text-muted-strong hover:text-fg">{c.label}</Link>
               )}
             </li>
           );

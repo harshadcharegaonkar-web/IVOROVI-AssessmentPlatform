@@ -1,26 +1,19 @@
-import { unwrap } from "@ivorovi/api-client";
 import { Card, CardBody, CardHeader, DataTable, PageHeader, type Column } from "@ivorovi/ui";
-import { useQuery } from "@tanstack/react-query";
-import { useApi } from "../api/ApiProvider";
+import { useOrgTree } from "../session/useOrgTree";
 import { humanize } from "../lib/format";
 import { useSession } from "../session/SessionProvider";
 
 type GrantRow = { role: string; permission: string; scope: string; key: string };
 
 export function MyAccessPage() {
-  const api = useApi();
-  const { me, access } = useSession();
-  const institutions = useQuery({
-    queryKey: ["institutions", "names"],
-    enabled: access.hasAnywhere("institution.read"),
-    queryFn: async () => unwrap(await api.GET("/api/v1/institutions", { params: { query: { size: 100 } } })),
-  });
-  const names = new Map((institutions.data?.items ?? []).map((i) => [i.id, i.name]));
+  const { me } = useSession();
+  const tree = useOrgTree();
+  const names = new Map((tree.data ?? []).map((i) => [i.id, i.name]));
   const rows: GrantRow[] = (me.grants ?? []).map((g, i) => ({
     key: `${i}`,
     role: humanize(g.role),
     permission: g.permission ?? "",
-    scope: g.scopeType === "TENANT" ? "Whole organization" : `Institution: ${names.get(g.scopeId) ?? g.scopeId}`,
+    scope: g.scopeType === "TENANT" ? "Whole organization" : `${names.get(g.scopeId ?? "") ?? g.scopeId} (and its sub-units)`,
   }));
   const columns: Column<GrantRow>[] = [
     { key: "role", header: "Role", cell: (r) => r.role },

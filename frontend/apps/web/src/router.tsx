@@ -60,11 +60,13 @@ export const routes: RouteObject[] = [
     children: [
       { errorElement: <RouteError />, children: [
         { index: true, handle: { crumb: "Dashboard" }, ...page(() => import("./routes/DashboardPage")) },
-        { path: "institutions", handle: { crumb: "Institutions" }, children: [
-          { index: true, ...page(() => import("./routes/InstitutionsPage"), (a) => a.hasAnywhere("institution.read")) },
-          { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/InstitutionDetailPage"), (a) => a.hasAnywhere("institution.read")) },
+        { path: "organization", handle: { crumb: "Organization" }, children: [
+          { index: true, ...page(() => import("./routes/organization/OrgHierarchyPage"), (a) => a.hasAnywhere("org_unit.read")) },
+          { path: "units/:id", handle: { crumb: "Details" }, ...page(() => import("./routes/organization/OrgUnitDetailPage"), (a) => a.hasAnywhere("org_unit.read")) },
+          { path: ":typeSlug", ...page(() => import("./routes/organization/OrgUnitListPage"), (a) => a.hasAnywhere("org_unit.read")) },
         ] },
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
+        { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },
         { path: "audit", handle: { crumb: "Audit Logs" }, ...page(() => import("./routes/AuditPage"), (a) => a.has("audit.read")) },
         { path: "me", handle: { crumb: "My Access" }, ...page(() => import("./routes/MyAccessPage")) },
         { path: "*", element: <NotFoundPage /> },

@@ -21,7 +21,7 @@ export function nextActionFor(flag: FeatureConfigurationView, enabled: boolean):
 export function describeSource(f: FeatureConfigurationView): string {
   switch (f.source) {
     case "DEPLOYMENT": return "Disabled for this deployment";
-    case "INSTITUTION": return "Set for this institution";
+    case "INSTITUTION": return f.unitOverride !== undefined && f.unitOverride !== null ? "Set for this institution" : "Inherited from a parent institution";
     case "TENANT": return "Set for the organization";
     default: return `Default (${f.defaultEnabled ? "on" : "off"})`;
   }

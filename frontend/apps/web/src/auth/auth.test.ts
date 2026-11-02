@@ -3,7 +3,7 @@ import { safeReturnPath } from "./auth";
 
 describe("safeReturnPath", () => {
   it.each([
-    ["/institutions?q=a", "/institutions?q=a"],
+    ["/organization/colleges?q=a", "/organization/colleges?q=a"],
     ["https://evil.example/x", "/"],
     ["//evil.example", "/"],
     ["/auth/callback?code=1", "/"],

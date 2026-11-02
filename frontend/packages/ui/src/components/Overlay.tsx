@@ -110,3 +110,32 @@ export function Dialog({ open, onOpenChange, title, children, className }: {
     </RadixDialog.Root>
   );
 }
+
+/** Standard form modal (design system: 560 px, header/body/footer, body scrolls on small screens). */
+export function Modal({ open, onOpenChange, title, description, children, footer, size = "md" }: {
+  open: boolean; onOpenChange: (o: boolean) => void; title: string; description?: ReactNode;
+  children: ReactNode; footer: ReactNode; size?: "md" | "lg";
+}) {
+  return (
+    <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
+      <RadixDialog.Portal>
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
+        <RadixDialog.Content {...(description ? {} : { "aria-describedby": undefined })}
+          className={cn("fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-border bg-surface shadow-lg",
+            size === "lg" ? "max-w-2xl" : "max-w-[560px]")}>
+          <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-4">
+            <div>
+              <RadixDialog.Title className="text-base font-semibold text-fg">{title}</RadixDialog.Title>
+              {description && <RadixDialog.Description className="mt-1 text-sm text-muted">{description}</RadixDialog.Description>}
+            </div>
+            <RadixDialog.Close aria-label="Close" className={cn("rounded-md p-1 text-muted hover:text-fg", focusRing)}>
+              <X aria-hidden className="h-5 w-5" />
+            </RadixDialog.Close>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">{children}</div>
+          <div className="flex justify-end gap-2 border-t border-border px-6 py-4">{footer}</div>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
+  );
+}

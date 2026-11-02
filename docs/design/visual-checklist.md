@@ -41,11 +41,11 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 
 | # | Screen | Inc. | Checklist | Screenshots | Reviewer sign-off |
 |---|---|---|---|---|---|
-| 1 | Dashboard | 1.1 (org KPIs) → 1.6 (full) | 🟨 1.0 layout and KPI anatomy; full KPI set from 1.1 | ✅ 1.0 | ☐ |
-| 2 | Organization hierarchy | 1.1 | ☐ | ☐ | ☐ |
-| 3 | Institution listing and details | 1.1 | 🟨 restyled in 1.0; org-unit version in 1.1 | ✅ 1.0 | ☐ |
-| 4 | Campus management | 1.1 | ☐ | ☐ | ☐ |
-| 5 | Department management | 1.1 | ☐ | ☐ | ☐ |
+| 1 | Dashboard | 1.1 (org KPIs) → 1.6 (full) | 🟨 org KPIs (configured labels) + organization distribution in 1.1; people/academic KPIs later | ✅ 1.0, 1.1 | ☐ 1.1 review |
+| 2 | Organization hierarchy | 1.1 | ✅ A1–A7, B14 (axe) | ✅ 3 viewports | ☐ |
+| 3 | University / College listings and unit details | 1.1 | ✅ listing, detail (overview, sub-units, features, history), forms, dialogs | ✅ | ☐ |
+| 4 | Campus management | 1.1 | ✅ (shared listing/detail) | ✅ | ☐ |
+| 5 | Department management | 1.1 | ✅ (shared listing/detail; axe) | ✅ | ☐ |
 | 6 | Academic year management | 1.2 | ☐ | ☐ | ☐ |
 | 7 | Program management | 1.5 | ☐ | ☐ | ☐ |
 | 8 | Course management | 1.5 | ☐ | ☐ | ☐ |
@@ -62,7 +62,7 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ✅ 1.0 restyle | ✅ | ✅ 1.0 approved 2026-11-02 |
 | 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ✅ approved 2026-11-02 |
 | 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ✅ approved 2026-11-02 |
-| + | System settings | 1.1 | ☐ | ☐ | ☐ |
+| + | System settings | 1.1 | ✅ (axe) | ✅ 3 viewports | ☐ |
 
 ## D. Results: increment 1.0 (2026-11-02), approved by the product owner as the visual baseline
 
@@ -71,6 +71,13 @@ Shell checks A1–A7: **pass** at 1440 × 900, 1024 × 768, 390 × 844 (and 360 
 (no horizontal scroll on every screen at mobile width; tablet rail width and navy top bar colour), B14 (axe on the
 dashboard). Defects found by this review and fixed are listed in `docs/phase-1/increment-1.0.md`.
 
-Automation (planned for 1.1): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
+## E. Results: increment 1.1 (2026-11-02), awaiting review
+
+Shell checks A1–A7 pass on all new screens at 1440, 1024 and 390 px. Evidence: `docs/design/evidence/1.1/`
+(29 screenshots). Playwright asserts no horizontal scrolling on every new screen at tablet and mobile widths, and
+runs axe (WCAG 2.1 AA, no serious/critical violations) on the hierarchy, a listing, a unit detail and System
+Settings. Defects found and fixed: KI-29, KI-30. Pixel-diff automation (below) was **not** delivered (KI-26).
+
+Automation (re-planned for 1.2): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are
 updated only through a reviewed PR.

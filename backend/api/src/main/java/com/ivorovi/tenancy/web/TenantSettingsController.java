@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Organization")
 class TenantSettingsController {
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "TenantSettingsUpdateRequest")
     record UpdateRequest(Map<OrgUnitType, TenantSettingsService.Label> labels, @Size(max = 64) String timeZone,
                          @NotNull Long version) {}
 

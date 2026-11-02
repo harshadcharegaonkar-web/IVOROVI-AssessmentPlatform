@@ -39,17 +39,22 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 class OrgUnitController {
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitCreateRequest")
     record CreateRequest(@NotNull OrgUnitType type, UUID parentId, @NotNull @Size(min = 1, max = 63) String code,
                          @NotNull @Size(min = 1, max = 200) String name, @Size(max = 50) String shortName,
                          Map<String, String> attributes, Map<String, String> branding) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitUpdateRequest")
     record UpdateRequest(@NotNull Long version, @Size(min = 1, max = 63) String code, @Size(min = 1, max = 200) String name,
                          @Size(max = 50) String shortName, Map<String, String> attributes, Map<String, String> branding) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitMoveRequest")
     record MoveRequest(UUID newParentId, @NotNull Long version, @Size(max = 500) String reason) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitStatusRequest")
     record StatusRequest(@NotNull Long version, @Size(max = 500) String reason) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitSummaryResponse")
     record Summary(Map<OrgUnitType, Long> active, Map<OrgUnitType, Long> inactive, List<OrgUnitService.Distribution> institutions) {}
 
     private final OrgUnitService service;

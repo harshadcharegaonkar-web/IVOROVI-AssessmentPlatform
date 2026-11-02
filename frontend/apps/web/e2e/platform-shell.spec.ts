@@ -8,28 +8,34 @@ test.describe("Application shell and Phase 0 workflows", () => {
     await expect(page.getByTestId("tenant-name")).toHaveText("Aurora Education Group");
     await expect(page.getByTestId("user-name")).toHaveText("Alice Admin");
     await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
-    await expect(page.getByTestId("institution-count")).toHaveText("2");
+    await expect(page.getByTestId("kpi-universities")).toHaveText("1");
+    await expect(page.getByTestId("kpi-colleges")).toHaveText("2");
+    await expect(page.getByTestId("kpi-campuses")).toHaveText("1");
+    await expect(page.getByTestId("kpi-departments")).toHaveText("3");
+    await expect(page.getByTestId("org-distribution")).toContainText("Aurora Institute of Technology");
     const nav = page.getByRole("navigation", { name: "Main" });
-    for (const item of ["Dashboard", "Institution Management", "Feature Settings", "Audit Logs"]) {
+    for (const item of ["Dashboard", "Organization Hierarchy", "Universities", "Colleges", "Campuses", "Departments",
+      "Feature Settings", "Audit Logs", "System Settings"]) {
       await expect(nav.getByRole("link", { name: item })).toBeVisible();
     }
   });
 
-  test("institutions: search, sort and detail", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin, "/institutions");
-    const table = page.getByRole("table", { name: "Institutions" });
+  test("colleges: search and detail with institution features", async ({ page }) => {
+    await signIn(page, USERS.orgAdmin, "/organization/colleges");
+    const table = page.getByRole("table", { name: "Colleges" });
     await expect(table.getByRole("row")).toHaveCount(3); // header + 2
-    await page.getByRole("searchbox", { name: "Search institutions" }).fill("commerce");
+    await page.getByRole("searchbox", { name: "Search colleges" }).fill("commerce");
     await expect(table.getByRole("row")).toHaveCount(2);
     await expect(page).toHaveURL(/q=commerce/);
     await table.getByRole("link", { name: "Aurora College of Commerce" }).click();
-    await expect(page.getByRole("heading", { name: "Aurora College of Commerce" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Aurora College of Commerce", level: 1 })).toBeVisible();
+    await page.getByRole("tab", { name: "Features" }).click();
     await expect(page.getByRole("heading", { name: "Institution features" })).toBeVisible();
   });
 
   test("other tenant's data is not reachable from the UI", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin, "/institutions/0192b000-0000-7000-8000-00000000b101");
-    await expect(page.getByText("Institution not found")).toBeVisible();
+    await signIn(page, USERS.orgAdmin, "/organization/units/0192b000-0000-7000-8000-00000000b101");
+    await expect(page.getByText("Unit not found")).toBeVisible();
     await expect(page.getByText("Borealis")).toHaveCount(0);
   });
 
@@ -70,7 +76,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Audit Logs" })).toHaveCount(0);
-    await expect(nav.getByRole("link", { name: "Institution Management" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Organization Hierarchy" })).toHaveCount(0);
     await expect(page.getByText("Organization", { exact: true })).toHaveCount(0); // empty groups are hidden
     await page.goto("/audit");
     await expect(page.getByText("Access denied")).toBeVisible();
@@ -101,8 +107,8 @@ test.describe("Application shell and Phase 0 workflows", () => {
   test("mobile navigation drawer @mobile", async ({ page }) => {
     await signIn(page, USERS.orgAdmin);
     await page.getByRole("button", { name: "Open navigation" }).click();
-    await page.locator("#mobile-nav").getByRole("link", { name: "Institution Management" }).click();
-    await expect(page.getByRole("heading", { name: "Institutions" })).toBeVisible();
+    await page.locator("#mobile-nav").getByRole("link", { name: "Organization Hierarchy" }).click();
+    await expect(page.getByRole("heading", { name: "Organization hierarchy", level: 1 })).toBeVisible();
     await expect(page.locator("#mobile-nav")).toHaveCount(0);
   });
 
@@ -129,7 +135,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
     await search.fill("commerce");
     await expect(page.getByRole("option", { name: /Aurora College of Commerce/ })).toBeVisible();
     await search.press("Enter");
-    await expect(page.getByRole("heading", { name: "Aurora College of Commerce" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Aurora College of Commerce", level: 1 })).toBeVisible();
 
     await page.getByRole("button", { name: "Account menu" }).click();
     await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
@@ -152,7 +158,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
     await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Audit Logs" })).toBeVisible();
   });
 
-  for (const path of ["/", "/institutions", "/settings/features", "/audit", "/me"]) {
+  for (const path of ["/", "/settings/features", "/audit", "/me"]) {
     test(`no horizontal scrolling on ${path} @mobile`, async ({ page }) => {
       await signIn(page, USERS.orgAdmin, path);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();

@@ -40,25 +40,33 @@ public class OrgUnitService implements OrgUnitLookup {
 
     public enum Status { ACTIVE, INACTIVE }
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnit")
     public record OrgUnit(UUID id, UUID parentId, String parentName, OrgUnitType type, String code, String name,
                           String shortName, Status status, String path, Map<String, String> attributes,
                           Map<String, String> branding, Instant createdAt, Instant updatedAt, long version) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitAncestor")
     public record Ancestor(UUID id, OrgUnitType type, String code, String name) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitDependents")
     public record Dependents(long children, long activeChildren, long roleAssignments, long featureOverrides) {
         public boolean any() { return children + roleAssignments + featureOverrides > 0; }
     }
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitDetail")
     public record Detail(OrgUnit unit, List<Ancestor> ancestors, Map<OrgUnitType, Long> childCounts, Dependents dependents) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitTreeNode")
     public record TreeNode(UUID id, UUID parentId, OrgUnitType type, String code, String name, Status status, int childCount) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitHistoryEntry")
     public record HistoryEntry(UUID id, String changeType, Instant changedAt, UUID changedBy, String changedByName,
                                String reason, Map<String, Object> before, Map<String, Object> after) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitSummary")
     public record Summary(Map<OrgUnitType, Long> active, Map<OrgUnitType, Long> inactive, List<Distribution> institutions) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "InstitutionDistribution")
     public record Distribution(UUID id, OrgUnitType type, String name, long campuses, long departments) {}
 
     public record Query(OrgUnitType type, UUID parentId, Status status, String q) {}

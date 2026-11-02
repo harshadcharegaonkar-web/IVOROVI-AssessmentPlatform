@@ -11,7 +11,7 @@ Conventions for every tenant-owned table: `id uuid` (UUIDv7, time-ordered), `ten
 
 | # | Module (package) | Owns aggregates |
 |---|---|---|
-| 1 | `tenancy` | Tenant, Institution, Campus, Department, Program, AcademicTerm |
+| 1 | `tenancy` | Tenant, OrgUnit (University/College/Campus/Department), OrgUnitHistory, TenantSettings, Program, AcademicTerm |
 | 2 | `identity` | UserAccount, Role, Permission (code catalog), RoleAssignment, UserGroup |
 | 3 | `people` | Person, StudentProfile, CandidateProfile, Enrollment, Cohort/Batch |
 | 4 | `admissions` | AdmissionCycle, ApplicationForm, Application, EligibilityRuleSet, ScreeningStage |
@@ -37,11 +37,12 @@ Conventions for every tenant-owned table: `id uuid` (UUIDv7, time-ordered), `ten
 
 ```mermaid
 erDiagram
-    TENANT ||--o{ INSTITUTION : has
-    INSTITUTION ||--o{ CAMPUS : has
-    CAMPUS ||--o{ DEPARTMENT : has
-    DEPARTMENT ||--o{ PROGRAM : offers
-    INSTITUTION ||--o{ ACADEMIC_TERM : defines
+    TENANT ||--o{ ORG_UNIT : has
+    ORG_UNIT ||--o{ ORG_UNIT : "parent of (University > College > Campus > Department)"
+    ORG_UNIT ||--o{ ORG_UNIT_HISTORY : records
+    TENANT ||--|| TENANT_SETTINGS : configures
+    ORG_UNIT ||--o{ PROGRAM : offers
+    ORG_UNIT ||--o{ ACADEMIC_TERM : defines
 
     TENANT ||--o{ USER_ACCOUNT : contains
     USER_ACCOUNT ||--o{ ROLE_ASSIGNMENT : holds
@@ -89,8 +90,13 @@ erDiagram
 ### Tenancy and identity
 * **Tenant**: `code` (unique, slug), `name`, `status (TRIAL|ACTIVE|SUSPENDED|TERMINATED)`, `region`,
   `data_residency`, `branding`. A suspended tenant → all non-admin requests are rejected.
-* **Institution / Campus / Department / Program**: form the **scope tree**. Each node stores a
-  materialized `scope_path` (ltree) for fast "is X within Y" authorization checks.
+* **OrgUnit** (increment 1.1): `unit_type (UNIVERSITY|COLLEGE|CAMPUS|DEPARTMENT)`, `parent_id`, `code`
+  (unique among siblings, case-insensitive), `name`, `short_name`, `status (ACTIVE|INACTIVE)`, `path` (ltree of
+  hex ids), `attributes` (city, state, website, email), `branding` (accent colour; universities/colleges only),
+  `version`. Allowed parents: COLLEGE → none/UNIVERSITY; CAMPUS → UNIVERSITY/COLLEGE; DEPARTMENT →
+  UNIVERSITY/COLLEGE/CAMPUS. Units form the **scope tree** for authorization. Programs (1.3) attach to units.
+* **OrgUnitHistory**: append-only before/after snapshots per change (app role may not update/delete).
+* **TenantSettings**: per-type display labels and the organization time zone (optimistic `version`).
 * **UserAccount**: `external_subject` (IdP `sub`, unique per tenant), `email`, `status`, `person_id?`.
   One human can be a student in one tenant and an evaluator in another as separate accounts.
 * **RoleAssignment**: `(user_id, role_id, scope_type, scope_id, valid_from, valid_to)`. Time-bound

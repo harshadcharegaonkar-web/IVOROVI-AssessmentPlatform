@@ -6,9 +6,10 @@ import type { MeResponse } from "@ivorovi/api-client";
  */
 export interface Access {
   has(permission: string): boolean;
-  hasInInstitution(permission: string, institutionId: string | null | undefined): boolean;
+  /** Granted for a unit: tenant-wide, on the unit, or on one of its ancestors (pass the unit's ancestor ids). */
+  hasInOrgUnit(permission: string, orgUnitId: string | null | undefined, ancestorIds?: string[]): boolean;
   hasAnywhere(permission: string): boolean;
-  institutionsWith(permission: string): string[];
+  orgUnitScopesWith(permission: string): string[];
 }
 
 export function createAccess(me: Pick<MeResponse, "grants" | "tenant">): Access {
@@ -17,9 +18,13 @@ export function createAccess(me: Pick<MeResponse, "grants" | "tenant">): Access 
   const has = (p: string) => grants.some((g) => g.permission === p && g.scopeType === "TENANT" && g.scopeId === tenantId);
   return {
     has,
-    hasInInstitution: (p, inst) =>
-      inst ? has(p) || grants.some((g) => g.permission === p && g.scopeType === "INSTITUTION" && g.scopeId === inst) : has(p),
+    hasInOrgUnit: (p, unit, ancestors = []) => {
+      if (has(p)) return true;
+      if (!unit) return false;
+      const scope = new Set([unit, ...ancestors]);
+      return grants.some((g) => g.permission === p && g.scopeType === "ORG_UNIT" && scope.has(g.scopeId!));
+    },
     hasAnywhere: (p) => grants.some((g) => g.permission === p),
-    institutionsWith: (p) => [...new Set(grants.filter((g) => g.permission === p && g.scopeType === "INSTITUTION").map((g) => g.scopeId!))],
+    orgUnitScopesWith: (p) => [...new Set(grants.filter((g) => g.permission === p && g.scopeType === "ORG_UNIT").map((g) => g.scopeId!))],
   };
 }

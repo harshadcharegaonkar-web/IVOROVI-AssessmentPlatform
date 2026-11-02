@@ -6,26 +6,26 @@ import { errorInfo, useApi } from "../../api/ApiProvider";
 import { useSession } from "../../session/SessionProvider";
 import { describeSource, groupByCategory, nextActionFor } from "./featureModel";
 
-interface Props { institutionId: string | null; institutionName?: string }
+interface Props { orgUnitId: string | null; unitName?: string; ancestorIds?: string[] }
 
-export function FeatureConfigurationPanel({ institutionId, institutionName }: Props) {
+export function FeatureConfigurationPanel({ orgUnitId, unitName, ancestorIds = [] }: Props) {
   const api = useApi();
   const toast = useToast();
   const queryClient = useQueryClient();
   const { access } = useSession();
-  const canManage = access.hasInInstitution("feature.manage", institutionId);
+  const canManage = access.hasInOrgUnit("feature.manage", orgUnitId, ancestorIds);
   const [pending, setPending] = useState<{ flag: FeatureConfigurationView; enabled: boolean } | null>(null);
 
   const query = useQuery({
-    queryKey: ["features", "configuration", institutionId],
+    queryKey: ["features", "configuration", orgUnitId],
     queryFn: async () => unwrap(await api.GET("/api/v1/features/configuration", {
-      params: { query: institutionId ? { institutionId } : {} },
+      params: { query: orgUnitId ? { orgUnitId } : {} },
     })),
   });
 
   const setOverride = useMutation({
     mutationFn: async ({ key, enabled }: { key: string; enabled: boolean }) => unwrap(await api.PUT("/api/v1/features/{key}/override", {
-      params: { path: { key } }, body: { enabled, ...(institutionId ? { institutionId } : {}) },
+      params: { path: { key } }, body: { enabled, ...(orgUnitId ? { orgUnitId } : {}) },
     })),
     onSuccess: (result) => {
       toast.show("success", "Feature updated", `${result.key} is now ${result.enabled ? "enabled" : "disabled"}.`);
@@ -37,7 +37,7 @@ export function FeatureConfigurationPanel({ institutionId, institutionName }: Pr
 
   const clearOverride = useMutation({
     mutationFn: async (key: string) => unwrap(await api.DELETE("/api/v1/features/{key}/override", {
-      params: { path: { key }, query: institutionId ? { institutionId } : {} },
+      params: { path: { key }, query: orgUnitId ? { orgUnitId } : {} },
     })),
     onSuccess: (result) => {
       toast.show("success", "Override removed", `${result.key} now inherits its value.`);
@@ -51,12 +51,12 @@ export function FeatureConfigurationPanel({ institutionId, institutionName }: Pr
     else setOverride.mutate({ key: flag.key!, enabled });
   };
 
-  const scopeLabel = institutionId ? institutionName ?? "this institution" : "the whole organization";
+  const scopeLabel = orgUnitId ? unitName ?? "this institution" : "the whole organization";
 
   return (
     <Card>
       <CardHeader
-        title={institutionId ? "Institution features" : "Organization features"}
+        title={orgUnitId ? "Institution features" : "Organization features"}
         description={canManage ? `Changes apply to ${scopeLabel} and are recorded in the audit log.` : "You can view this configuration but not change it."}
       />
       {query.isPending ? (
@@ -69,9 +69,9 @@ export function FeatureConfigurationPanel({ institutionId, institutionName }: Pr
             <h3 id={`cat-${category}`} className="bg-surface-muted px-5 py-2 text-xs font-semibold uppercase tracking-wide text-muted">{title}</h3>
             <ul>
               {flags.map((f) => {
-                const own = institutionId ? f.institutionOverride : f.tenantOverride;
+                const own = orgUnitId ? f.unitOverride : f.tenantOverride;
                 const blockedByDeployment = !!f.deploymentDisabled;
-                const institutionLocked = !!institutionId && !f.institutionOverridable;
+                const institutionLocked = !!orgUnitId && !f.institutionOverridable;
                 const disabled = !canManage || blockedByDeployment || institutionLocked || setOverride.isPending;
                 return (
                   <li key={f.key} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-5 py-3 first:border-t-0" data-testid={`feature-${f.key}`}>

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router";
 import { useApi } from "../api/ApiProvider";
 import { useSession } from "../session/SessionProvider";
+import { useOrgLabels } from "../session/useOrgLabels";
 import { visibleNav } from "./navigation";
 
 interface Result { id: string; group: string; label: string; detail?: string | undefined; to: string; icon: typeof Building2 }
@@ -27,10 +28,11 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
     return () => window.clearTimeout(t);
   }, [q]);
 
+  const labels = useOrgLabels();
   const institutions = useQuery({
-    queryKey: ["search", "institutions", debounced],
-    enabled: open && debounced.length >= 2 && access.hasAnywhere("institution.read"),
-    queryFn: async () => unwrap(await api.GET("/api/v1/institutions", { params: { query: { q: debounced, size: 5 } } })),
+    queryKey: ["search", "org-units", debounced],
+    enabled: open && debounced.length >= 2 && access.hasAnywhere("org_unit.read"),
+    queryFn: async () => unwrap(await api.GET("/api/v1/org-units", { params: { query: { q: debounced, size: 8 } } })),
   });
 
   const results = useMemo<Result[]>(() => {
@@ -39,10 +41,11 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       .filter((n) => !term || n.label.toLowerCase().includes(term))
       .map((n) => ({ id: "page:" + n.to, group: "Pages", label: n.label, to: n.to, icon: n.icon }));
     const insts = (debounced.length >= 2 ? institutions.data?.items ?? [] : []).map((i) => ({
-      id: "inst:" + i.id, group: "Institutions", label: i.name ?? "", detail: i.code, to: `/institutions/${i.id}`, icon: Building2,
+      id: "unit:" + i.id, group: "Organization", label: i.name ?? "", detail: `${labels.singular(i.type!)} · ${i.code}`,
+      to: `/organization/units/${i.id}`, icon: Building2,
     }));
     return [...pages, ...insts];
-  }, [q, debounced, access, institutions.data]);
+  }, [q, debounced, access, institutions.data, labels]);
 
   const go = (r: Result | undefined) => {
     if (!r) return;
@@ -69,7 +72,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           aria-controls="search-results"
           aria-activedescendant={results[active] ? `sr-${results[active].id}` : undefined}
           aria-label="Search pages and records"
-          placeholder="Search pages and institutions…"
+          placeholder="Search pages and organization units…"
           value={q}
           onChange={(e) => { setQ(e.target.value); setActive(0); }}
           onKeyDown={onKey}

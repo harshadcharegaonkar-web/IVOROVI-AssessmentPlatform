@@ -4,28 +4,30 @@ import { createAccess } from "./access";
 
 const tenant = { id: "t1", code: "aurora", name: "Aurora" };
 const orgAdmin = createAccess({ tenant, grants: [
-  { permission: "institution.read", role: "ORG_ADMIN", scopeType: "TENANT", scopeId: "t1" },
+  { permission: "org_unit.read", role: "ORG_ADMIN", scopeType: "TENANT", scopeId: "t1" },
   { permission: "audit.read", role: "ORG_ADMIN", scopeType: "TENANT", scopeId: "t1" },
   { permission: "feature.read", role: "ORG_ADMIN", scopeType: "TENANT", scopeId: "t1" },
+  { permission: "tenant.settings.manage", role: "ORG_ADMIN", scopeType: "TENANT", scopeId: "t1" },
 ] });
 const instAdmin = createAccess({ tenant, grants: [
-  { permission: "feature.manage", role: "INSTITUTION_ADMIN", scopeType: "INSTITUTION", scopeId: "i1" },
-  { permission: "feature.read", role: "INSTITUTION_ADMIN", scopeType: "INSTITUTION", scopeId: "i1" },
+  { permission: "feature.manage", role: "INSTITUTION_ADMIN", scopeType: "ORG_UNIT", scopeId: "i1" },
+  { permission: "feature.read", role: "INSTITUTION_ADMIN", scopeType: "ORG_UNIT", scopeId: "i1" },
 ] });
 const student = createAccess({ tenant, grants: [] });
 
 describe("access mirror", () => {
   it("applies tenant-wide grants to every institution", () => {
     expect(orgAdmin.has("audit.read")).toBe(true);
-    expect(orgAdmin.hasInInstitution("institution.read", "any")).toBe(true);
+    expect(orgAdmin.hasInOrgUnit("org_unit.read", "any")).toBe(true);
   });
 
-  it("confines institution grants to their institution", () => {
+  it("confines unit grants to the unit's subtree", () => {
     expect(instAdmin.has("feature.manage")).toBe(false);
-    expect(instAdmin.hasInInstitution("feature.manage", "i1")).toBe(true);
-    expect(instAdmin.hasInInstitution("feature.manage", "i2")).toBe(false);
-    expect(instAdmin.hasInInstitution("feature.manage", null)).toBe(false);
-    expect(instAdmin.institutionsWith("feature.manage")).toEqual(["i1"]);
+    expect(instAdmin.hasInOrgUnit("feature.manage", "i1")).toBe(true);
+    expect(instAdmin.hasInOrgUnit("feature.manage", "dept-7", ["univ", "i1", "campus-3"])).toBe(true);
+    expect(instAdmin.hasInOrgUnit("feature.manage", "i2", ["univ"])).toBe(false);
+    expect(instAdmin.hasInOrgUnit("feature.manage", null)).toBe(false);
+    expect(instAdmin.orgUnitScopesWith("feature.manage")).toEqual(["i1"]);
   });
 
   it("ignores grants scoped to another tenant id", () => {
@@ -34,7 +36,8 @@ describe("access mirror", () => {
   });
 
   it("derives navigation from grants", () => {
-    expect(visibleNav(orgAdmin).map((n) => n.label)).toEqual(["Dashboard", "Institution Management", "Feature Settings", "Audit Logs", "My Access"]);
+    expect(visibleNav(orgAdmin).map((n) => n.label)).toEqual(["Dashboard", "Organization Hierarchy", "Universities", "Colleges", "Campuses", "Departments",
+      "Feature Settings", "Audit Logs", "System Settings", "My Access"]);
     expect(visibleNav(instAdmin).map((n) => n.label)).toEqual(["Dashboard", "Feature Settings", "My Access"]);
     expect(visibleNav(student).map((n) => n.label)).toEqual(["Dashboard", "My Access"]);
   });

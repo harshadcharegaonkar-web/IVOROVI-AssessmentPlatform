@@ -22,8 +22,10 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class TenantSettingsService {
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "TenantSettings")
     public record Settings(Map<OrgUnitType, Label> labels, String timeZone, long version) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "UnitTypeLabel")
     public record Label(String singular, String plural) {}
 
     private static final TypeReference<Map<String, Object>> MAP = new TypeReference<>() {};

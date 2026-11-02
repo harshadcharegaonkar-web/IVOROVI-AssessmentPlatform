@@ -1,31 +1,40 @@
 import { unwrap } from "@ivorovi/api-client";
 import { Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState, ErrorState, KpiCard, Link, PageHeader, Skeleton } from "@ivorovi/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, Building2, CheckCircle2, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, UserRound, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, Landmark, MapPin, Network, School, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, UserRound, Users, XCircle } from "lucide-react";
 import { errorInfo, useApi } from "../api/ApiProvider";
 import { formatNumber, formatRelative, humanize } from "../lib/format";
 import { useInstitutionContext } from "../session/InstitutionContext";
 import { useSession } from "../session/SessionProvider";
+import { useOrgLabels } from "../session/useOrgLabels";
+import { OrgDistributionCard } from "./organization/OrgDistributionCard";
 
 /**
- * Administration dashboard (design system §5). Increment 1.0 shows the metrics that exist today; organisation,
- * people and academic KPIs are added as increments 1.1–1.6 deliver their data. Every value comes from the API.
+ * Administration dashboard (design system §5). Shows the metrics that exist today (organization structure since
+ * increment 1.1); people and academic KPIs are added as increments 1.2–1.6 deliver their data. Every value comes
+ * from the API.
  */
 export function DashboardPage() {
   const api = useApi();
   const { me, access } = useSession();
   const { selectedId, options } = useInstitutionContext();
   const scopeName = options.find((o) => o.id === selectedId)?.name;
+  const labels = useOrgLabels();
 
   const features = useQuery({
     queryKey: ["features", "effective", selectedId],
-    queryFn: async () => unwrap(await api.GET("/api/v1/features", { params: { query: selectedId ? { institutionId: selectedId } : {} } })),
+    queryFn: async () => unwrap(await api.GET("/api/v1/features", { params: { query: selectedId ? { orgUnitId: selectedId } : {} } })),
   });
-  const institutions = useQuery({
-    queryKey: ["institutions", { size: 1 }],
-    enabled: access.hasAnywhere("institution.read"),
-    queryFn: async () => unwrap(await api.GET("/api/v1/institutions", { params: { query: { size: 1 } } })),
+  const canSeeOrg = access.hasAnywhere("org_unit.read");
+  const org = useQuery({
+    queryKey: ["org-units", "summary"],
+    enabled: canSeeOrg,
+    queryFn: async () => unwrap(await api.GET("/api/v1/org-units/summary")),
   });
+  const orgKpi = (type: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT") => {
+    const inactive = org.data?.inactive?.[type] ?? 0;
+    return { value: formatNumber(org.data?.active?.[type] ?? 0), secondary: inactive ? `${formatNumber(inactive)} inactive` : "All active" };
+  };
   const notifications = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => unwrap(await api.GET("/api/v1/notifications", { params: { query: { size: 10 } } })),
@@ -47,11 +56,15 @@ export function DashboardPage() {
         actions={access.hasAnywhere("feature.read") ? <ButtonLink to="/settings/features"><SlidersHorizontal aria-hidden className="h-4 w-4" /> Feature settings</ButtonLink> : undefined}
       />
       <h2 className="sr-only">Key figures</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
-        {access.hasAnywhere("institution.read") && (
-          <KpiCard icon={Building2} label="Institutions" to="/institutions" testId="institution-count"
-            loading={institutions.isPending} value={formatNumber(institutions.data?.totalElements)} />
-        )}
+      {canSeeOrg && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-4 xl:gap-6" data-testid="org-kpis">
+          <KpiCard icon={Landmark} label={labels.plural("UNIVERSITY")} to="/organization/universities" testId="kpi-universities" loading={org.isPending} {...orgKpi("UNIVERSITY")} />
+          <KpiCard icon={School} label={labels.plural("COLLEGE")} to="/organization/colleges" testId="kpi-colleges" loading={org.isPending} {...orgKpi("COLLEGE")} />
+          <KpiCard icon={MapPin} label={labels.plural("CAMPUS")} to="/organization/campuses" testId="kpi-campuses" loading={org.isPending} {...orgKpi("CAMPUS")} />
+          <KpiCard icon={Users} label={labels.plural("DEPARTMENT")} to="/organization/departments" testId="kpi-departments" loading={org.isPending} {...orgKpi("DEPARTMENT")} />
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-6">
         <KpiCard icon={CheckCircle2} label="Active modules" loading={features.isPending}
           value={`${modules.filter((m) => m.enabled).length} / ${modules.length}`}
           secondary={modules.filter((m) => m.enabled).map((m) => humanize(m.key?.replace("module.", ""))).join(" · ") || "None enabled"} />
@@ -101,10 +114,11 @@ export function DashboardPage() {
         </Card>
 
         <div className="min-w-0 space-y-6">
+          {canSeeOrg && <OrgDistributionCard summary={org.data} loading={org.isPending} error={org.isError ? errorInfo(org.error).message : null} onRetry={() => void org.refetch()} />}
           <Card>
             <CardHeader title="Quick actions" />
             <CardBody className="grid grid-cols-1 gap-2">
-              {access.hasAnywhere("institution.read") && <ButtonLink to="/institutions" className="w-full justify-start"><Building2 aria-hidden className="h-4 w-4" /> Browse institutions</ButtonLink>}
+              {canSeeOrg && <ButtonLink to="/organization" className="w-full justify-start"><Network aria-hidden className="h-4 w-4" /> Organization hierarchy</ButtonLink>}
               {access.hasAnywhere("feature.manage") && <ButtonLink to="/settings/features" className="w-full justify-start"><SlidersHorizontal aria-hidden className="h-4 w-4" /> Configure features</ButtonLink>}
               {access.has("audit.read") && <ButtonLink to="/audit" className="w-full justify-start"><ScrollText aria-hidden className="h-4 w-4" /> Review audit log</ButtonLink>}
               <ButtonLink to="/me" className="w-full justify-start"><UserRound aria-hidden className="h-4 w-4" /> View my access</ButtonLink>

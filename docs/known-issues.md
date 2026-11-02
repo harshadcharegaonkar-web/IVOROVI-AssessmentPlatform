@@ -29,6 +29,10 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 | KI-23 | Documents | No malware scanner integrated (ADR-0006) | **Release blocker** for real student document uploads | Planned | ClamAV or approved equivalent before first production document upload |
 | KI-24 | Frontend | Initial JS budget 120 kB was below the approved stack's floor | Low | Closed | Budget 180 kB approved 2026-11-02; measurement and enforced metric documented in increment-1.0.md (175.8 kB gzip / 154.3 kB Brotli / 571.7 kB raw) |
 | KI-25 | Dev environment | Build-sandbox containers cannot run `apk upgrade` (no package mirror access); images verified in CI only | Info | Accepted | Environment limitation, not a product issue |
-| KI-26 | Visual QA | Pixel-diff baselines not yet automated | Low | Planned | Increment 1.1, baselines generated in CI's browser image |
+| KI-26 | Visual QA | Pixel-diff baselines not yet automated | Low | Open | **Not delivered in 1.1** (re-planned for 1.2): baselines must be generated in CI's browser image and approved through a PR. 1.1 relies on manual review of `design/evidence/1.1/`, axe and overflow checks |
 | KI-27 | Identity | Roles granting no permissions were omitted from `/me` | Medium | Fixed | Increment 1.0, regression test |
+| KI-28 | API | Unknown JSON fields were silently ignored (a stale `institutionId` turned a unit-level feature change into a tenant-wide one in the dev database) | High | Fixed | 1.1: `fail-on-unknown-properties`, 400 `unknown_field`, `ErrorHandlingIT`; dev DB override reverted |
+| KI-29 | Frontend | Create form reused its `Idempotency-Key` after a 4xx answer, so a corrected resubmission was rejected | Medium | Fixed | 1.1: key rotated once the server has answered; covered by the E2E lifecycle test |
+| KI-30 | Accessibility | Breadcrumb links and selected-tree type labels below 4.5:1 on tinted backgrounds | Medium | Fixed | 1.1: `muted-strong` token; axe checks on hierarchy, listing, detail and settings |
+| KI-31 | Visual QA | Full-page screenshots show the fixed sidebar only for the first viewport height (capture artifact, not a layout defect) | Info | Accepted | Evidence capture only |
 | KI-19 | Security scanning | Java dependencies were invisible to Trivy (no lockfile) | Medium | Fixed | Gradle dependency locking (`a239681`) |

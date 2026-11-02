@@ -5,9 +5,9 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 | # | Module | Phase | Status | Depends on | API | UI | Tests | Known issues |
 |---|---|---|---|---|---|---|---|---|
 | 0 | Foundation / platform kernel | 0 | ✅ closed (CI run 41444289316 green) | — | ✅ | ✅ | ✅ 73 BE / 26 FE / 9 E2E | See `phase-0-report.md` §Known issues |
-| 1 | Institution & tenant management | 1 | 🟨 read model only | 0 | 🟨 list/get institutions | 🟨 list/detail | 🟨 | No create/update, no campus/department/program, no tenant provisioning |
+| 1 | Institution & tenant management | 1 | 🟨 organization hierarchy done (1.1) | 0 | ✅ `/org-units` CRUD, move, status, history, tree, summary; tenant settings | ✅ hierarchy, 4 listings, detail, forms, System Settings | ✅ | Programs/courses (1.3), tenant provisioning (super admin), logo upload (needs ADR-0006) pending |
 | 2 | User & access management | 1 | 🟨 resolution + `/me` | 0, 1 | 🟨 | 🟨 My access | 🟨 | No user/role management APIs; principal cache pending |
-| 21 | System administration (flags, settings) | 1 / 8 | 🟨 feature flags done | 0 | ✅ flags | ✅ flags | ✅ | Settings, maintenance windows pending |
+| 21 | System administration (flags, settings) | 1 / 8 | 🟨 feature flags + terminology/time zone settings | 0 | ✅ | ✅ | ✅ | Maintenance windows pending |
 | 3 | Student & candidate management | 1 (students) / 5 (candidates) | ⬜ planned (Phase 1 inc. 1.6) | 1, 2 | ⬜ | ⬜ | ⬜ | |
 | 19 | Audit & compliance | 2 | 🟨 trail + verification | 0 | ✅ | ✅ | ✅ | Consent, data requests, retention pending |
 | 17 | Notifications & workflow | 1 / 2 / 8 | 🟨 in-app notification centre (1.0) + SMTP port | 0, 2 | 🟨 | 🟨 bell + panel | ✅ | Templates, preferences, workflows pending |
@@ -34,8 +34,8 @@ Plan approved with Amendment 1 and design system.
 | Increment | Status | Report |
 |---|---|---|
 | 1.0 Platform hardening + design-system shell | ✅ complete and signed off (CI run 41452811631); visual baseline `design/evidence/1.0/` | `phase-1/increment-1.0.md` |
-| 1.1 Organization hierarchy | 🟨 in progress (authorized 2026-11-02) | `phase-1/increment-1.1.md` |
-| 1.2–1.7 | ⬜ | |
+| 1.1 Organization hierarchy | ✅ implemented and verified, **awaiting review** (CI run: see report); evidence `design/evidence/1.1/` | `phase-1/increment-1.1.md` |
+| 1.2–1.7 | ⬜ (1.2 not started; needs authorization) | |
 
 Open decisions: XLSX library (fastexcel) to be requested before 1.6.
 
