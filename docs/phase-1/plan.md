@@ -1,6 +1,6 @@
 # Phase 1 implementation plan: organization structure, people and platform hardening
 
-* Status: **Draft for approval** (2026-11-02). Nothing in this document is implemented yet.
+* Status: **Approved** (2026-11-02) with the five decisions in §9 and **[Amendment 1](plan-amendment-1.md)** (added scope, design system). Nothing in this document is implemented yet.
 * Starts after: the first green GitHub Actions run (Phase 0 criterion 9) and approval of this plan, including
   the decisions in §9.
 * Principle: extend, do not restructure. The modular monolith, tenant context + RLS, server-side scoped

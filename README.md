@@ -5,7 +5,7 @@ placement assessments, evaluation, proctoring and analytics. One codebase serves
 cloud and on-premises deployments.
 
 **Current state:** Phase 0 (foundation) is complete. See [Phase 0 report](docs/phase-0-report.md) and
-[tracker](docs/tracker.md). Phase 1 plan awaiting approval: [docs/phase-1/plan.md](docs/phase-1/plan.md).
+[tracker](docs/tracker.md). Phase 1 approved ([plan](docs/phase-1/plan.md), [amendment 1](docs/phase-1/plan-amendment-1.md), [design system](docs/design/design-system.md)); implementation starts after the first green CI run.
 
 ## Quick start
 

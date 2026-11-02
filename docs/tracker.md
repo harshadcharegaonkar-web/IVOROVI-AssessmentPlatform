@@ -29,7 +29,9 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 
 ## Phase 1 (planned; see `phase-1/plan.md`)
 
-Increments 1.0–1.7 not started. Implementation begins after the first green CI run and plan approval.
+Plan approved with Amendment 1 (`phase-1/plan-amendment-1.md`) and design system (`design/`). Increments 1.0–1.7 **not started**: gated on the first green Phase 0 CI run (D-09).
+
+Open decisions: D-P1-06 (Program/Course/Subject semantics), D-UI-01..03, D-P1-07, D-P1-08.
 
 ## Decisions
 
@@ -45,3 +47,8 @@ Increments 1.0–1.7 not started. Implementation begins after the first green CI
 | D-08 | Lockdown browser | Browser-only first | Proposed |
 | D-09 | Source hosting | Private GitHub repository (provided by product owner) | ⏳ **Blocked**: no GitHub account linked to the build session; connect at claude.ai/connect-github and share `owner/repo` |
 | D-10 | Infra components | Valkey, SeaweedFS (ADR-0005) | ✅ Implemented |
+| D-P1-01 | Org unit types | Fixed four types + configurable labels | ✅ Approved |
+| D-P1-02 | Institution SSO | Deferred to Phase 2 | ✅ Approved |
+| D-P1-03 | Student logins | On demand only; profiles independent of Keycloak | ✅ Approved |
+| D-P1-04 | Keycloak provisioning | Dedicated narrowly scoped service account | ✅ Approved |
+| D-P1-05 | `/institutions` endpoints | Remove after consumer verification | ✅ Approved |
