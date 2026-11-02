@@ -9,32 +9,30 @@ ivorovi/
 │   │   └── src/main/java/com/ivorovi/
 │   │       ├── platform/         # kernel: tenancy, security, audit, outbox, flags, storage, errors
 │   │       ├── tenancy/          # one top-level package per module (Spring Modulith module)
-│   │       │   ├── api/          #   published module API (interfaces + DTOs other modules may use)
-│   │       │   ├── domain/       #   aggregates, value objects, domain events
-│   │       │   ├── application/  #   use-case services, transactions, authorization checks
-│   │       │   ├── infrastructure/ # JPA repositories, adapters
-│   │       │   └── web/          #   REST controllers, request/response DTOs
-│   │       └── identity/ …
-│   ├── code-runner/
-│   └── ai-worker/
-├── workers/vision/               # vision worker (language TBD, see D-05)
+│   │       │   ├── *.java        #   base package = published module API (interfaces, records, services)
+│   │       │   ├── internal/     #   entities, repositories, implementation (not accessible to other modules)
+│   │       │   └── web/          #   REST controllers and request/response records
+│   │       └── identity/ features/ audit/ seed/ …
+│   ├── code-runner/              (Phase 6, ADR-0004)
+│   └── ai-worker/                (Phase 7)
+├── workers/vision/               # Python vision worker (Phase 6)
 ├── frontend/                     # pnpm workspace
-│   ├── apps/web/  apps/exam/
-│   └── packages/ui/  packages/api-client/  packages/schemas/
+│   ├── apps/web/                 # apps/exam/ arrives in Phase 4
+│   └── packages/ui/  packages/api-client/
 ├── deploy/
 │   ├── compose/                  # local dev + small on-prem
-│   └── helm/ivorovi/
+│   └── helm/ivorovi/             # Phase 8
 ├── docs/  (architecture, adr, modules, api, runbooks)
 └── .github/workflows/
 ```
 
 ## Backend
 
-* Java 21, Spring Boot 3.x (latest stable at Phase 0), Gradle Kotlin DSL with version catalog.
-* Module boundaries are verified by a Spring Modulith `ApplicationModules.verify()` test. Cross-module access
-  goes only through `<module>.api`.
+* Java 21, Spring Boot 4.1, Gradle 9.8 (Kotlin DSL, version catalog `gradle/libs.versions.toml`).
+* Module boundaries are verified by a Spring Modulith `ApplicationModules.verify()` test. Other modules may use
+  only a module's base package. `platform` is an open kernel module that must never depend on business modules.
 * Controllers are thin. Transactions are on application services. Domain logic sits in aggregates.
-* DTOs are Java records. MapStruct handles mapping. Entities never leave the module.
+* DTOs are Java records with explicit static mapping methods. Entities never leave the module.
 * REST: `/api/v1/...` with plural nouns. Actions as sub-resources (`POST /assessments/{id}/publish`).
   Errors use `application/problem+json`.
 * IDs are UUIDv7. Timestamps are `timestamptz`, UTC in API (ISO-8601).
@@ -43,7 +41,7 @@ ivorovi/
 
 ## Frontend
 
-* TypeScript strict, ESLint + Prettier. Feature folders: `src/features/<module>/{routes,components,hooks,api}`.
+* TypeScript 6 strict, ESLint (incl. React Compiler hook rules) + Prettier. Screens live in `apps/web/src/routes/<area>/`; shared UI goes to `packages/ui`; API types come only from the generated client.
 * Server state only via TanStack Query hooks from `packages/api-client`. Forms use React Hook Form + Zod.
 * No raw colors or spacing. Use design tokens only. Components must be keyboard accessible.
 

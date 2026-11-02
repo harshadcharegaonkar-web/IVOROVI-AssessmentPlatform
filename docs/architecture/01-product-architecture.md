@@ -1,6 +1,6 @@
 # Ivorovi Assessment Platform: Product Architecture
 
-Status: **Baseline v0.1** (2026-11-02). Changes to this document require an ADR in `docs/adr/`.
+Status: **v0.2** (2026-11-02, updated after Phase 0). Changes to this document require an ADR in `docs/adr/`.
 
 ## 1. Repository inspection result
 
@@ -50,8 +50,9 @@ later be extracted into a service without rewriting its consumers.
 | Concern | Multi-tenant SaaS | Dedicated / private cloud | On-premises |
 |---|---|---|---|
 | Tenancy | Shared DB + schema, `tenant_id` + Postgres RLS | Same code, one or few tenants | Same code, usually one tenant |
-| Object storage | AWS S3 / GCS (S3 API) / Azure via S3 gateway | Provider S3 or MinIO | MinIO |
+| Object storage | AWS S3 / GCS (S3 API) / Azure via S3 gateway | Provider S3 or any S3-compatible store | SeaweedFS (bundled) or customer S3-compatible store |
 | Broker | RabbitMQ (managed or self-hosted) | RabbitMQ | RabbitMQ |
+| Cache | Valkey / any Redis-protocol service | Same | Valkey (bundled) |
 | Identity | Keycloak (bundled) + per-tenant federation | Same | Same, or customer AD/LDAP via Keycloak |
 | AI | Hosted LLM providers, per-tenant opt-in | Customer-chosen provider | Local model (OpenAI-compatible endpoint, e.g. vLLM/Ollama) or disabled |
 | Packaging | Helm chart | Helm chart | Helm chart or Docker Compose bundle; air-gapped image bundle |
@@ -170,11 +171,11 @@ PRACTICE`) changes workflow and reporting, not the engine.
 
 ## 10. Coding assessments
 
-* Separate `code-runner` service. Each execution runs in an ephemeral container with gVisor (or nsjail where
-  gVisor is unavailable), no network, CPU/memory/time/pids/output limits, and a read-only root filesystem.
-* Behind the `CodeExecutor` port, so a self-hosted Judge0-style engine can be plugged in if preferred (see
-  pending decision D-04).
-* Hidden test cases are stored server-side only. Candidates can run sample tests. Final scoring runs hidden tests asynchronously.
+See **ADR-0004**. We build the orchestration and execution management in a separate `ivorovi-code-runner`
+service. Isolation is delegated to established technology behind an `IsolationBackend` SPI: Kata Containers
+microVMs where KVM is available, otherwise gVisor. Judge0 was evaluated and is not adopted (GPL-3.0
+distribution burden on-prem, privileged-container model, 2024 sandbox-escape CVEs). Hidden test cases stay
+server-side. Candidate code never runs in the API process.
 
 ## 11. Security architecture (summary)
 
@@ -200,7 +201,22 @@ PRACTICE`) changes workflow and reporting, not the engine.
 * Every data view implements loading / empty / error / success states via shared components.
 * Accessibility: WCAG 2.2 AA. axe checks run in Playwright tests.
 
-## 13. Quality and delivery
+## 13. As built in Phase 0
+
+* Spring Boot 4.1 / Java 21 / Gradle 9.8. Spring Modulith verifies module boundaries (`platform` is the open
+  kernel. `tenancy`, `identity`, `features`, `audit` and `seed` are modules).
+* Tenant context: `IvoroviJwtAuthenticationConverter` → `TenantContext` (thread-bound, cleared by the outermost
+  filter) → `TenantAwareDataSource` sets `app.tenant_id` and `app.platform_context` on **every** connection
+  borrow → RLS policies on all tenant tables (a test fails the build if a `tenant_id` table lacks RLS).
+* Feature resolution: deployment ceiling → tenant override or catalog default → institution override, which may
+  only narrow. AI and integration flags default OFF. Overrides are cached per tenant in Valkey (JSON) with
+  after-commit eviction.
+* Events: transactional outbox → `ivorovi.events` topic exchange with publisher confirms. At-least-once delivery,
+  `message_id` = outbox id for consumer de-duplication.
+* Frontend: pnpm workspace (`packages/ui`, `packages/api-client` generated from `docs/api/openapi.json`,
+  `apps/web`). `apps/exam` is deferred to Phase 4.
+
+## 14. Quality and delivery
 
 * CI: build → unit → integration (Testcontainers: Postgres, Redis, RabbitMQ, MinIO) → Spring Modulith
   architecture verification → OpenAPI diff check → frontend lint/type/test → Playwright E2E against Docker
