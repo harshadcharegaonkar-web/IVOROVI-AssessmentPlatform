@@ -116,42 +116,43 @@ class TenantIsolationIT extends IntegrationTest {
         void userOfTenantBCannotClaimTenantA() throws Exception {
             // Bela's real subject, but the token claims tenant A: she has no account there.
             String t = TestTokens.token(BELA_ORG_ADMIN_B.subject(), TENANT_A.toString(), c -> {});
-            mvc.perform(get("/api/v1/institutions").header(HttpHeaders.AUTHORIZATION, bearer(t)))
+            mvc.perform(get("/api/v1/org-units").header(HttpHeaders.AUTHORIZATION, bearer(t)))
                     .andExpect(status().isForbidden());
         }
 
         @Test
         void listShowsOnlyOwnTenantInstitutions() throws Exception {
-            mvc.perform(get("/api/v1/institutions").header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(ALICE_ORG_ADMIN_A))))
+            // tenant A fixture: university, 2 colleges, campus, 3 departments
+            mvc.perform(get("/api/v1/org-units").header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(ALICE_ORG_ADMIN_A))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalElements").value(7))
+                    .andExpect(jsonPath("$.items[*].id", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(INST_B1.toString()))));
+            mvc.perform(get("/api/v1/org-units").header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(BELA_ORG_ADMIN_B))))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.totalElements").value(2))
-                    .andExpect(jsonPath("$.items[*].id", org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem(INST_B1.toString()))));
-            mvc.perform(get("/api/v1/institutions").header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(BELA_ORG_ADMIN_B))))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalElements").value(1))
-                    .andExpect(jsonPath("$.items[0].id").value(INST_B1.toString()));
+                    .andExpect(jsonPath("$.items[*].id", org.hamcrest.Matchers.hasItem(INST_B1.toString())));
         }
 
         @Test
         void otherTenantsInstitutionIsNotFound() throws Exception {
-            mvc.perform(get("/api/v1/institutions/" + INST_B1).header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(ALICE_ORG_ADMIN_A))))
+            mvc.perform(get("/api/v1/org-units/" + INST_B1).header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(ALICE_ORG_ADMIN_A))))
                     .andExpect(status().isNotFound());
-            mvc.perform(get("/api/v1/institutions/" + INST_A1).header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(BELA_ORG_ADMIN_B))))
+            mvc.perform(get("/api/v1/org-units/" + INST_A1).header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(BELA_ORG_ADMIN_B))))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         void tenantHeadersAndParametersAreIgnored() throws Exception {
-            mvc.perform(get("/api/v1/institutions").param("tenantId", TENANT_B.toString())
+            mvc.perform(get("/api/v1/org-units").param("tenantId", TENANT_B.toString())
                             .header("X-Tenant-Id", TENANT_B.toString())
                             .header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(ALICE_ORG_ADMIN_A))))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalElements").value(2));
+                    .andExpect(jsonPath("$.totalElements").value(7));
         }
 
         @Test
         void otherTenantsInstitutionCannotBeUsedForFeatureConfiguration() throws Exception {
-            mvc.perform(get("/api/v1/features").param("institutionId", INST_B1.toString())
+            mvc.perform(get("/api/v1/features").param("orgUnitId", INST_B1.toString())
                             .header(HttpHeaders.AUTHORIZATION, bearer(TestTokens.forCaller(ALICE_ORG_ADMIN_A))))
                     .andExpect(status().isNotFound());
         }
@@ -164,7 +165,9 @@ class TenantIsolationIT extends IntegrationTest {
         @Test
         void appRoleWithoutTenantContextSeesNoTenantRows() {
             var jdbc = rawAppJdbc();
-            assertThat(jdbc.sql("SELECT count(*) FROM institution").query(Long.class).single()).isZero();
+            assertThat(jdbc.sql("SELECT count(*) FROM org_unit").query(Long.class).single()).isZero();
+            assertThat(jdbc.sql("SELECT count(*) FROM org_unit_history").query(Long.class).single()).isZero();
+            assertThat(jdbc.sql("SELECT count(*) FROM tenant_settings").query(Long.class).single()).isZero();
             assertThat(jdbc.sql("SELECT count(*) FROM user_account").query(Long.class).single()).isZero();
             assertThat(jdbc.sql("SELECT count(*) FROM audit_event").query(Long.class).single()).isZero();
             assertThat(jdbc.sql("SELECT count(*) FROM tenant").query(Long.class).single()).isZero();
@@ -175,15 +178,13 @@ class TenantIsolationIT extends IntegrationTest {
             try (var c = java.sql.DriverManager.getConnection(com.ivorovi.support.Containers.jdbcUrl(), "ivorovi_app",
                     com.ivorovi.support.Containers.APP_PASSWORD); var st = c.createStatement()) {
                 st.execute("SELECT set_config('app.tenant_id', '" + TENANT_A + "', false)");
-                assertThat(st.executeQuery("SELECT count(*) FROM institution WHERE tenant_id = '" + TENANT_B + "'")
-                        .next()).isTrue();
-                var rs = st.executeQuery("SELECT count(*) FROM institution WHERE tenant_id = '" + TENANT_B + "'");
+                var rs = st.executeQuery("SELECT count(*) FROM org_unit WHERE tenant_id = '" + TENANT_B + "'");
                 rs.next();
                 assertThat(rs.getLong(1)).as("tenant B rows visible from tenant A context").isZero();
-                assertThatThrownBy(() -> st.executeUpdate("INSERT INTO institution (id, tenant_id, code, name) VALUES ("
-                        + "gen_random_uuid(), '" + TENANT_B + "', 'X', 'Injected')"))
+                assertThatThrownBy(() -> st.executeUpdate("INSERT INTO org_unit (id, tenant_id, unit_type, code, name, path) VALUES ("
+                        + "gen_random_uuid(), '" + TENANT_B + "', 'COLLEGE', 'X', 'Injected', 'x')"))
                         .hasMessageContaining("row-level security");
-                assertThat(st.executeUpdate("UPDATE institution SET name = 'hijacked' WHERE tenant_id = '" + TENANT_B + "'"))
+                assertThat(st.executeUpdate("UPDATE org_unit SET name = 'hijacked' WHERE tenant_id = '" + TENANT_B + "'"))
                         .as("rows of tenant B updated from tenant A context").isZero();
             }
         }

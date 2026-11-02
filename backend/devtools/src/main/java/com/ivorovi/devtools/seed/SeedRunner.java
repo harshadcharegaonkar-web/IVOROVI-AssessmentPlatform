@@ -36,8 +36,8 @@ class SeedRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         var result = generator.generate(request);
-        log.info("SYNTHETIC DATA GENERATED: tenants={} institutions={} users={} roleAssignments={}",
-                result.tenantIds().size(), result.institutions(), result.users(), result.roleAssignments());
+        log.info("SYNTHETIC DATA GENERATED: tenants={} orgUnits={} users={} roleAssignments={}",
+                result.tenantIds().size(), result.orgUnits(), result.users(), result.roleAssignments());
         System.exit(SpringApplication.exit(context, () -> 0));
     }
 }

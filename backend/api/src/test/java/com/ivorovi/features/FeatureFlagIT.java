@@ -38,7 +38,7 @@ class FeatureFlagIT extends IntegrationTest {
 
     private static MockHttpServletRequestBuilder setOverride(String key, UUID inst, boolean enabled) {
         String body = inst == null ? "{\"enabled\":" + enabled + "}"
-                : "{\"institutionId\":\"" + inst + "\",\"enabled\":" + enabled + "}";
+                : "{\"orgUnitId\":\"" + inst + "\",\"enabled\":" + enabled + "}";
         return put("/api/v1/features/" + key + "/override").contentType(MediaType.APPLICATION_JSON).content(body);
     }
 
@@ -68,13 +68,13 @@ class FeatureFlagIT extends IntegrationTest {
         // enable for organisation, disable for one institution
         as(ALICE_ORG_ADMIN_A, setOverride("ai.evaluation", null, true)).andExpect(status().isOk());
         as(ALICE_ORG_ADMIN_A, setOverride("ai.evaluation", INST_A2, false)).andExpect(status().isOk());
-        as(ALICE_ORG_ADMIN_A, get("/api/v1/features").param("institutionId", INST_A1.toString()))
+        as(ALICE_ORG_ADMIN_A, get("/api/v1/features").param("orgUnitId", INST_A1.toString()))
                 .andExpect(jsonPath("$[?(@.key == 'ai.evaluation')].enabled").value(true));
-        as(ALICE_ORG_ADMIN_A, get("/api/v1/features").param("institutionId", INST_A2.toString()))
+        as(ALICE_ORG_ADMIN_A, get("/api/v1/features").param("orgUnitId", INST_A2.toString()))
                 .andExpect(jsonPath("$[?(@.key == 'ai.evaluation')].enabled").value(false))
                 .andExpect(jsonPath("$[?(@.key == 'ai.evaluation')].source").value("INSTITUTION"));
         // clearing the institution override restores inheritance
-        as(ALICE_ORG_ADMIN_A, delete("/api/v1/features/ai.evaluation/override").param("institutionId", INST_A2.toString()))
+        as(ALICE_ORG_ADMIN_A, delete("/api/v1/features/ai.evaluation/override").param("orgUnitId", INST_A2.toString()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(true)).andExpect(jsonPath("$.source").value("TENANT"));
     }
 
@@ -121,5 +121,36 @@ class FeatureFlagIT extends IntegrationTest {
 
     private static long count(String sql) {
         return ownerJdbc().sql(sql).param(TENANT_A).query(Long.class).single();
+    }
+
+    private static final UUID AURORA_UNIVERSITY = UUID.fromString("0192a000-0000-7000-8000-00000000a100");
+    private static final UUID AIT_NORTH_CAMPUS = UUID.fromString("0192a000-0000-7000-8000-00000000a111");
+    private static final UUID AIT_CSE = UUID.fromString("0192a000-0000-7000-8000-00000000a121");
+
+    @Test
+    void departmentsInheritFromTheirInstitutions() throws Exception {
+        as(ALICE_ORG_ADMIN_A, setOverride("module.placement", INST_A1, false)).andExpect(status().isOk());
+        as(ALICE_ORG_ADMIN_A, get("/api/v1/features").param("orgUnitId", AIT_CSE.toString()))
+                .andExpect(jsonPath("$[?(@.key == 'module.placement')].enabled").value(false))
+                .andExpect(jsonPath("$[?(@.key == 'module.placement')].source").value("INSTITUTION"));
+        as(ALICE_ORG_ADMIN_A, get("/api/v1/features").param("orgUnitId", INST_A2.toString()))
+                .andExpect(jsonPath("$[?(@.key == 'module.placement')].enabled").value(true));
+    }
+
+    @Test
+    void aCollegeCannotEnableWhatItsUniversitySwitchedOff() throws Exception {
+        as(ALICE_ORG_ADMIN_A, setOverride("module.placement", AURORA_UNIVERSITY, false)).andExpect(status().isOk());
+        as(ALICE_ORG_ADMIN_A, setOverride("module.placement", INST_A1, true))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("disabled_at_parent_level"));
+        as(ALICE_ORG_ADMIN_A, get("/api/v1/features/configuration").param("orgUnitId", INST_A1.toString()))
+                .andExpect(jsonPath("$[?(@.key == 'module.placement')].inheritedEnabled").value(false))
+                .andExpect(jsonPath("$[?(@.key == 'module.placement')].inheritedSource").value("INSTITUTION"));
+    }
+
+    @Test
+    void campusesAndDepartmentsCannotHoldOverrides() throws Exception {
+        as(ALICE_ORG_ADMIN_A, setOverride("module.placement", AIT_NORTH_CAMPUS, false))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("feature_scope_not_supported"));
+        as(ALICE_ORG_ADMIN_A, setOverride("module.placement", AIT_CSE, false)).andExpect(status().isBadRequest());
     }
 }

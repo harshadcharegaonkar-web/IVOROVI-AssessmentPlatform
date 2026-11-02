@@ -32,16 +32,18 @@ class FeatureController {
 
     record FeatureConfigurationView(String key, String category, String description, boolean defaultEnabled,
                                     boolean institutionOverridable, boolean deploymentDisabled, Boolean tenantOverride,
-                                    Boolean institutionOverride, boolean enabled, String source) {
+                                    Boolean unitOverride, boolean inheritedEnabled, String inheritedSource,
+                                    boolean enabled, String source) {
         static FeatureConfigurationView of(FeatureService.FlagConfiguration c) {
             FeatureFlag f = c.flag();
             return new FeatureConfigurationView(f.key(), f.category().name(), f.description(), f.defaultEnabled(),
                     f.institutionOverridable(), c.deploymentDisabled(), c.tenantOverride().orElse(null),
-                    c.institutionOverride().orElse(null), c.effective().enabled(), c.effective().source().name());
+                    c.unitOverride().orElse(null), c.inherited().enabled(), c.inherited().source().name(),
+                    c.effective().enabled(), c.effective().source().name());
         }
     }
 
-    record OverrideRequest(UUID institutionId, @NotNull Boolean enabled) {}
+    record OverrideRequest(UUID orgUnitId, @NotNull Boolean enabled) {}
 
     private final FeatureService service;
 
@@ -50,27 +52,27 @@ class FeatureController {
     }
 
     @GetMapping
-    @Operation(summary = "Effective features for the caller's tenant, optionally for one institution")
-    List<EffectiveFeature> effective(@RequestParam(required = false) UUID institutionId) {
-        return service.effective(institutionId).stream().map(EffectiveFeature::of).toList();
+    @Operation(summary = "Effective features for the organization, or for any unit (inherited down the hierarchy)")
+    List<EffectiveFeature> effective(@RequestParam(required = false) UUID orgUnitId) {
+        return service.effective(orgUnitId).stream().map(EffectiveFeature::of).toList();
     }
 
     @GetMapping("/configuration")
-    @Operation(summary = "Feature configuration with all layers (requires feature.read in scope)")
-    List<FeatureConfigurationView> configuration(@RequestParam(required = false) UUID institutionId) {
-        return service.configurations(institutionId).stream().map(FeatureConfigurationView::of).toList();
+    @Operation(summary = "Feature configuration for the organization or a university/college (requires feature.read in scope)")
+    List<FeatureConfigurationView> configuration(@RequestParam(required = false) UUID orgUnitId) {
+        return service.configurations(orgUnitId).stream().map(FeatureConfigurationView::of).toList();
     }
 
     @PutMapping("/{key}/override")
-    @Operation(summary = "Set a tenant-level (no institutionId) or institution-level override (requires feature.manage in scope)")
+    @Operation(summary = "Set an organization-level (no orgUnitId) or university/college override (requires feature.manage in scope)")
     FeatureConfigurationView setOverride(@PathVariable String key, @Valid @RequestBody OverrideRequest body) {
-        return FeatureConfigurationView.of(service.setOverride(flag(key), body.institutionId(), body.enabled()));
+        return FeatureConfigurationView.of(service.setOverride(flag(key), body.orgUnitId(), body.enabled()));
     }
 
     @DeleteMapping("/{key}/override")
     @Operation(summary = "Remove an override so the value is inherited again")
-    FeatureConfigurationView clearOverride(@PathVariable String key, @RequestParam(required = false) UUID institutionId) {
-        return FeatureConfigurationView.of(service.clearOverride(flag(key), institutionId));
+    FeatureConfigurationView clearOverride(@PathVariable String key, @RequestParam(required = false) UUID orgUnitId) {
+        return FeatureConfigurationView.of(service.clearOverride(flag(key), orgUnitId));
     }
 
     private static FeatureFlag flag(String key) {

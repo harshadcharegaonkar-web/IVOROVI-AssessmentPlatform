@@ -25,7 +25,7 @@ public class OverrideCache {
             throw new IllegalStateException("Cache key tenant differs from tenant context");
         }
         return new OverrideSnapshot(repository.findAll().stream()
-                .map(o -> new OverrideSnapshot.Entry(o.getFlagKey(), o.getInstitutionId(), o.isEnabled())).toList());
+                .map(o -> new OverrideSnapshot.Entry(o.getFlagKey(), o.getOrgUnitId(), o.isEnabled())).toList());
     }
 
     @CacheEvict(cacheNames = CACHE, key = "#tenantId")

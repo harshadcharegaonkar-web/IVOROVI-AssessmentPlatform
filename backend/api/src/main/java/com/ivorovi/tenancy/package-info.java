@@ -1,3 +1,3 @@
-/** Institution & tenant management (Phase 0: institution read model; Phase 1 adds full hierarchy management). */
-@org.springframework.modulith.ApplicationModule(displayName = "Tenancy")
+/** Institution & tenant management: organization hierarchy (university → college → campus → department), settings. */
+@org.springframework.modulith.ApplicationModule(displayName = "Tenancy & organization")
 package com.ivorovi.tenancy;

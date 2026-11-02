@@ -9,10 +9,56 @@
     "bearer" : [ ]
   } ],
   "paths" : {
+    "/api/v1/tenant/settings" : {
+      "get" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Organization settings: unit-type display labels and time zone (all signed-in users)",
+        "operationId" : "get",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Settings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Update organization settings (requires tenant.settings.manage)",
+        "operationId" : "update",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Settings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/features/{key}/override" : {
       "put" : {
         "tags" : [ "Features" ],
-        "summary" : "Set a tenant-level (no institutionId) or institution-level override (requires feature.manage in scope)",
+        "summary" : "Set an organization-level (no orgUnitId) or university/college override (requires feature.manage in scope)",
         "operationId" : "setOverride",
         "parameters" : [ {
           "name" : "key",
@@ -57,7 +103,7 @@
             "type" : "string"
           }
         }, {
-          "name" : "institutionId",
+          "name" : "orgUnitId",
           "in" : "query",
           "required" : false,
           "schema" : {
@@ -72,6 +118,237 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FeatureConfigurationView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units" : {
+      "get" : {
+        "tags" : [ "Organization" ],
+        "summary" : "List organization units visible to the caller (search, filters, sort, pagination)",
+        "operationId" : "list",
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          }
+        }, {
+          "name" : "parentId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|code|type|createdAt|status"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseOrgUnit"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units)",
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Detail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/{id}/move" : {
+      "post" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Move a unit (and its subtree) under a new parent, or to the top level",
+        "operationId" : "move",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MoveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Detail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/{id}/deactivate" : {
+      "post" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Deactivate a unit (not allowed while it has active sub-units)",
+        "operationId" : "deactivate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Detail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/{id}/activate" : {
+      "post" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Activate a unit (its parent must be active)",
+        "operationId" : "activate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Detail"
                 }
               }
             }
@@ -123,11 +400,190 @@
         }
       }
     },
+    "/api/v1/org-units/{id}" : {
+      "get" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Unit details with ancestors (breadcrumb), child counts and dependents",
+        "operationId" : "get_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Detail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead)",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "version",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
+        "operationId" : "update_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Detail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/{id}/history" : {
+      "get" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Change history of a unit (newest first)",
+        "operationId" : "history",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseHistoryEntry"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/tree" : {
+      "get" : {
+        "tags" : [ "Organization" ],
+        "summary" : "All visible units (flat, with parent ids) for building the hierarchy tree",
+        "operationId" : "tree",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/TreeNode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org-units/summary" : {
+      "get" : {
+        "tags" : [ "Organization" ],
+        "summary" : "Counts by type and status, and campuses/departments per institution (visible units)",
+        "operationId" : "summary",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Summary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notifications" : {
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first)",
-        "operationId" : "list",
+        "operationId" : "list_1",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -212,107 +668,13 @@
         }
       }
     },
-    "/api/v1/institutions" : {
-      "get" : {
-        "tags" : [ "Institutions" ],
-        "summary" : "List institutions visible to the caller (search, sort, pagination)",
-        "operationId" : "list_1",
-        "parameters" : [ {
-          "name" : "q",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "maxLength" : 100,
-            "minLength" : 0
-          }
-        }, {
-          "name" : "page",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 0,
-            "minimum" : 0
-          }
-        }, {
-          "name" : "size",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "integer",
-            "format" : "int32",
-            "default" : 20
-          }
-        }, {
-          "name" : "sort",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "default" : "name",
-            "pattern" : "name|code|createdAt"
-          }
-        }, {
-          "name" : "direction",
-          "in" : "query",
-          "required" : false,
-          "schema" : {
-            "type" : "string",
-            "default" : "asc",
-            "pattern" : "asc|desc"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseInstitutionView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/institutions/{id}" : {
-      "get" : {
-        "tags" : [ "Institutions" ],
-        "summary" : "Get one institution",
-        "operationId" : "get",
-        "parameters" : [ {
-          "name" : "id",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string",
-            "format" : "uuid"
-          }
-        } ],
-        "responses" : {
-          "200" : {
-            "description" : "OK",
-            "content" : {
-              "*/*" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/InstitutionView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/features" : {
       "get" : {
         "tags" : [ "Features" ],
-        "summary" : "Effective features for the caller's tenant, optionally for one institution",
+        "summary" : "Effective features for the organization, or for any unit (inherited down the hierarchy)",
         "operationId" : "effective",
         "parameters" : [ {
-          "name" : "institutionId",
+          "name" : "orgUnitId",
           "in" : "query",
           "required" : false,
           "schema" : {
@@ -340,10 +702,10 @@
     "/api/v1/features/configuration" : {
       "get" : {
         "tags" : [ "Features" ],
-        "summary" : "Feature configuration with all layers (requires feature.read in scope)",
+        "summary" : "Feature configuration for the organization or a university/college (requires feature.read in scope)",
         "operationId" : "configuration",
         "parameters" : [ {
-          "name" : "institutionId",
+          "name" : "orgUnitId",
           "in" : "query",
           "required" : false,
           "schema" : {
@@ -469,10 +831,60 @@
   },
   "components" : {
     "schemas" : {
+      "Label" : {
+        "type" : "object",
+        "properties" : {
+          "singular" : {
+            "type" : "string"
+          },
+          "plural" : {
+            "type" : "string"
+          }
+        }
+      },
+      "UpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "labels" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/Label"
+            }
+          },
+          "timeZone" : {
+            "type" : "string",
+            "maxLength" : 64,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "version" ]
+      },
+      "Settings" : {
+        "type" : "object",
+        "properties" : {
+          "labels" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/Label"
+            }
+          },
+          "timeZone" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "OverrideRequest" : {
         "type" : "object",
         "properties" : {
-          "institutionId" : {
+          "orgUnitId" : {
             "type" : "string",
             "format" : "uuid"
           },
@@ -506,14 +918,387 @@
           "tenantOverride" : {
             "type" : "boolean"
           },
-          "institutionOverride" : {
+          "unitOverride" : {
             "type" : "boolean"
+          },
+          "inheritedEnabled" : {
+            "type" : "boolean"
+          },
+          "inheritedSource" : {
+            "type" : "string"
           },
           "enabled" : {
             "type" : "boolean"
           },
           "source" : {
             "type" : "string"
+          }
+        }
+      },
+      "CreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 63,
+            "minLength" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 1
+          },
+          "shortName" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "branding" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        },
+        "required" : [ "code", "name", "type" ]
+      },
+      "Ancestor" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Dependents" : {
+        "type" : "object",
+        "properties" : {
+          "children" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeChildren" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "roleAssignments" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "featureOverrides" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Detail" : {
+        "type" : "object",
+        "properties" : {
+          "unit" : {
+            "$ref" : "#/components/schemas/OrgUnit"
+          },
+          "ancestors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Ancestor"
+            }
+          },
+          "childCounts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "dependents" : {
+            "$ref" : "#/components/schemas/Dependents"
+          }
+        }
+      },
+      "OrgUnit" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "parentName" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "shortName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          },
+          "path" : {
+            "type" : "string"
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "branding" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "MoveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "newParentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "version" ]
+      },
+      "StatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "version" ]
+      },
+      "PageResponseOrgUnit" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrgUnit"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "HistoryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "changeType" : {
+            "type" : "string"
+          },
+          "changedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "changedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "changedByName" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "before" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "after" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          }
+        }
+      },
+      "PageResponseHistoryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/HistoryEntry"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TreeNode" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          },
+          "childCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "Distribution" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string",
+            "enum" : [ "UNIVERSITY", "COLLEGE", "CAMPUS", "DEPARTMENT" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "campuses" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departments" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Summary" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "inactive" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "institutions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Distribution"
+            }
           }
         }
       },
@@ -645,55 +1430,6 @@
           "branding" : {
             "type" : "object",
             "additionalProperties" : { }
-          }
-        }
-      },
-      "InstitutionView" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "code" : {
-            "type" : "string"
-          },
-          "name" : {
-            "type" : "string"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          }
-        }
-      },
-      "PageResponseInstitutionView" : {
-        "type" : "object",
-        "properties" : {
-          "items" : {
-            "type" : "array",
-            "items" : {
-              "$ref" : "#/components/schemas/InstitutionView"
-            }
-          },
-          "page" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "size" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "totalElements" : {
-            "type" : "integer",
-            "format" : "int64"
-          },
-          "totalPages" : {
-            "type" : "integer",
-            "format" : "int32"
           }
         }
       },

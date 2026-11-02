@@ -1,5 +1,6 @@
 package com.ivorovi.platform.security;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -10,11 +11,17 @@ import org.springframework.stereotype.Component;
  * Server-side authorization decisions. Exposed as bean {@code authz} for {@code @PreAuthorize} expressions, and
  * usable programmatically when the scope is only known after reading the request body.
  *
- * <p>Scope semantics (Phase 0 hierarchy: tenant → institution): a TENANT-scope grant covers the whole tenant
- * including every institution; an INSTITUTION-scope grant covers only that institution.
+ * <p>Scope semantics: a TENANT grant covers the whole organization; an ORG_UNIT grant covers that unit and its
+ * entire subtree (university → colleges → campuses → departments), resolved through materialised paths.
  */
 @Component("authz")
 public class Authz {
+
+    private final OrgScopeResolver scopes;
+
+    Authz(OrgScopeResolver scopes) {
+        this.scopes = scopes;
+    }
 
     /** Permission granted tenant-wide. */
     public boolean has(String permission) {
@@ -23,30 +30,45 @@ public class Authz {
                         && g.scopeId().equals(p.tenantId()))).orElse(false);
     }
 
-    /** Permission granted for the given institution (directly or through a tenant-wide grant). */
-    public boolean hasInInstitution(String permission, UUID institutionId) {
-        if (institutionId == null) return has(permission);
-        return has(permission) || CurrentUser.get().map(p -> p.grants().stream().anyMatch(g ->
-                g.permission().equals(permission) && g.scopeType() == ScopeType.INSTITUTION
-                        && g.scopeId().equals(institutionId))).orElse(false);
+    /** Permission granted for the given unit: tenant-wide, on the unit itself, or on any of its ancestors. */
+    public boolean hasInOrgUnit(String permission, UUID orgUnitId) {
+        if (orgUnitId == null) return has(permission);
+        if (has(permission)) return true;
+        Optional<IvoroviPrincipal> principal = CurrentUser.get();
+        if (principal.isEmpty()) return false;
+        Set<UUID> grantRoots = orgUnitScopesWith(permission);
+        if (grantRoots.isEmpty()) return false;
+        if (grantRoots.contains(orgUnitId)) return true;
+        Optional<String> target = scopes.pathOf(orgUnitId);
+        if (target.isEmpty()) return false;
+        for (UUID root : grantRoots) {
+            Optional<String> rootPath = scopes.pathOf(root);
+            if (rootPath.isPresent() && isWithin(target.get(), rootPath.get())) return true;
+        }
+        return false;
     }
 
-    /** Permission granted at any scope (used for navigation and list endpoints that filter by scope). */
+    /** Permission granted at any scope (navigation, list endpoints that filter by scope). */
     public boolean hasAnywhere(String permission) {
         return CurrentUser.get().map(p -> p.grants().stream().anyMatch(g -> g.permission().equals(permission)))
                 .orElse(false);
     }
 
-    /** Institutions where the permission is granted directly. Callers check {@link #has} first. */
-    public Set<UUID> institutionsWith(String permission) {
+    /** Units whose subtrees the permission is granted on directly (callers check {@link #has} first). */
+    public Set<UUID> orgUnitScopesWith(String permission) {
         return CurrentUser.get().map(p -> p.grants().stream()
-                .filter(g -> g.permission().equals(permission) && g.scopeType() == ScopeType.INSTITUTION)
+                .filter(g -> g.permission().equals(permission) && g.scopeType() == ScopeType.ORG_UNIT)
                 .map(Grant::scopeId).collect(Collectors.toUnmodifiableSet())).orElse(Set.of());
     }
 
-    public void require(String permission, UUID institutionIdOrNull) {
-        if (!hasInInstitution(permission, institutionIdOrNull)) {
+    public void require(String permission, UUID orgUnitIdOrNull) {
+        if (!hasInOrgUnit(permission, orgUnitIdOrNull)) {
             throw new AccessDeniedException("Missing permission " + permission);
         }
+    }
+
+    /** {@code path} equals {@code ancestor} or lies below it (label-boundary aware). */
+    static boolean isWithin(String path, String ancestor) {
+        return path.equals(ancestor) || path.startsWith(ancestor + ".");
     }
 }

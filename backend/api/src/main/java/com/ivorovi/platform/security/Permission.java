@@ -10,8 +10,9 @@ import java.util.Optional;
  */
 public enum Permission {
     PLATFORM_TENANT_MANAGE("platform.tenant.manage", "Create, suspend and configure tenants"),
-    INSTITUTION_READ("institution.read", "View institutions"),
-    INSTITUTION_MANAGE("institution.manage", "Create and modify institutions"),
+    ORG_UNIT_READ("org_unit.read", "View the organization hierarchy (universities, colleges, campuses, departments)"),
+    ORG_UNIT_MANAGE("org_unit.manage", "Create, edit, move, deactivate and delete organization units"),
+    TENANT_SETTINGS_MANAGE("tenant.settings.manage", "Change organization settings such as terminology"),
     USER_READ("user.read", "View user accounts"),
     USER_MANAGE("user.manage", "Invite, modify and deactivate user accounts"),
     ROLE_MANAGE("role.manage", "Create custom roles and assign roles"),

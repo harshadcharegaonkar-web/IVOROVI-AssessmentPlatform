@@ -36,7 +36,8 @@ public class SyntheticDataGenerator {
         }
     }
 
-    public record Result(List<UUID> tenantIds, int institutions, int users, int roleAssignments) {}
+    /** {@code orgUnits}: all generated units (university, colleges, campuses, departments). */
+    public record Result(List<UUID> tenantIds, int orgUnits, int users, int roleAssignments) {}
 
     private static final Logger log = LoggerFactory.getLogger(SyntheticDataGenerator.class);
     private static final UUID ORG_ADMIN = UUID.fromString("01920000-0000-7000-8000-000000000002");
@@ -63,7 +64,7 @@ public class SyntheticDataGenerator {
         }
         Faker faker = new Faker(Locale.of("en", "IND"), new Random(request.seed()));
         List<UUID> tenantIds = new ArrayList<>();
-        int institutions = 0, users = 0, assignments = 0;
+        int orgUnits = 0, users = 0, assignments = 0;
 
         for (int t = 0; t < request.tenants(); t++) {
             UUID tenantId = Ids.newId();
@@ -77,21 +78,44 @@ public class SyntheticDataGenerator {
             tenantIds.add(tenantId);
 
             int[] counts = TenantContext.callInTenant(tenantId, () -> tx.execute(s -> populateTenant(tenantId, code, faker, request)));
-            institutions += counts[0];
+            orgUnits += counts[0];
             users += counts[1];
             assignments += counts[2];
-            log.info("Synthetic tenant {} ({}) generated: {} institutions, {} users", code, tenantId, counts[0], counts[1]);
+            log.info("Synthetic tenant {} ({}) generated: {} organization units, {} users", code, tenantId, counts[0], counts[1]);
         }
-        return new Result(tenantIds, institutions, users, assignments);
+        return new Result(tenantIds, orgUnits, users, assignments);
     }
 
+    private static String label(UUID id) {
+        return id.toString().replace("-", "");
+    }
+
+    private UUID orgUnit(UUID tenantId, UUID parentId, String parentPath, String type, String code, String name, List<String> paths) {
+        UUID id = Ids.newId();
+        String path = parentPath == null ? label(id) : parentPath + "." + label(id);
+        jdbc.sql("""
+                INSERT INTO org_unit (id, tenant_id, parent_id, unit_type, code, name, path)
+                VALUES (?, ?, ?, ?, ?, ?, CAST(? AS ltree))""")
+                .params(id, tenantId, parentId, type, code, name, path).update();
+        paths.add(path);
+        return id;
+    }
+
+    /** One university; {@code institutionsPerTenant} colleges under it, each with a campus and two departments. */
     private int[] populateTenant(UUID tenantId, String code, Faker faker, Request request) {
         List<UUID> institutionIds = new ArrayList<>();
+        List<String> paths = new ArrayList<>();
+        UUID university = orgUnit(tenantId, null, null, "UNIVERSITY", "UNIV", faker.university().name() + " (synthetic)", paths);
+        String universityPath = paths.getLast();
         for (int i = 0; i < request.institutionsPerTenant(); i++) {
-            UUID id = Ids.newId();
-            jdbc.sql("INSERT INTO institution (id, tenant_id, code, name) VALUES (?, ?, ?, ?)")
-                    .params(id, tenantId, "INST-" + (i + 1), faker.university().name() + " (synthetic)").update();
-            institutionIds.add(id);
+            UUID college = orgUnit(tenantId, university, universityPath, "COLLEGE", "COL-" + (i + 1),
+                    faker.university().name() + " College (synthetic)", paths);
+            String collegePath = paths.getLast();
+            UUID campus = orgUnit(tenantId, college, collegePath, "CAMPUS", "MAIN", "Main Campus", paths);
+            String campusPath = paths.getLast();
+            orgUnit(tenantId, campus, campusPath, "DEPARTMENT", "CSE", "Computer Science & Engineering", paths);
+            orgUnit(tenantId, campus, campusPath, "DEPARTMENT", "MECH", "Mechanical Engineering", paths);
+            institutionIds.add(college);
         }
         int assignments = 0;
         for (int u = 0; u < request.usersPerTenant(); u++) {
@@ -107,9 +131,9 @@ public class SyntheticDataGenerator {
             UUID institution = institutionIds.get(u % institutionIds.size());
             UUID role; String scopeType; UUID scopeId;
             if (u == 0) { role = ORG_ADMIN; scopeType = "TENANT"; scopeId = tenantId; }
-            else if (u <= institutionIds.size()) { role = INSTITUTION_ADMIN; scopeType = "INSTITUTION"; scopeId = institution; }
-            else if (u % 10 == 0) { role = FACULTY; scopeType = "INSTITUTION"; scopeId = institution; }
-            else { role = STUDENT; scopeType = "INSTITUTION"; scopeId = institution; }
+            else if (u <= institutionIds.size()) { role = INSTITUTION_ADMIN; scopeType = "ORG_UNIT"; scopeId = institution; }
+            else if (u % 10 == 0) { role = FACULTY; scopeType = "ORG_UNIT"; scopeId = institution; }
+            else { role = STUDENT; scopeType = "ORG_UNIT"; scopeId = institution; }
             jdbc.sql("""
                     INSERT INTO role_assignment (id, tenant_id, user_account_id, role_id, scope_type, scope_id)
                     VALUES (?, ?, ?, ?, ?, ?)""")
@@ -117,9 +141,10 @@ public class SyntheticDataGenerator {
             assignments++;
         }
         audit.recordSuccess("seed.synthetic_data_generated", "tenant", tenantId.toString(), Map.of(
+                "orgUnits", String.valueOf(paths.size()),
                 "institutions", String.valueOf(institutionIds.size()),
                 "users", String.valueOf(request.usersPerTenant()),
                 "seed", String.valueOf(request.seed())));
-        return new int[] {institutionIds.size(), request.usersPerTenant(), assignments};
+        return new int[] {paths.size(), request.usersPerTenant(), assignments};
     }
 }

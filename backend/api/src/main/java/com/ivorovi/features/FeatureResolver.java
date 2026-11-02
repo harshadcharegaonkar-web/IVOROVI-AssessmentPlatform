@@ -1,5 +1,6 @@
 package com.ivorovi.features;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -7,8 +8,9 @@ import java.util.Optional;
  * <ol>
  *   <li>deployment ceiling OFF → OFF;</li>
  *   <li>tenant level = tenant override, else catalog default;</li>
- *   <li>tenant level OFF → OFF (institutions cannot exceed their organisation);</li>
- *   <li>institution override (when the flag is institution-overridable), else tenant level.</li>
+ *   <li>then walk the institution chain top-down (e.g. university → college): an override applies only while the
+ *       value above it is ON, so a lower level can switch a feature off but never on when a higher level has it off;</li>
+ *   <li>flags that are not institution-overridable (integrations) ignore the chain.</li>
  * </ol>
  */
 public final class FeatureResolver {
@@ -16,14 +18,18 @@ public final class FeatureResolver {
     private FeatureResolver() {}
 
     public static FeatureState resolve(FeatureFlag flag, boolean deploymentDisabled, Optional<Boolean> tenantOverride,
-                                       Optional<Boolean> institutionOverride) {
+                                       List<Optional<Boolean>> institutionChain) {
         if (deploymentDisabled) return new FeatureState(flag, false, FeatureState.Source.DEPLOYMENT);
-        boolean tenantLevel = tenantOverride.orElse(flag.defaultEnabled());
-        FeatureState.Source tenantSource = tenantOverride.isPresent() ? FeatureState.Source.TENANT : FeatureState.Source.DEFAULT;
-        if (!tenantLevel) return new FeatureState(flag, false, tenantSource);
-        if (flag.institutionOverridable() && institutionOverride.isPresent()) {
-            return new FeatureState(flag, institutionOverride.get(), FeatureState.Source.INSTITUTION);
+        boolean value = tenantOverride.orElse(flag.defaultEnabled());
+        FeatureState.Source source = tenantOverride.isPresent() ? FeatureState.Source.TENANT : FeatureState.Source.DEFAULT;
+        if (!flag.institutionOverridable()) return new FeatureState(flag, value, source);
+        for (Optional<Boolean> o : institutionChain) {
+            if (!value) break;
+            if (o.isPresent()) {
+                value = o.get();
+                source = FeatureState.Source.INSTITUTION;
+            }
         }
-        return new FeatureState(flag, true, tenantSource);
+        return new FeatureState(flag, value, source);
     }
 }

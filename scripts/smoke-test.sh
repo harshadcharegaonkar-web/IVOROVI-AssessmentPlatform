@@ -44,15 +44,17 @@ check "API rejects anonymous requests"                  401 ""      GET /api/v1/
 check "org admin authenticated via Keycloak"            200 "$ALICE" GET /api/v1/me
 grep -q '"code":"aurora"' /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  tenant context resolved to 'aurora'"; } || { fail=$((fail+1)); echo "  FAIL  tenant context"; }
 check "IdP user without Ivorovi account is rejected"   403 "$GHOST" GET /api/v1/me
-check "institutions list (own tenant)"                  200 "$ALICE" GET /api/v1/institutions
-check "cross-tenant institution read → 404"            404 "$ALICE" GET "/api/v1/institutions/$TENANT_B_INST"
-check "cross-tenant institution read (B→A) → 404"      404 "$BELA"  GET "/api/v1/institutions/$TENANT_A_INST"
+check "organization units list (own tenant)"         200 "$ALICE" GET /api/v1/org-units
+check "organization tree"                               200 "$ALICE" GET /api/v1/org-units/tree
+check "unknown request fields are rejected"            400 "$ALICE" PUT /api/v1/features/ai.evaluation/override '{"institutionId":"x","enabled":true}'
+check "cross-tenant unit read → 404"                  404 "$ALICE" GET "/api/v1/org-units/$TENANT_B_INST"
+check "cross-tenant unit read (B→A) → 404"            404 "$BELA"  GET "/api/v1/org-units/$TENANT_A_INST"
 check "faculty cannot read audit trail"                 403 "$ARUN"  GET /api/v1/audit-events
 check "faculty cannot change features"                  403 "$ARUN"  PUT /api/v1/features/ai.evaluation/override '{"enabled":true}'
-check "institution admin: own institution OK"           200 "$INES"  PUT /api/v1/features/module.placement/override "{\"institutionId\":\"$TENANT_A_INST\",\"enabled\":false}"
+check "institution admin: own institution OK"           200 "$INES"  PUT /api/v1/features/module.placement/override "{\"orgUnitId\":\"$TENANT_A_INST\",\"enabled\":false}"
 check "institution admin: org-level escalation denied"  403 "$INES"  PUT /api/v1/features/module.placement/override '{"enabled":false}'
-check "institution admin: reset own override"           200 "$INES"  DELETE "/api/v1/features/module.placement/override?institutionId=$TENANT_A_INST"
-check "AI cannot be enabled per institution first"      409 "$ALICE" PUT /api/v1/features/ai.evaluation/override "{\"institutionId\":\"$TENANT_A_INST\",\"enabled\":true}"
+check "institution admin: reset own override"           200 "$INES"  DELETE "/api/v1/features/module.placement/override?orgUnitId=$TENANT_A_INST"
+check "AI cannot be enabled per institution first"      409 "$ALICE" PUT /api/v1/features/ai.evaluation/override "{\"orgUnitId\":\"$TENANT_A_INST\",\"enabled\":true}"
 check "audit trail readable by org admin"               200 "$ALICE" GET "/api/v1/audit-events?size=5"
 check "audit chain verification"                        200 "$ALICE" GET /api/v1/audit-events/verification
 grep -q '"valid":true' /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  audit hash chain is valid"; } || { fail=$((fail+1)); echo "  FAIL  audit chain invalid: $(cat /tmp/smoke-body)"; }

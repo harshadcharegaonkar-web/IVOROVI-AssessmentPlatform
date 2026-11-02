@@ -31,6 +31,17 @@ class ErrorHandlingIT extends IntegrationTest {
     }
 
     @Test
+    void unknownFieldsAreRejectedNotIgnored() throws Exception {
+        // regression: a stale "institutionId" field was once ignored, silently turning a unit-level change into
+        // an organization-level one
+        mvc.perform(put("/api/v1/features/ai.evaluation/override").header(HttpHeaders.AUTHORIZATION, token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"institutionId\":\"0192a000-0000-7000-8000-00000000a101\",\"enabled\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("unknown_field"))
+                .andExpect(jsonPath("$.detail").value("Unknown field 'institutionId' in the request body."));
+    }
+
+    @Test
     void malformedJsonIsBadRequestWithoutParserDetails() throws Exception {
         mvc.perform(put("/api/v1/features/ai.evaluation/override").header(HttpHeaders.AUTHORIZATION, token)
                         .contentType(MediaType.APPLICATION_JSON).content("{not json"))
@@ -41,15 +52,15 @@ class ErrorHandlingIT extends IntegrationTest {
 
     @Test
     void invalidParametersAreRejected() throws Exception {
-        mvc.perform(get("/api/v1/institutions/not-a-uuid").header(HttpHeaders.AUTHORIZATION, token))
+        mvc.perform(get("/api/v1/org-units/not-a-uuid").header(HttpHeaders.AUTHORIZATION, token))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("invalid_parameter"));
-        mvc.perform(get("/api/v1/institutions").param("sort", "password").header(HttpHeaders.AUTHORIZATION, token))
+        mvc.perform(get("/api/v1/org-units").param("sort", "password").header(HttpHeaders.AUTHORIZATION, token))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void pageSizeIsCapped() throws Exception {
-        mvc.perform(get("/api/v1/institutions").param("size", "100000").header(HttpHeaders.AUTHORIZATION, token))
+        mvc.perform(get("/api/v1/org-units").param("size", "100000").header(HttpHeaders.AUTHORIZATION, token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.size").value(100));
     }
 

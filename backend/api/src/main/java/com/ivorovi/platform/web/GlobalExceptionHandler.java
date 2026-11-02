@@ -74,6 +74,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.badRequest().body(pd);
     }
 
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(org.springframework.http.converter.HttpMessageNotReadableException ex,
+                                                                  HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        Throwable cause = ex.getCause();
+        while (cause != null && !(cause instanceof tools.jackson.databind.exc.UnrecognizedPropertyException)) cause = cause.getCause();
+        if (cause instanceof tools.jackson.databind.exc.UnrecognizedPropertyException u) {
+            return ResponseEntity.badRequest().body(ProblemResponses.problem(HttpStatus.BAD_REQUEST, "unknown_field",
+                    "Unknown field '" + u.getPropertyName() + "' in the request body."));
+        }
+        return handleExceptionInternal(ex, null, headers, status, request);
+    }
+
     /** Framework-detected errors (malformed JSON, 404 routes, 405...): keep status, add our code/traceId. */
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception ex, Object body, HttpHeaders headers,

@@ -53,17 +53,18 @@ class AuthorizationIT extends IntegrationTest {
 
     @Test
     void studentCannotListInstitutions() throws Exception {
-        as(ASHA_STUDENT_A1, get("/api/v1/institutions")).andExpect(status().isForbidden())
+        as(ASHA_STUDENT_A1, get("/api/v1/org-units")).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("forbidden"));
     }
 
     @Test
-    void institutionScopedReaderSeesOnlyAssignedInstitution() throws Exception {
-        as(ARUN_FACULTY_A1, get("/api/v1/institutions")).andExpect(status().isOk())
-                .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.items[0].id").value(INST_A1.toString()));
-        as(ARUN_FACULTY_A1, get("/api/v1/institutions/" + INST_A1)).andExpect(status().isOk());
-        as(ARUN_FACULTY_A1, get("/api/v1/institutions/" + INST_A2)).andExpect(status().isForbidden());
+    void institutionScopedReaderSeesOnlyAssignedSubtree() throws Exception {
+        // AIT college + its campus + 2 departments; not the university above it, not the sibling college
+        as(ARUN_FACULTY_A1, get("/api/v1/org-units")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(4))
+                .andExpect(jsonPath("$.items[*].id", org.hamcrest.Matchers.hasItem(INST_A1.toString())));
+        as(ARUN_FACULTY_A1, get("/api/v1/org-units/" + INST_A1)).andExpect(status().isOk());
+        as(ARUN_FACULTY_A1, get("/api/v1/org-units/" + INST_A2)).andExpect(status().isForbidden());
     }
 
     @Test
@@ -76,7 +77,7 @@ class AuthorizationIT extends IntegrationTest {
     @Test
     void facultyCannotChangeFeatures() throws Exception {
         as(ARUN_FACULTY_A1, override("ai.evaluation", "{\"enabled\":true}")).andExpect(status().isForbidden());
-        as(ARUN_FACULTY_A1, override("module.placement", "{\"institutionId\":\"" + INST_A1 + "\",\"enabled\":false}"))
+        as(ARUN_FACULTY_A1, override("module.placement", "{\"orgUnitId\":\"" + INST_A1 + "\",\"enabled\":false}"))
                 .andExpect(status().isForbidden());
         as(ARUN_FACULTY_A1, get("/api/v1/features/configuration")).andExpect(status().isForbidden());
     }
@@ -84,24 +85,24 @@ class AuthorizationIT extends IntegrationTest {
     @Test
     void institutionAdminIsConfinedToOwnInstitution() throws Exception {
         // allowed: own institution
-        as(INES_INST_ADMIN_A1, override("module.placement", "{\"institutionId\":\"" + INST_A1 + "\",\"enabled\":false}"))
+        as(INES_INST_ADMIN_A1, override("module.placement", "{\"orgUnitId\":\"" + INST_A1 + "\",\"enabled\":false}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(false))
                 .andExpect(jsonPath("$.source").value("INSTITUTION"));
         // escalation attempts: organisation level, sibling institution, other tenant's institution
         as(INES_INST_ADMIN_A1, override("module.placement", "{\"enabled\":false}")).andExpect(status().isForbidden());
-        as(INES_INST_ADMIN_A1, override("module.placement", "{\"institutionId\":\"" + INST_A2 + "\",\"enabled\":false}"))
+        as(INES_INST_ADMIN_A1, override("module.placement", "{\"orgUnitId\":\"" + INST_A2 + "\",\"enabled\":false}"))
                 .andExpect(status().isForbidden());
-        as(INES_INST_ADMIN_A1, override("module.placement", "{\"institutionId\":\"" + INST_B1 + "\",\"enabled\":false}"))
+        as(INES_INST_ADMIN_A1, override("module.placement", "{\"orgUnitId\":\"" + INST_B1 + "\",\"enabled\":false}"))
                 .andExpect(status().isForbidden());
         as(INES_INST_ADMIN_A1, delete("/api/v1/features/module.placement/override")).andExpect(status().isForbidden());
         as(INES_INST_ADMIN_A1, get("/api/v1/features/configuration")).andExpect(status().isForbidden());
-        as(INES_INST_ADMIN_A1, get("/api/v1/features/configuration").param("institutionId", INST_A1.toString()))
+        as(INES_INST_ADMIN_A1, get("/api/v1/features/configuration").param("orgUnitId", INST_A1.toString()))
                 .andExpect(status().isOk());
     }
 
     @Test
     void orgAdminOfTenantBCannotTouchTenantAInstitution() throws Exception {
-        as(BELA_ORG_ADMIN_B, override("module.placement", "{\"institutionId\":\"" + INST_A1 + "\",\"enabled\":false}"))
+        as(BELA_ORG_ADMIN_B, override("module.placement", "{\"orgUnitId\":\"" + INST_A1 + "\",\"enabled\":false}"))
                 .andExpect(status().isNotFound());
         assertThat(ownerJdbc().sql("SELECT count(*) FROM feature_flag_override").query(Long.class).single()).isZero();
     }
@@ -127,7 +128,7 @@ class AuthorizationIT extends IntegrationTest {
     void orgAdminHasTenantWideAccess() throws Exception {
         as(ALICE_ORG_ADMIN_A, get("/api/v1/audit-events")).andExpect(status().isOk());
         as(ALICE_ORG_ADMIN_A, get("/api/v1/features/configuration")).andExpect(status().isOk());
-        as(ALICE_ORG_ADMIN_A, get("/api/v1/institutions/" + INST_A2)).andExpect(status().isOk());
+        as(ALICE_ORG_ADMIN_A, get("/api/v1/org-units/" + INST_A2)).andExpect(status().isOk());
     }
 
     private static long deniedCount() {

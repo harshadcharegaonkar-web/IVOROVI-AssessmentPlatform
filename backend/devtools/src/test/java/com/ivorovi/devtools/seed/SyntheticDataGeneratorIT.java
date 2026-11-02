@@ -20,7 +20,7 @@ class SyntheticDataGeneratorIT extends IntegrationTest {
     void generatesIsolatedSyntheticTenants() {
         var result = generator.generate(new SyntheticDataGenerator.Request(2, 3, 25, 7L));
         assertThat(result.tenantIds()).hasSize(2);
-        assertThat(result.institutions()).isEqualTo(6);
+        assertThat(result.orgUnits()).as("per tenant: 1 university + 3 x (college, campus, 2 departments)").isEqualTo(26);
         assertThat(result.users()).isEqualTo(50);
 
         UUID first = result.tenantIds().get(0);

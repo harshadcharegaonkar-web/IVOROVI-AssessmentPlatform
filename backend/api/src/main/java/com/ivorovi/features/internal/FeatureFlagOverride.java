@@ -17,8 +17,8 @@ public class FeatureFlagOverride extends TenantOwnedEntity {
     @Id
     private UUID id;
 
-    @Column(name = "institution_id", updatable = false)
-    private UUID institutionId;
+    @Column(name = "org_unit_id", updatable = false)
+    private UUID orgUnitId;
 
     @Column(name = "flag_key", nullable = false, updatable = false, length = 100)
     private String flagKey;
@@ -37,9 +37,9 @@ public class FeatureFlagOverride extends TenantOwnedEntity {
 
     protected FeatureFlagOverride() {}
 
-    public FeatureFlagOverride(UUID institutionId, String flagKey) {
+    public FeatureFlagOverride(UUID orgUnitId, String flagKey) {
         this.id = Ids.newId();
-        this.institutionId = institutionId;
+        this.orgUnitId = orgUnitId;
         this.flagKey = flagKey;
     }
 
@@ -50,7 +50,7 @@ public class FeatureFlagOverride extends TenantOwnedEntity {
     }
 
     public UUID getId() { return id; }
-    public UUID getInstitutionId() { return institutionId; }
+    public UUID getOrgUnitId() { return orgUnitId; }
     public String getFlagKey() { return flagKey; }
     public boolean isEnabled() { return enabled; }
 }

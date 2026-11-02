@@ -10,6 +10,6 @@ public interface FeatureFlagOverrideRepository extends JpaRepository<FeatureFlag
 
     @Query("""
             select o from FeatureFlagOverride o
-            where o.flagKey = :key and ((:inst is null and o.institutionId is null) or o.institutionId = :inst)""")
-    Optional<FeatureFlagOverride> findOverride(@Param("key") String key, @Param("inst") UUID institutionId);
+            where o.flagKey = :key and ((:unit is null and o.orgUnitId is null) or o.orgUnitId = :unit)""")
+    Optional<FeatureFlagOverride> findOverride(@Param("key") String key, @Param("unit") UUID orgUnitId);
 }

@@ -54,6 +54,10 @@ spring:
       enabled: true
   jackson:
     default-property-inclusion: non_null
+    deserialization:
+      # Strict request bodies: a stale or mistyped field must never be ignored (it could silently widen the
+      # scope of a change, e.g. an unknown scope field turning a unit-level change into an organization-level one).
+      fail-on-unknown-properties: true
 
 server:
   shutdown: graceful
