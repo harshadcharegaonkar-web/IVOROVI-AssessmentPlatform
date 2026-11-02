@@ -13,6 +13,9 @@ java {
 
 repositories { mavenCentral() }
 
+// Locked dependency versions (gradle.lockfile) make builds reproducible and let Trivy scan Java dependencies.
+dependencyLocking { lockAllConfigurations() }
+
 dependencyManagement {
     imports {
         mavenBom(libs.spring.modulith.bom.get().toString())

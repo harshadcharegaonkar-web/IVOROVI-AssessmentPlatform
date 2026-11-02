@@ -12,3 +12,13 @@ test-results/
 .vite/
 frontend/apps/web/test-results/
 frontend/apps/web/playwright-report/
+# Secrets and local configuration (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+!gradle/wrapper/*.jar

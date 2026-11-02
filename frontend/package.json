@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.28.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "generate:api": "pnpm --filter @ivorovi/api-client generate",
     "lint": "pnpm -r lint",
@@ -20,5 +22,10 @@
     "prettier": "3.9.10",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "minimatch@<11.0.1": ">=11.0.1"
+    }
   }
 }
