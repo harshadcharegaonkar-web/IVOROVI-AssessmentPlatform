@@ -33,7 +33,7 @@ Plan approved with Amendment 1 and design system.
 
 | Increment | Status | Report |
 |---|---|---|
-| 1.0 Platform hardening + design-system shell | ✅ implemented and verified locally; CI run pending; bundle-budget deviation awaiting decision (KI-24) | `phase-1/increment-1.0.md` |
+| 1.0 Platform hardening + design-system shell | ✅ complete (CI run 41452811631 green); bundle-budget deviation awaiting decision (KI-24) | `phase-1/increment-1.0.md` |
 | 1.1 Organization hierarchy | ⬜ next | |
 | 1.2–1.7 | ⬜ | |
 

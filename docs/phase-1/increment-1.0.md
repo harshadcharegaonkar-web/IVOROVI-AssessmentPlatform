@@ -1,6 +1,6 @@
 # Increment 1.0: platform hardening and design-system shell
 
-* Status: **Complete, pending CI confirmation and one decision** (see §Deviations). Started and finished 2026-11-02
+* Status: **Complete**: verified locally and in CI run [41452811631](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41452811631) (commit `20507ca`, all four jobs green). One decision open (see §Deviations). 2026-11-02
 * Depends on: Phase 0 (closed, CI green)
 
 ## Functionality
@@ -94,7 +94,9 @@ Feature settings, Audit logs and My Access.
 | Visual checklist | Section A and screens 19–21 + restyled dashboard/institutions: see `docs/design/visual-checklist.md`, evidence in `docs/design/evidence/1.0/` |
 
 Container images were not rebuilt in the build sandbox (its build containers cannot reach Alpine package
-mirrors for `apk upgrade`); image build, image scans and E2E against containers run in CI.
+mirrors for `apk upgrade`). CI run [41452811631](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41452811631) built both images (with `apk upgrade`), scanned them (Trivy, clean),
+ran the smoke test 17/17 through the web container, Playwright 18/18 against the containerized stack, and the
+bundle budget (176.1 kB / 180 kB).
 
 ## Deviations (decision needed)
 
