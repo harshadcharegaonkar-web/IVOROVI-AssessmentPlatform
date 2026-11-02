@@ -1,6 +1,6 @@
 # Phase 1 plan: Amendment 1 (product-owner approval of 2026-11-02)
 
-* Status: **Draft**. Records the scope added by the Phase 1 approval and maps it onto the approved increments
+* Status: **Approved** (decisions recorded in §8, 2026-11-02). Records the scope added by the Phase 1 approval and maps it onto the approved increments
   1.0–1.7. Nothing here is implemented. Implementation starts only after the Phase 0 CI pipeline is green.
 * Base document: [plan.md](plan.md). Where this amendment and the base plan differ, this amendment wins.
 
@@ -97,3 +97,15 @@ Charts are built as small SVG components in `packages/ui`, so no chart library i
 | D-UI-03 | Dark mode in Phase 1 | Keep unreviewed vs remove | Remove for Phase 1 |
 | D-P1-07 | Import commit semantics | All-or-nothing only vs + "valid rows only" | Both, all-or-nothing default; both always produce a full per-row report |
 | D-P1-08 | Student document malware scanning | Ship without scanner (allow-list + size limits) vs add ClamAV now | Port now, scanner adapter before first production tenant (new infrastructure, needs separate approval) |
+
+## 8. Decisions recorded (product owner, 2026-11-02)
+
+| ID | Decision | Binding conditions |
+|---|---|---|
+| D-P1-06 | **Program → Course → Subject** approved | Program (B.Tech, MBA, BCA, MCA) has duration (terms) and qualification level. Course/Branch (CSE, Mechanical) maps to one owning department. Subject/Paper (Data Structures, Operating Systems) has credits, and its semester placement lives in the course-subject mapping. A batch is mapped to a course and an intake academic year. Faculty are assigned to subject offerings per academic session (term). Display labels are configurable per tenant; **internal entity types (`PROGRAM`, `COURSE`, `SUBJECT`) are stable** and label changes never alter data semantics |
+| D-UI-01 | Navy desktop sidebar, navy top bar on tablet/mobile | Keep R1's layout and components under the navy identity |
+| D-UI-02 | Self-hosted Inter | — |
+| D-UI-03 | Dark mode deferred | Reconsider only after the light theme passes visual and accessibility checks |
+| D-P1-07 | Import modes: all-or-nothing (default) and valid-rows-only | **Duplicate detection runs against existing students** (DB), not only within the file. **Imports are idempotent:** the same request (Idempotency-Key) or a re-submitted identical file (SHA-256) for the same target returns the existing job, and row commits are keyed by natural identifiers (enrollment number), so a retry can never create duplicate students |
+| D-P1-08 | Document scanning, conditional | See [ADR-0006](../adr/0006-document-malware-scanning.md): validation ≠ malware protection; quarantine + scan state; fail closed in production; ClamAV or equivalent before the first real college uploads documents |
+| D-P1-09 | New libraries | `@fontsource-variable/inter` approved (with the font decision). **fastexcel and Bucket4j were not approved:** rate limiting is implemented with a token-bucket script on the existing Valkey (no new dependency); XLSX support (fastexcel) will be requested again before increment 1.6 |

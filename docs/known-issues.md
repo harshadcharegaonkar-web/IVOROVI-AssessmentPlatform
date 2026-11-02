@@ -26,4 +26,5 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 | KI-20 | Dependencies | `com.rabbitmq:amqp-client` 5.30.0 (managed by Spring Boot 4.1.2): 4 HIGH CVEs | High | Fixed | Overridden to 5.37.0 in `1dba95c`; **remove the override when the Boot BOM ships ≥ 5.34.0** |
 | KI-21 | Container image | `nginx:1.29-alpine` base (Alpine 3.23.4): CRITICAL brotli CVE-2026-111497 | Critical | Fixed | `nginx:1.30.6-alpine3.24` + `apk upgrade` in `1dba95c` |
 | KI-22 | CI | Backend test-report artifact cannot be downloaded from the build sandbox (artifact host blocked by its network policy) | Info | Accepted | Reports remain available in the GitHub UI |
+| KI-23 | Documents | No malware scanner integrated (ADR-0006) | **Release blocker** for real student document uploads | Planned | ClamAV or approved equivalent before first production document upload |
 | KI-19 | Security scanning | Java dependencies were invisible to Trivy (no lockfile) | Medium | Fixed | Gradle dependency locking (`a239681`) |

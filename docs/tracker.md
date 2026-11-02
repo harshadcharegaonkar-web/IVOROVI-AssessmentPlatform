@@ -31,7 +31,7 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 
 Plan approved with Amendment 1 (`phase-1/plan-amendment-1.md`) and design system (`design/`). Increments 1.0–1.7 **not started**. The CI gate is satisfied (run 41444289316). Implementation starts on the product owner's go-ahead and the open decisions below.
 
-Open decisions: D-P1-06 (Program/Course/Subject semantics), D-UI-01..03, D-P1-07, D-P1-08.
+Open decisions: none for 1.0–1.5. XLSX library (fastexcel) to be requested before 1.6.
 
 ## Decisions
 
@@ -52,3 +52,8 @@ Open decisions: D-P1-06 (Program/Course/Subject semantics), D-UI-01..03, D-P1-07
 | D-P1-03 | Student logins | On demand only; profiles independent of Keycloak | ✅ Approved |
 | D-P1-04 | Keycloak provisioning | Dedicated narrowly scoped service account | ✅ Approved |
 | D-P1-05 | `/institutions` endpoints | Remove after consumer verification | ✅ Approved |
+| D-P1-06 | Academic hierarchy | Program → Course/Branch → Subject/Paper; stable internal types, configurable labels | ✅ Approved |
+| D-UI-01..03 | UI | Navy sidebar / navy top bar on mobile; self-hosted Inter; dark mode deferred | ✅ Approved |
+| D-P1-07 | Student import | All-or-nothing default + valid-rows-only; DB-wide duplicate detection; idempotent | ✅ Approved |
+| D-P1-08 | Document scanning | Validation in dev; quarantine + scanner before production uploads (ADR-0006) | ✅ Conditionally approved |
+| D-P1-09 | Libraries | Inter approved; fastexcel/Bucket4j not approved (alternatives used) | ✅ Recorded |
