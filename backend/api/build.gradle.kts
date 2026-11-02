@@ -16,6 +16,10 @@ repositories { mavenCentral() }
 // Locked dependency versions (gradle.lockfile) make builds reproducible and let Trivy scan Java dependencies.
 dependencyLocking { lockAllConfigurations() }
 
+// Security overrides of Spring Boot-managed versions. Remove once the Boot BOM includes the fix.
+// 2026-11-02: amqp-client 5.30.0 (Boot 4.1.2) has HIGH CVE-2026-63337/-69219/-69220/-75516, fixed by 5.34.0.
+extra["rabbit-amqp-client.version"] = "5.37.0"
+
 dependencyManagement {
     imports {
         mavenBom(libs.spring.modulith.bom.get().toString())
