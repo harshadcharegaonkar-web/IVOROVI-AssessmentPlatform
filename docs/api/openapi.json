@@ -325,7 +325,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/PageResponseEntry"
+                  "$ref" : "#/components/schemas/PageResponseAuditEvent"
                 }
               }
             }
@@ -344,7 +344,7 @@
             "content" : {
               "*/*" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Verification"
+                  "$ref" : "#/components/schemas/AuditVerification"
                 }
               }
             }
@@ -536,7 +536,7 @@
           }
         }
       },
-      "Entry" : {
+      "AuditEvent" : {
         "type" : "object",
         "properties" : {
           "id" : {
@@ -585,13 +585,13 @@
           }
         }
       },
-      "PageResponseEntry" : {
+      "PageResponseAuditEvent" : {
         "type" : "object",
         "properties" : {
           "items" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/Entry"
+              "$ref" : "#/components/schemas/AuditEvent"
             }
           },
           "page" : {
@@ -612,7 +612,7 @@
           }
         }
       },
-      "Verification" : {
+      "AuditVerification" : {
         "type" : "object",
         "properties" : {
           "valid" : {

@@ -16,6 +16,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class AuditTrail {
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "AuditEvent")
     public record Entry(UUID id, long seq, Instant occurredAt, UUID actorId, String actorSubject, String action,
                         String resourceType, String resourceId, AuditOutcome outcome, Map<String, String> details,
                         String clientIp, String traceId) {}
@@ -24,6 +25,7 @@ public class AuditTrail {
 
     public record Page(List<Entry> items, long total) {}
 
+    @io.swagger.v3.oas.annotations.media.Schema(name = "AuditVerification")
     public record Verification(boolean valid, long eventsChecked, Long firstInvalidSeq) {}
 
     private static final TypeReference<Map<String, String>> DETAILS = new TypeReference<>() {};

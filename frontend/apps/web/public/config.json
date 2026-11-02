@@ -1,0 +1,5 @@
+{
+  "oidcAuthority": "http://localhost:8180/realms/ivorovi",
+  "oidcClientId": "ivorovi-web",
+  "apiBaseUrl": ""
+}

@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "@ivorovi/ui/theme.css";
+@source "../../../packages/ui/src";
+
+html, body, #root { min-height: 100%; }
+body { font-family: var(--font-sans); background: var(--ivo-bg); color: var(--ivo-text); }
