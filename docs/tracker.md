@@ -4,7 +4,7 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 
 | # | Module | Phase | Status | Depends on | API | UI | Tests | Known issues |
 |---|---|---|---|---|---|---|---|---|
-| 0 | Foundation / platform kernel | 0 | ⚠️ closed pending first green CI run | — | ✅ | ✅ | ✅ 73 BE / 26 FE / 9 E2E | See `phase-0-report.md` §Known issues |
+| 0 | Foundation / platform kernel | 0 | ✅ closed (CI run 41444289316 green) | — | ✅ | ✅ | ✅ 73 BE / 26 FE / 9 E2E | See `phase-0-report.md` §Known issues |
 | 1 | Institution & tenant management | 1 | 🟨 read model only | 0 | 🟨 list/get institutions | 🟨 list/detail | 🟨 | No create/update, no campus/department/program, no tenant provisioning |
 | 2 | User & access management | 1 | 🟨 resolution + `/me` | 0, 1 | 🟨 | 🟨 My access | 🟨 | No user/role management APIs; principal cache pending |
 | 21 | System administration (flags, settings) | 1 / 8 | 🟨 feature flags done | 0 | ✅ flags | ✅ flags | ✅ | Settings, maintenance windows pending |
@@ -29,7 +29,7 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 
 ## Phase 1 (planned; see `phase-1/plan.md`)
 
-Plan approved with Amendment 1 (`phase-1/plan-amendment-1.md`) and design system (`design/`). Increments 1.0–1.7 **not started**: gated on the first green Phase 0 CI run (D-09).
+Plan approved with Amendment 1 (`phase-1/plan-amendment-1.md`) and design system (`design/`). Increments 1.0–1.7 **not started**. The CI gate is satisfied (run 41444289316). Implementation starts on the product owner's go-ahead and the open decisions below.
 
 Open decisions: D-P1-06 (Program/Course/Subject semantics), D-UI-01..03, D-P1-07, D-P1-08.
 
@@ -45,7 +45,7 @@ Open decisions: D-P1-06 (Program/Course/Subject semantics), D-UI-01..03, D-P1-07
 | D-06 | LLM providers | OpenAI-compatible + Anthropic adapters, off by default | ✅ Approved (Phase 7) |
 | D-07 | Compliance | India-first (DPDP), GDPR-ready | ✅ Approved |
 | D-08 | Lockdown browser | Browser-only first | Proposed |
-| D-09 | Source hosting | Private GitHub repository (provided by product owner) | ⏳ **Blocked**: no GitHub account linked to the build session; connect at claude.ai/connect-github and share `owner/repo` |
+| D-09 | Source hosting | Private GitHub repository `harshadcharegaonkar-web/IVOROVI-AssessmentPlatform` | ✅ Pushed (no force, history preserved); CI green |
 | D-10 | Infra components | Valkey, SeaweedFS (ADR-0005) | ✅ Implemented |
 | D-P1-01 | Org unit types | Fixed four types + configurable labels | ✅ Approved |
 | D-P1-02 | Institution SSO | Deferred to Phase 2 | ✅ Approved |

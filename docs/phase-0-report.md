@@ -1,8 +1,7 @@
 # Phase 0 (Foundation): completion report
 
-Date: 2026-11-02 (closure update same day) · Status: **11 of 12 criteria verified. Criterion 9 (CI execution on
-GitHub) remains partial** until a GitHub Actions run succeeds. Phase 0 closure was authorized by the product
-owner, subject to that run.
+Date: 2026-11-02 · Status: **Complete. All 12 acceptance criteria verified.** Criterion 9 was closed by GitHub
+Actions run [41444289316](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41444289316) on commit `1dba95c` (all four jobs green).
 
 Related: [security assessment](security/security-assessment.md) · [known issues register](known-issues.md) ·
 [CI/CD runbook](runbooks/ci-cd.md)
@@ -73,7 +72,7 @@ Related: [security assessment](security/security-assessment.md) · [known issues
 | 6 | Backend authorization tests pass | ✅ | `AuthorizationIT`: scope confinement, escalation attempts, expired grants, token role claims ignored, denial audited |
 | 7 | Migrations execute | ✅ | Flyway as owner role: on the compose DB (dev) and in every Testcontainers run |
 | 8 | Frontend and backend builds pass | ✅ | Gradle build, `pnpm build`, Docker images |
-| 9 | Automated tests execute through the CI pipeline | ⚠️ **Partial** | Workflow written, reviewed and hardened (`a239681`). Every CI command except Trivy was run locally with passing results. **Not yet run on GitHub Actions**: no GitHub account is linked to the build session, so the repository cannot be attached or pushed. CI run reference: _pending_ |
+| 9 | Automated tests execute through the CI pipeline | ✅ | GitHub Actions run [41444289316](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41444289316): backend (Gradle build incl. Testcontainers integration tests and Modulith verification), frontend (lint, typecheck, 26 unit tests, build), e2e (compose stack, Trivy scans of both images, smoke test 17/17, Playwright 9/9) and security (Trivy filesystem scan) all succeeded |
 | 10 | Synthetic test data can be generated | ✅ | `scripts/seed.sh` produced 3 tenants, 9 institutions and 600 users. `SyntheticDataGeneratorIT` passes |
 | 11 | Technical documentation updated | ✅ | Architecture v0.2, ADRs, runbooks, OpenAPI, tracker, this report |
 | 12 | Deployment instructions verified | ✅ | Runbook followed verbatim from a clean state. The seeding command was missing S3 credentials; fixed with `scripts/api-env.sh` and `scripts/seed.sh`, then re-verified |
@@ -89,6 +88,16 @@ Related: [security assessment](security/security-assessment.md) · [known issues
 | CI review | Least privilege (`contents: read`). Actions pinned to SHAs. **Fixed a defect**: the trivy-action tag was wrong (`0.33.1` → would have failed). Added image scans and a Gradle lockfile so Java dependencies are scanned |
 | Dependency audit | `pnpm audit`: moderate `minimatch` advisory (dev tooling) fixed by override; now 0 known vulnerabilities. Trivy could not run locally (sandbox policy) |
 | Re-verification after changes | Backend `build` (73 tests) and the full frontend pipeline pass with the lockfile and override |
+
+## First CI runs (2026-11-02)
+
+| Run | Commit | Result | Notes |
+|---|---|---|---|
+| [41443368239](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41443368239) | `a363954` | ❌ security, e2e | **Scans found real issues.** (1) Boot-managed `com.rabbitmq:amqp-client` 5.30.0: 4 HIGH CVEs (CVE-2026-63337, -69219, -69220, -75516). (2) Web base image `nginx:1.29-alpine` (Alpine 3.23.4): CRITICAL CVE-2026-111497 in `brotli-libs`. Backend and frontend jobs green |
+| [41444289316](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41444289316) | `1dba95c` | ✅ all jobs | amqp-client overridden to 5.37.0 (documented in `build.gradle.kts`); web image moved to `nginx:1.30.6-alpine3.24`; `apk upgrade` added to both runtime images |
+
+Note: the CI artifact store is not reachable from the build sandbox, so per-test counts were confirmed locally
+(73 backend tests); in CI the `:backend:api:test` task executed and the job fails on any test failure.
 
 ## Verified vs planned
 

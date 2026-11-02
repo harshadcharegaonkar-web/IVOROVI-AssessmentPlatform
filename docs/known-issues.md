@@ -5,7 +5,7 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 
 | ID | Area | Issue | Severity | Status | Target / note |
 |---|---|---|---|---|---|
-| KI-01 | CI | Pipeline not yet executed on GitHub (acceptance criterion 9 partial) | High (process) | Open | Blocked on repository connection |
+| KI-01 | CI | Pipeline not yet executed on GitHub (acceptance criterion 9 partial) | High (process) | Fixed | Run 41444289316 green on `1dba95c` |
 | KI-02 | Security | No API rate limiting (SA-01) | Medium | Planned | Phase 1 increment 1.0 |
 | KI-03 | Performance | 3 DB lookups per authenticated request (tenant, account, grants) | Medium | Planned | Phase 1 increment 1.0 (tenant-aware principal cache) |
 | KI-04 | API | No `Idempotency-Key` support | Medium | Planned | Phase 1 increment 1.0 |
@@ -23,4 +23,7 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 | KI-16 | Supply chain | Docker Hub rate limits observed while pulling images | Low | Open | Mirror base images to a controlled registry before production |
 | KI-17 | Dependencies | `minimatch` moderate DoS advisory (dev tooling) | Info | Fixed | pnpm override, `pnpm audit` clean (`a239681`) |
 | KI-18 | CI | trivy-action referenced with a non-existent tag (`0.33.1` instead of `v0.33.1`) | High (would fail CI) | Fixed | Pinned to SHA of `v0.36.0` (`a239681`) |
+| KI-20 | Dependencies | `com.rabbitmq:amqp-client` 5.30.0 (managed by Spring Boot 4.1.2): 4 HIGH CVEs | High | Fixed | Overridden to 5.37.0 in `1dba95c`; **remove the override when the Boot BOM ships ≥ 5.34.0** |
+| KI-21 | Container image | `nginx:1.29-alpine` base (Alpine 3.23.4): CRITICAL brotli CVE-2026-111497 | Critical | Fixed | `nginx:1.30.6-alpine3.24` + `apk upgrade` in `1dba95c` |
+| KI-22 | CI | Backend test-report artifact cannot be downloaded from the build sandbox (artifact host blocked by its network policy) | Info | Accepted | Reports remain available in the GitHub UI |
 | KI-19 | Security scanning | Java dependencies were invisible to Trivy (no lockfile) | Medium | Fixed | Gradle dependency locking (`a239681`) |

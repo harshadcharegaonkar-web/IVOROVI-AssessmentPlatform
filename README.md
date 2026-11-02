@@ -4,8 +4,8 @@ AI-assisted screening and assessment platform for higher education: admissions, 
 placement assessments, evaluation, proctoring and analytics. One codebase serves multi-tenant SaaS, dedicated
 cloud and on-premises deployments.
 
-**Current state:** Phase 0 (foundation) is complete. See [Phase 0 report](docs/phase-0-report.md) and
-[tracker](docs/tracker.md). Phase 1 approved ([plan](docs/phase-1/plan.md), [amendment 1](docs/phase-1/plan-amendment-1.md), [design system](docs/design/design-system.md)); implementation starts after the first green CI run.
+**Current state:** Phase 0 (foundation) is complete and verified in CI. See [Phase 0 report](docs/phase-0-report.md) and
+[tracker](docs/tracker.md). Phase 1 approved ([plan](docs/phase-1/plan.md), [amendment 1](docs/phase-1/plan-amendment-1.md), [design system](docs/design/design-system.md)); CI is green, and implementation starts on approval of the open Phase 1 decisions.
 
 ## Quick start
 

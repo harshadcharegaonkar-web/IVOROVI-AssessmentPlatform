@@ -34,7 +34,7 @@
 | C13 | Browser hardening: CSP, nosniff, referrer policy, COOP. Tokens in memory only. Open-redirect-safe return paths | 🟨 | Headers verified with curl, `auth.test.ts`. No automated header test in CI yet |
 | C14 | Secrets never committed. Generated per environment | ✅ | Full-history scan (318 blobs, 0 true findings), exact-value check of generated `.env`, `.gitignore` covers `.env*` and key material |
 | C15 | Least-privilege CI (`contents: read`), SHA-pinned actions | ✅ | `.github/workflows/ci.yml` review |
-| C16 | Dependency and secret scanning in CI (Trivy fs including the Java lockfile, plus both images) | 🟨 | Configured, **not yet executed** (no CI run yet). `pnpm audit`: 0 known vulnerabilities after the minimatch override |
+| C16 | Dependency and secret scanning in CI (Trivy fs including the Java lockfile, plus both images) | ✅ | Executed in CI. The first run found SA-08 and SA-09; run 41444289316 is clean at HIGH/CRITICAL (fixable) |
 | C17 | Containers run as non-root (API) | 🟨 | API Dockerfile `USER ivorovi`. The nginx master process runs as root (worker processes do not) |
 | C18 | Rate limiting | ⬜ | Phase 1 |
 | C19 | Idempotency keys for create/submit | ⬜ | Phase 1 |
@@ -52,7 +52,9 @@
 | SA-04 | Low | nginx master process runs as root in the web image | Open → Phase 8 (unprivileged nginx image) |
 | SA-05 | Info | Seeder code and Datafaker ship in the production jar (guarded by environment check) | Open → Phase 1 (split dev artifact) |
 | SA-06 | Info | Moderate DoS advisory in `minimatch` (dev tooling only) | Fixed via override in `a239681` |
-| SA-07 | Info | CI security scan not yet executed | Open until first CI run |
+| SA-07 | Info | CI security scan not yet executed | Closed (run 41444289316) |
+| SA-08 | High | `amqp-client` 5.30.0 with 4 HIGH CVEs (Boot-managed) | Fixed: 5.37.0 override |
+| SA-09 | Critical | Web image base with CRITICAL brotli CVE | Fixed: nginx 1.30.6 / Alpine 3.24 + `apk upgrade` |
 
 ## 4. Residual risk statement
 

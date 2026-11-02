@@ -1,8 +1,9 @@
 # CI/CD runbook
 
 Pipeline: `.github/workflows/ci.yml` (GitHub Actions). Triggers on pushes to `main` and on every pull request.
-**Status: not yet executed on GitHub.** The repository has not been pushed yet. Every job's commands have been run
-locally with passing results, except the Trivy scans (see "Local equivalents").
+**Status: active.** Repository `harshadcharegaonkar-web/IVOROVI-AssessmentPlatform`. First green run:
+[41444289316](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/41444289316). The first run (41443368239)
+failed on genuine HIGH/CRITICAL findings, which were fixed (see known issues KI-20, KI-21).
 
 ## Jobs
 
