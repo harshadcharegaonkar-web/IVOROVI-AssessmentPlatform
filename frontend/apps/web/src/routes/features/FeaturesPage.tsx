@@ -3,6 +3,7 @@ import { Field, PageHeader, Select } from "@ivorovi/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router";
 import { useApi } from "../../api/ApiProvider";
+import { useInstitutionContext } from "../../session/InstitutionContext";
 import { useSession } from "../../session/SessionProvider";
 import { FeatureConfigurationPanel } from "./FeatureConfigurationPanel";
 
@@ -18,7 +19,8 @@ export function FeaturesPage() {
     queryFn: async () => unwrap(await api.GET("/api/v1/institutions", { params: { query: { size: 100, sort: "name" } } })),
   });
   const options = (institutions.data?.items ?? []).filter((i) => tenantWide || scoped.includes(i.id!));
-  const requested = params.get("institution");
+  const { selectedId } = useInstitutionContext();
+  const requested = params.get("institution") ?? selectedId;
   const institutionId = requested && options.some((o) => o.id === requested) ? requested : tenantWide ? null : options[0]?.id ?? null;
   const name = options.find((o) => o.id === institutionId)?.name;
 
@@ -41,3 +43,4 @@ export function FeaturesPage() {
     </>
   );
 }
+export default FeaturesPage;

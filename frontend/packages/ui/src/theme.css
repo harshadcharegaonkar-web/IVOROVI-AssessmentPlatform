@@ -1,62 +1,86 @@
 /*
- * Ivorovi design tokens. Components use semantic utilities only (bg-surface, text-muted, bg-primary...).
- * --brand-primary / --brand-primary-contrast are set at runtime from the tenant's branding.
+ * Ivorovi design tokens: docs/design/design-system.md §2 (approved).
+ * Components use semantic utilities only (bg-surface, text-muted, bg-sidebar, text-success-text ...).
+ * --brand-primary / --brand-primary-contrast may be replaced at runtime by validated tenant branding;
+ * navy chrome and neutrals are not brandable.
+ * Light theme only (dark mode deferred, D-UI-03).
  */
 :root {
-  --brand-primary: #1d4ed8;
+  color-scheme: light;
+
+  --brand-primary: #2563eb;
   --brand-primary-contrast: #ffffff;
 
-  --ivo-bg: #f6f7f9;
-  --ivo-surface: #ffffff;
-  --ivo-surface-muted: #f1f3f6;
-  --ivo-border: #dfe3e8;
-  --ivo-text: #111827;
-  --ivo-text-muted: #4b5563;
-  --ivo-danger: #b91c1c;
-  --ivo-danger-soft: #fef2f2;
-  --ivo-success: #047857;
-  --ivo-success-soft: #ecfdf5;
-  --ivo-warning: #b45309;
-  --ivo-warning-soft: #fffbeb;
-  --ivo-info-soft: #eff6ff;
-  --ivo-focus: #2563eb;
-}
+  --ivo-primary-hover: #1d4ed8;
+  --ivo-primary-soft: #eff4ff;
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ivo-bg: #0f1218;
-    --ivo-surface: #171b22;
-    --ivo-surface-muted: #1f242d;
-    --ivo-border: #2d3440;
-    --ivo-text: #f3f4f6;
-    --ivo-text-muted: #a3acb9;
-    --ivo-danger: #f87171;
-    --ivo-danger-soft: #2a1414;
-    --ivo-success: #34d399;
-    --ivo-success-soft: #0f2a21;
-    --ivo-warning: #fbbf24;
-    --ivo-warning-soft: #2b2110;
-    --ivo-info-soft: #14203a;
-    --ivo-focus: #60a5fa;
-  }
+  --ivo-sidebar: #17243a;
+  --ivo-sidebar-raised: #1f2f4a;
+  --ivo-sidebar-text: #cbd5e1;
+  --ivo-sidebar-muted: #94a3b8;
+  --ivo-sidebar-active: rgb(37 99 235 / 0.22);
+
+  --ivo-bg: #f4f6fa;
+  --ivo-surface: #ffffff;
+  --ivo-surface-muted: #f8fafc;
+  --ivo-text: #17243a;
+  --ivo-text-muted: #64748b; /* AA on white surfaces only */
+  --ivo-text-muted-strong: #475569; /* AA on --ivo-bg */
+  --ivo-border: #e2e8f0;
+  --ivo-border-strong: #cbd5e1;
+
+  --ivo-success: #16a34a; /* icons/fills */
+  --ivo-success-text: #15803d;
+  --ivo-success-soft: #f0fdf4;
+  --ivo-warning: #d97706; /* icons/fills */
+  --ivo-warning-text: #b45309;
+  --ivo-warning-soft: #fffbeb;
+  --ivo-danger: #dc2626; /* 4.8:1 on white; icons, fills, large text */
+  --ivo-danger-text: #b91c1c; /* small text on white or --ivo-danger-soft */
+  --ivo-danger-soft: #fef2f2;
+  --ivo-focus: #2563eb;
 }
 
 @theme inline {
   --color-primary: var(--brand-primary);
   --color-primary-contrast: var(--brand-primary-contrast);
+  --color-primary-hover: var(--ivo-primary-hover);
+  --color-primary-soft: var(--ivo-primary-soft);
+  --color-sidebar: var(--ivo-sidebar);
+  --color-sidebar-raised: var(--ivo-sidebar-raised);
+  --color-sidebar-text: var(--ivo-sidebar-text);
+  --color-sidebar-muted: var(--ivo-sidebar-muted);
+  --color-sidebar-active: var(--ivo-sidebar-active);
   --color-bg: var(--ivo-bg);
   --color-surface: var(--ivo-surface);
   --color-surface-muted: var(--ivo-surface-muted);
-  --color-border: var(--ivo-border);
   --color-fg: var(--ivo-text);
   --color-muted: var(--ivo-text-muted);
-  --color-danger: var(--ivo-danger);
-  --color-danger-soft: var(--ivo-danger-soft);
+  --color-muted-strong: var(--ivo-text-muted-strong);
+  --color-border: var(--ivo-border);
+  --color-border-strong: var(--ivo-border-strong);
   --color-success: var(--ivo-success);
+  --color-success-text: var(--ivo-success-text);
   --color-success-soft: var(--ivo-success-soft);
   --color-warning: var(--ivo-warning);
+  --color-warning-text: var(--ivo-warning-text);
   --color-warning-soft: var(--ivo-warning-soft);
-  --color-info-soft: var(--ivo-info-soft);
+  --color-danger: var(--ivo-danger);
+  --color-danger-text: var(--ivo-danger-text);
+  --color-danger-soft: var(--ivo-danger-soft);
+  --color-info-soft: var(--ivo-primary-soft);
   --color-focus: var(--ivo-focus);
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.05);
+  --shadow-lg: 0 12px 24px -4px rgb(16 24 40 / 0.12), 0 4px 8px -2px rgb(16 24 40 / 0.06);
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+}
+
+/* Tabular figures for KPI values and numeric columns. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

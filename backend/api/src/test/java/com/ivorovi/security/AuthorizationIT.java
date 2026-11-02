@@ -44,6 +44,14 @@ class AuthorizationIT extends IntegrationTest {
     }
 
     @Test
+    void rolesWithoutPermissionsAreStillReported() throws Exception {
+        // STUDENT grants no permissions in Phase 1 but must still appear as the user's role.
+        as(ASHA_STUDENT_A1, get("/api/v1/me")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.roles[0]").value("STUDENT"))
+                .andExpect(jsonPath("$.grants").isEmpty());
+    }
+
+    @Test
     void studentCannotListInstitutions() throws Exception {
         as(ASHA_STUDENT_A1, get("/api/v1/institutions")).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("forbidden"));

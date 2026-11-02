@@ -38,7 +38,9 @@ class AuditTrailIT extends IntegrationTest {
         mvc.perform(get("/api/v1/audit-events").param("action", "test.only_in_b")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestTokens.forCaller(BELA_ORG_ADMIN_B)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.items[0].details.k").value("v"));
+                .andExpect(jsonPath("$.items[0].details.k").value("v"))
+                .andExpect(jsonPath("$.items[0].actorSubject").value("system"))
+                .andExpect(jsonPath("$.items[0].actorName").doesNotExist());
     }
 
     @Test
@@ -57,6 +59,9 @@ class AuditTrailIT extends IntegrationTest {
         assertThat(row.get("user_agent")).isEqualTo("audit-test");
         assertThat(row.get("trace_id")).isNotNull();
         assertThat(row.get("new_value")).isEqualTo("false");
+        mvc.perform(get("/api/v1/audit-events").param("action", "feature.override.changed").param("size", "1")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TestTokens.forCaller(BELA_ORG_ADMIN_B)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].actorName").value("Bela Admin"));
         ownerJdbc().sql("DELETE FROM feature_flag_override").update();
     }
 

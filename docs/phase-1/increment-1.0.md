@@ -1,6 +1,6 @@
 # Increment 1.0: platform hardening and design-system shell
 
-* Status: **In progress** (started 2026-11-02)
+* Status: **Complete, pending CI confirmation and one decision** (see §Deviations). Started and finished 2026-11-02
 * Depends on: Phase 0 (closed, CI green)
 
 ## Functionality
@@ -51,3 +51,55 @@ Feature settings, Audit logs and My Access.
 7. The shell matches visual checklist section A at 1440, 1024 and 390 px. The restyled screens pass B1–B14. Axe shows no serious issues.
 8. Initial JS ≤ 120 kB gzip, enforced in CI.
 9. All Phase 0 suites still pass (backend, frontend, smoke, E2E). CI is green.
+
+## Result (2026-11-02)
+
+### Delivered
+
+| Area | Result |
+|---|---|
+| Caching | `PrincipalCache` (60 s, per-tenant generation counter, subject eviction) and `TenantDirectory` cache (60 s) in Valkey; after-commit eviction; `ivorovi.cache.requests{cache,result}` metrics |
+| Rate limiting | `scripts/token-bucket.lua` + `RateLimiter`; filters before (failed authentications per IP) and after (per user read/write, per tenant) bearer authentication; 429 problem with `Retry-After`, `RateLimit-*` headers; env-configurable limits (see configuration runbook) |
+| Idempotency | `@Idempotent`, `IdempotencyFilter`/`Interceptor`/`Store`; replay, 422 reuse, 409 in progress, release on 5xx |
+| Notifications | `notifications` module: service API for producers + `/api/v1/notifications` endpoints |
+| Retention | Hourly job: published outbox rows > 7 days, expired idempotency keys |
+| Artifact | `backend:devtools` (seeder, Datafaker); `spring-modulith-api` only at runtime; AWS Netty client excluded. **`ivorovi-api.jar` 100.1 MB → 90.3 MB** |
+| Design system | Tokens per design-system.md (+ `danger-text` `#B91C1C`, added after axe found `#DC2626` on `#FEF2F2` = 4.41:1); Inter self-hosted; dark mode removed |
+| Shell | Navy sidebar with permission-filtered, collapsible groups and collapse-to-rail (preference remembered); tablet rail + navy top bar; mobile drawer; breadcrumbs; institution selector (shown with > 1 institution); Ctrl/⌘K search (pages + institutions); notification centre; account menu |
+| Screens | Dashboard (KPI anatomy, recent activity, quick actions, roles), Institutions, Institution details, Feature settings, Audit logs (actor names), My Access restyled |
+| Performance | Lazy routes, core vendor chunks, chunk-load recovery, lazy search palette, runtime config without a schema library; CI budget step |
+
+### Defects found and fixed during the increment
+
+| Defect | Found by | Fix |
+|---|---|---|
+| Retention could not delete idempotency rows: PostgreSQL applies SELECT policies to `DELETE … WHERE` | `RetentionAndNotificationsIT` | SELECT policy also allows platform context (migration not yet released, edited in place) |
+| Roles without permissions (e.g. STUDENT) disappeared from `/me` and the UI | Playwright (student scenario) | Roles resolved separately from grants; regression test `rolesWithoutPermissionsAreStillReported` |
+| Post-login return path lost with lazy routes (callback route raced to `/`) | Playwright | Callback route no longer navigates itself; 5 s fallback only |
+| Tablet rail icons invisible (Radix `asChild` merged className into NavLink's function className) | Visual review | Tooltip trigger on a wrapper element |
+| Horizontal scrolling at 390 px (grid `min-width:auto`, mobile top bar width) | Visual review | `grid-cols-1` tracks, compact mobile brand; new automated overflow test on every page |
+| `#DC2626` text on `#FEF2F2` = 4.41:1 (fails AA at 12 px) | axe in Playwright | `danger-text` token |
+| Audit table showed raw subject UUIDs (B5) | Visual review | API returns `actorName` (LEFT JOIN `user_account`, RLS-scoped) |
+| Nested interactive elements (button inside link) | Design review | `ButtonLink` component |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| Backend `./gradlew :backend:api:build :backend:devtools:build` | 92 tests (91 API + 1 devtools), 0 failures |
+| Frontend lint, typecheck, unit tests (31), build, bundle budget | pass; initial JS 176.1 kB gzip |
+| Smoke test with real Keycloak tokens (host API, upgraded dev database) | 17/17 |
+| Playwright against the real stack (desktop 1440, tablet 1024, mobile Pixel 7) | 18/18 incl. axe (WCAG 2.1 AA, no serious/critical), no-horizontal-scroll on all screens, collapse persistence, search, notifications, account menu, breadcrumbs |
+| Migration upgrade path | `V202611021000` applied cleanly to the Phase 0 development database |
+| Visual checklist | Section A and screens 19–21 + restyled dashboard/institutions: see `docs/design/visual-checklist.md`, evidence in `docs/design/evidence/1.0/` |
+
+Container images were not rebuilt in the build sandbox (its build containers cannot reach Alpine package
+mirrors for `apk upgrade`); image build, image scans and E2E against containers run in CI.
+
+## Deviations (decision needed)
+
+| AC | Planned | Actual | Proposal |
+|---|---|---|---|
+| 8 | Initial JS ≤ 120 kB gzip | **176 kB** | The approved stack's own floor is 133 kB (`react-dom` 71 kB + React Router/TanStack Query/oidc-client-ts 62 kB) before any Ivorovi code; the shell (Radix menu, popover, tooltip, dialog; icons; providers) adds ~43 kB and is needed at first paint. **Proposed budget: 180 kB initial (enforced in CI), 80 kB per lazy chunk.** Page code is now lazy (largest page chunk 36 kB). Reducing further would mean replacing approved libraries (e.g. Preact, a lighter router), which this increment did not do |
+| 7 | Pixel-diff baselines (`toHaveScreenshot`) in CI | Screenshots captured for manual sign-off; automated checks cover axe, overflow, layout widths/colours | Generate baselines in CI's own browser image in increment 1.1 (font rendering differs between environments, so baselines produced in the sandbox would be flaky in CI) |
+| — | SVG chart components in 1.0 | Deferred to 1.1 | Built together with the first dashboard charts that use them (no unused components) |

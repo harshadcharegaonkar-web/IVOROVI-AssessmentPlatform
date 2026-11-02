@@ -41,9 +41,9 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 
 | # | Screen | Inc. | Checklist | Screenshots | Reviewer sign-off |
 |---|---|---|---|---|---|
-| 1 | Dashboard | 1.1 (org KPIs) → 1.6 (full) | ☐ | ☐ | ☐ |
+| 1 | Dashboard | 1.1 (org KPIs) → 1.6 (full) | 🟨 1.0 layout and KPI anatomy; full KPI set from 1.1 | ✅ 1.0 | ☐ |
 | 2 | Organization hierarchy | 1.1 | ☐ | ☐ | ☐ |
-| 3 | Institution listing and details | 1.1 | ☐ | ☐ | ☐ |
+| 3 | Institution listing and details | 1.1 | 🟨 restyled in 1.0; org-unit version in 1.1 | ✅ 1.0 | ☐ |
 | 4 | Campus management | 1.1 | ☐ | ☐ | ☐ |
 | 5 | Department management | 1.1 | ☐ | ☐ | ☐ |
 | 6 | Academic year management | 1.2 | ☐ | ☐ | ☐ |
@@ -59,11 +59,18 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 16 | Role management | 1.4 | ☐ | ☐ | ☐ |
 | 17 | Permission matrix | 1.4 | ☐ | ☐ | ☐ |
 | 18 | Access management | 1.4 | ☐ | ☐ | ☐ |
-| 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ☐ | ☐ | ☐ |
-| 20 | Audit logs | 1.0 (restyle) | ☐ | ☐ | ☐ |
-| 21 | My Access | 1.0 (restyle) | ☐ | ☐ | ☐ |
+| 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ✅ 1.0 restyle | ✅ | ☐ product owner |
+| 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ☐ product owner |
+| 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ☐ product owner |
 | + | System settings | 1.1 | ☐ | ☐ | ☐ |
 
-Automation: Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
+## D. Results: increment 1.0 (2026-11-02)
+
+Shell checks A1–A7: **pass** at 1440 × 900, 1024 × 768, 390 × 844 (and 360 px overflow check). Evidence:
+`docs/design/evidence/1.0/`. Automated in Playwright: A3 (rail accessible names), A4 (collapse persists), A6
+(no horizontal scroll on every screen at mobile width; tablet rail width and navy top bar colour), B14 (axe on the
+dashboard). Defects found by this review and fixed are listed in `docs/phase-1/increment-1.0.md`.
+
+Automation (planned for 1.1): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are
 updated only through a reviewed PR.

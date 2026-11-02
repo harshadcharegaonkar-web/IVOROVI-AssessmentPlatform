@@ -17,7 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class AuditTrail {
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "AuditEvent")
-    public record Entry(UUID id, long seq, Instant occurredAt, UUID actorId, String actorSubject, String action,
+    public record Entry(UUID id, long seq, Instant occurredAt, UUID actorId, String actorSubject, String actorName, String action,
                         String resourceType, String resourceId, AuditOutcome outcome, Map<String, String> details,
                         String clientIp, String traceId) {}
 
@@ -41,27 +41,30 @@ public class AuditTrail {
     public Page search(Query q, int page, int size) {
         StringBuilder where = new StringBuilder(" WHERE 1=1");
         List<Object> params = new ArrayList<>();
-        if (q.action() != null) { where.append(" AND action = ?"); params.add(q.action()); }
-        if (q.resourceType() != null) { where.append(" AND resource_type = ?"); params.add(q.resourceType()); }
-        if (q.outcome() != null) { where.append(" AND outcome = ?"); params.add(q.outcome().name()); }
-        if (q.from() != null) { where.append(" AND occurred_at >= ?"); params.add(Timestamp.from(q.from())); }
-        if (q.to() != null) { where.append(" AND occurred_at < ?"); params.add(Timestamp.from(q.to())); }
+        if (q.action() != null) { where.append(" AND e.action = ?"); params.add(q.action()); }
+        if (q.resourceType() != null) { where.append(" AND e.resource_type = ?"); params.add(q.resourceType()); }
+        if (q.outcome() != null) { where.append(" AND e.outcome = ?"); params.add(q.outcome().name()); }
+        if (q.from() != null) { where.append(" AND e.occurred_at >= ?"); params.add(Timestamp.from(q.from())); }
+        if (q.to() != null) { where.append(" AND e.occurred_at < ?"); params.add(Timestamp.from(q.to())); }
 
-        long total = jdbc.sql("SELECT count(*) FROM audit_event" + where).params(params).query(Long.class).single();
+        long total = jdbc.sql("SELECT count(*) FROM audit_event e" + where).params(params).query(Long.class).single();
         List<Object> pageParams = new ArrayList<>(params);
         pageParams.add(size);
         pageParams.add((long) page * size);
+        // Actor display name via the tenant's own user accounts (RLS applies to both tables).
         List<Entry> items = jdbc.sql("""
-                SELECT id, seq, occurred_at, actor_id, actor_subject, action, resource_type, resource_id, outcome,
-                       details::text AS details, client_ip, trace_id
-                FROM audit_event""" + where + " ORDER BY seq DESC LIMIT ? OFFSET ?")
+                SELECT e.id, e.seq, e.occurred_at, e.actor_id, e.actor_subject, ua.display_name AS actor_name, e.action,
+                       e.resource_type, e.resource_id, e.outcome, e.details::text AS details, e.client_ip, e.trace_id
+                FROM audit_event e
+                LEFT JOIN user_account ua ON ua.tenant_id = e.tenant_id AND ua.id = e.actor_id""" + where
+                        + " ORDER BY e.seq DESC LIMIT ? OFFSET ?")
                 .params(pageParams)
                 .query((rs, n) -> new Entry(rs.getObject("id", UUID.class), rs.getLong("seq"),
                         rs.getTimestamp("occurred_at").toInstant(), rs.getObject("actor_id", UUID.class),
-                        rs.getString("actor_subject"), rs.getString("action"), rs.getString("resource_type"),
-                        rs.getString("resource_id"), AuditOutcome.valueOf(rs.getString("outcome")),
-                        json.readValue(rs.getString("details"), DETAILS), rs.getString("client_ip"),
-                        rs.getString("trace_id")))
+                        rs.getString("actor_subject"), rs.getString("actor_name"), rs.getString("action"),
+                        rs.getString("resource_type"), rs.getString("resource_id"),
+                        AuditOutcome.valueOf(rs.getString("outcome")), json.readValue(rs.getString("details"), DETAILS),
+                        rs.getString("client_ip"), rs.getString("trace_id")))
                 .list();
         return new Page(items, total);
     }

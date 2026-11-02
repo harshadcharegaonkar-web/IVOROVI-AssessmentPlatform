@@ -66,6 +66,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Bundle budget (initial JS and lazy chunks, gzip)
+        run: pnpm --filter @ivorovi/web budget
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: web-dist

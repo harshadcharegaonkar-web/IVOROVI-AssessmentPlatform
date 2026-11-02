@@ -1,5 +1,5 @@
 import { unwrap, type InstitutionView } from "@ivorovi/api-client";
-import { Badge, Card, DataTable, Input, PageHeader, type Column, type SortState } from "@ivorovi/ui";
+import { Badge, Card, DataTable, FilterBar, Input, PageHeader, type Column, type SortState } from "@ivorovi/ui";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -49,15 +49,14 @@ export function InstitutionsPage() {
     <>
       <PageHeader title="Institutions" description="Institutions in your organization that you have access to." />
       <Card>
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
+        <FilterBar trailing={query.isFetching && !query.isPending ? <span className="text-xs text-muted" role="status">Updating…</span> : undefined}>
           <label className="relative w-full max-w-sm">
             <span className="sr-only">Search institutions</span>
             <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <Input type="search" placeholder="Search by name or code" value={search} maxLength={100}
               onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </label>
-          {query.isFetching && !query.isPending && <span className="text-xs text-muted" role="status">Updating…</span>}
-        </div>
+        </FilterBar>
         <DataTable
           caption="Institutions"
           columns={columns}
@@ -75,3 +74,4 @@ export function InstitutionsPage() {
     </>
   );
 }
+export default InstitutionsPage;

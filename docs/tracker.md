@@ -10,7 +10,7 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 | 21 | System administration (flags, settings) | 1 / 8 | 🟨 feature flags done | 0 | ✅ flags | ✅ flags | ✅ | Settings, maintenance windows pending |
 | 3 | Student & candidate management | 1 (students) / 5 (candidates) | ⬜ planned (Phase 1 inc. 1.6) | 1, 2 | ⬜ | ⬜ | ⬜ | |
 | 19 | Audit & compliance | 2 | 🟨 trail + verification | 0 | ✅ | ✅ | ✅ | Consent, data requests, retention pending |
-| 17 | Notifications & workflow | 2 / 8 | 🟨 SMTP port only | 0, 2 | ⬜ | ⬜ | ✅ adapter | Templates, preferences, workflows pending |
+| 17 | Notifications & workflow | 1 / 2 / 8 | 🟨 in-app notification centre (1.0) + SMTP port | 0, 2 | 🟨 | 🟨 bell + panel | ✅ | Templates, preferences, workflows pending |
 | 5 | Question bank | 3 | ⬜ | 2 | ⬜ | ⬜ | ⬜ | |
 | 6 | Assessment authoring | 3 | ⬜ | 5 | ⬜ | ⬜ | ⬜ | |
 | 7 | Assessment scheduling | 3 | ⬜ | 3, 6 | ⬜ | ⬜ | ⬜ | |
@@ -29,9 +29,15 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 
 ## Phase 1 (planned; see `phase-1/plan.md`)
 
-Plan approved with Amendment 1 (`phase-1/plan-amendment-1.md`) and design system (`design/`). Increments 1.0–1.7 **not started**. The CI gate is satisfied (run 41444289316). Implementation starts on the product owner's go-ahead and the open decisions below.
+Plan approved with Amendment 1 and design system.
 
-Open decisions: none for 1.0–1.5. XLSX library (fastexcel) to be requested before 1.6.
+| Increment | Status | Report |
+|---|---|---|
+| 1.0 Platform hardening + design-system shell | ✅ implemented and verified locally; CI run pending; bundle-budget deviation awaiting decision (KI-24) | `phase-1/increment-1.0.md` |
+| 1.1 Organization hierarchy | ⬜ next | |
+| 1.2–1.7 | ⬜ | |
+
+Open decisions: KI-24 (initial JS budget 180 kB). XLSX library (fastexcel) to be requested before 1.6.
 
 ## Decisions
 

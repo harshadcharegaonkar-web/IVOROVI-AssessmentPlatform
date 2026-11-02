@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { visibleNav } from "../layout/navigation";
+import { visibleGroups, visibleNav } from "../layout/navigation";
 import { createAccess } from "./access";
 
 const tenant = { id: "t1", code: "aurora", name: "Aurora" };
@@ -34,8 +34,13 @@ describe("access mirror", () => {
   });
 
   it("derives navigation from grants", () => {
-    expect(visibleNav(orgAdmin).map((n) => n.label)).toEqual(["Dashboard", "Institutions", "Features", "Audit log", "My access"]);
-    expect(visibleNav(instAdmin).map((n) => n.label)).toEqual(["Dashboard", "Features", "My access"]);
-    expect(visibleNav(student).map((n) => n.label)).toEqual(["Dashboard", "My access"]);
+    expect(visibleNav(orgAdmin).map((n) => n.label)).toEqual(["Dashboard", "Institution Management", "Feature Settings", "Audit Logs", "My Access"]);
+    expect(visibleNav(instAdmin).map((n) => n.label)).toEqual(["Dashboard", "Feature Settings", "My Access"]);
+    expect(visibleNav(student).map((n) => n.label)).toEqual(["Dashboard", "My Access"]);
+  });
+
+  it("hides navigation groups that have no permitted items", () => {
+    expect(visibleGroups(student).map((g) => g.id)).toEqual(["home"]);
+    expect(visibleGroups(instAdmin).map((g) => g.id)).toEqual(["home", "configuration"]);
   });
 });

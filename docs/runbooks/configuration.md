@@ -24,6 +24,10 @@ Vault, or a cloud secret manager) and never commit them.
 | `IVOROVI_DEPLOYMENT_MODE` | no | SAAS | `SAAS`, `DEDICATED`, `ON_PREM` (operational toggles only) |
 | `IVOROVI_ENVIRONMENT` | no | PRODUCTION | `DEVELOPMENT`, `TEST`, `STAGING`, `PRODUCTION` (guards dev tooling) |
 | `IVOROVI_FEATURES_DEPLOYMENT_DISABLED` | no | — | Comma-separated flags or prefixes forced off for every tenant, e.g. `ai.*` |
+| `IVOROVI_RATE_LIMIT_ENABLED` | no | true | Disables all API rate limiting (emergency use only) |
+| `IVOROVI_RATE_LIMIT_USER_READ` / `_USER_WRITE` | no | 300 / 60 | Requests per minute per user for GET/HEAD and other methods |
+| `IVOROVI_RATE_LIMIT_TENANT` | no | 3000 | Requests per minute per tenant |
+| `IVOROVI_RATE_LIMIT_FAILED_AUTH_IP` | no | 30 | Failed authentications per minute per client IP before 429 (behind a proxy, configure forwarded headers so the client IP is correct) |
 | `IVOROVI_OPENAPI_ENABLED` | no | true (false with `prod` profile) | Exposes `/v3/api-docs` and Swagger UI |
 | `SPRING_PROFILES_ACTIVE` | no | — | `prod` enables JSON (ECS) logs. Never use `dev` or `seed` outside development |
 

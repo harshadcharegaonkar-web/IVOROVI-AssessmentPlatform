@@ -34,7 +34,7 @@ export function MyAccessPage() {
         <Card>
           <CardHeader title="Account" />
           <CardBody>
-            <dl className="grid gap-4 text-sm sm:grid-cols-3">
+            <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
               <div><dt className="text-muted">Name</dt><dd className="font-medium">{me.displayName}</dd></div>
               <div><dt className="text-muted">Email</dt><dd className="font-medium break-all">{me.email}</dd></div>
               <div><dt className="text-muted">Organization</dt><dd className="font-medium">{me.tenant?.name}</dd></div>
@@ -50,3 +50,4 @@ export function MyAccessPage() {
     </>
   );
 }
+export default MyAccessPage;

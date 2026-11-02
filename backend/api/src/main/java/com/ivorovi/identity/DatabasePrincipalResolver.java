@@ -31,7 +31,16 @@ class DatabasePrincipalResolver implements PrincipalResolver {
                         rs.getString("display_name")))
                 .optional();
         return account.map(a -> new IvoroviPrincipal(a.id(), tenantId, subject, a.email(), a.displayName(),
-                grants(tenantId, a.id())));
+                grants(tenantId, a.id()), roles(tenantId, a.id())));
+    }
+
+    private List<String> roles(UUID tenantId, UUID userId) {
+        return jdbc.sql("""
+                SELECT DISTINCT r.code FROM role_assignment ra JOIN role r ON r.id = ra.role_id
+                WHERE ra.tenant_id = ? AND ra.user_account_id = ?
+                  AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
+                ORDER BY r.code""")
+                .params(tenantId, userId).query(String.class).list();
     }
 
     private List<Grant> grants(UUID tenantId, UUID userId) {

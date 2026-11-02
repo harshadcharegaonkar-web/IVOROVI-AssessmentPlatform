@@ -33,7 +33,7 @@ export function ErrorState({ title = "Something went wrong", message, traceId, o
 
 type AlertTone = "info" | "success" | "warning" | "danger";
 const alertStyles: Record<AlertTone, { cls: string; Icon: typeof Info }> = {
-  info: { cls: "bg-info-soft text-fg", Icon: Info },
+  info: { cls: "bg-primary-soft text-fg", Icon: Info },
   success: { cls: "bg-success-soft text-fg", Icon: CheckCircle2 },
   warning: { cls: "bg-warning-soft text-fg", Icon: AlertTriangle },
   danger: { cls: "bg-danger-soft text-fg", Icon: XCircle },
@@ -42,11 +42,11 @@ const alertStyles: Record<AlertTone, { cls: string; Icon: typeof Info }> = {
 export function Alert({ tone = "info", title, children, className }: { tone?: AlertTone; title?: string; children?: ReactNode; className?: string }) {
   const { cls, Icon } = alertStyles[tone];
   return (
-    <div role={tone === "danger" ? "alert" : "status"} className={cn("flex gap-3 rounded-md border border-border px-4 py-3 text-sm", cls, className)}>
+    <div role={tone === "danger" ? "alert" : "status"} className={cn("flex gap-3 rounded-xl border border-border px-4 py-3 text-sm", cls, className)}>
       <Icon aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
       <div>
         {title && <p className="font-medium">{title}</p>}
-        {children && <div className="text-muted">{children}</div>}
+        {children && <div className="text-muted-strong">{children}</div>}
       </div>
     </div>
   );

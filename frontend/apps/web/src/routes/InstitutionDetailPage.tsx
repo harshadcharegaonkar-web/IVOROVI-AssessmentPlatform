@@ -17,7 +17,7 @@ export function InstitutionDetailPage() {
     queryFn: async () => unwrap(await api.GET("/api/v1/institutions/{id}", { params: { path: { id } } })),
   });
 
-  const back = <Link to="/institutions" className="mb-4 inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><ChevronLeft aria-hidden className="h-4 w-4" /> All institutions</Link>;
+  const back = <Link to="/institutions" className="mb-4 inline-flex items-center gap-1 text-sm text-muted-strong hover:text-fg xl:hidden"><ChevronLeft aria-hidden className="h-4 w-4" /> All institutions</Link>;
 
   if (query.isPending) return <>{back}<Skeleton className="h-8 w-64" /></>;
   if (query.isError) {
@@ -35,7 +35,7 @@ export function InstitutionDetailPage() {
         <Card>
           <CardHeader title="Details" />
           <CardBody>
-            <dl className="grid gap-4 text-sm sm:grid-cols-3">
+            <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
               <div><dt className="text-muted">Code</dt><dd className="font-medium">{inst.code}</dd></div>
               <div><dt className="text-muted">Status</dt><dd className="font-medium">{inst.status}</dd></div>
               <div><dt className="text-muted">Created</dt><dd className="font-medium">{formatDateTime(inst.createdAt)}</dd></div>
@@ -47,3 +47,4 @@ export function InstitutionDetailPage() {
     </>
   );
 }
+export default InstitutionDetailPage;

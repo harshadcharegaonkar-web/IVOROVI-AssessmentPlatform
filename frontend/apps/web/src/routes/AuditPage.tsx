@@ -34,11 +34,15 @@ export function AuditPage() {
   const columns: Column<AuditEvent>[] = [
     { key: "occurredAt", header: "Time", cell: (e) => <span className="whitespace-nowrap">{formatDateTime(e.occurredAt)}</span> },
     { key: "action", header: "Action", cell: (e) => <code className="text-xs">{e.action}</code> },
-    { key: "actor", header: "Actor", hideOnMobile: true, cell: (e) => <span className="break-all text-xs">{e.actorSubject}</span> },
+    { key: "actor", header: "Actor", hideOnMobile: true, cell: (e) => (
+      <span className="block max-w-48 truncate" title={e.actorSubject}>{e.actorName ?? (e.actorSubject === "system" ? "System" : e.actorSubject)}</span>
+    ) },
     { key: "resource", header: "Resource", hideOnMobile: true, cell: (e) => e.resourceType ? <span className="text-xs">{e.resourceType}: {e.resourceId}</span> : "—" },
     { key: "outcome", header: "Outcome", cell: (e) => <Badge tone={e.outcome === "SUCCESS" ? "success" : e.outcome === "DENIED" ? "danger" : "warning"}>{e.outcome}</Badge> },
     { key: "details", header: "Details", hideOnMobile: true, cell: (e) => (
-      <span className="text-xs text-muted">{Object.entries(e.details ?? {}).map(([k, v]) => `${k}=${v}`).join(", ") || "—"}</span>
+      <span className="line-clamp-2 max-w-md break-all text-xs text-muted" title={Object.entries(e.details ?? {}).map(([k, v]) => `${k}=${v}`).join("\n")}>
+        {Object.entries(e.details ?? {}).map(([k, v]) => `${k}=${v}`).join(", ") || "—"}
+      </span>
     ) },
   ];
 
@@ -58,7 +62,7 @@ export function AuditPage() {
       )}
       <Card>
         <form
-          className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-5 lg:items-end"
+          className="grid grid-cols-1 gap-3 border-b border-border px-4 py-4 sm:grid-cols-2 sm:px-6 lg:grid-cols-5 lg:items-end"
           onSubmit={form.handleSubmit((values) => { setPage(0); setFilter(values); })}
           noValidate
         >
@@ -97,3 +101,4 @@ export function AuditPage() {
     </>
   );
 }
+export default AuditPage;

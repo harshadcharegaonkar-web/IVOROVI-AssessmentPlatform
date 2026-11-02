@@ -43,13 +43,13 @@ export function DataTable<T>({ caption, columns, rows, rowKey, loading, error, o
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
           <caption className="sr-only">{caption}</caption>
-          <thead className="bg-surface-muted text-xs uppercase tracking-wide text-muted">
+          <thead className="bg-surface-muted text-xs font-medium uppercase tracking-wider text-muted">
             <tr>
               {columns.map((c) => {
                 const active = sort?.key === c.key;
                 const ariaSort = active ? (sort.direction === "asc" ? "ascending" : "descending") : c.sortable ? "none" : undefined;
                 return (
-                  <th key={c.key} scope="col" aria-sort={ariaSort} className={cn("px-4 py-2.5 font-medium", c.hideOnMobile && "hidden md:table-cell", c.className)}>
+                  <th key={c.key} scope="col" aria-sort={ariaSort} className={cn("h-10 px-4 font-medium sm:px-6", c.hideOnMobile && "hidden md:table-cell", c.className)}>
                     {c.sortable && onSortChange ? (
                       <button
                         type="button"
@@ -77,9 +77,9 @@ export function DataTable<T>({ caption, columns, rows, rowKey, loading, error, o
                   </tr>
                 ))
               : rows?.map((row) => (
-                  <tr key={rowKey(row)} className="border-t border-border hover:bg-surface-muted/50">
+                  <tr key={rowKey(row)} className="border-t border-border hover:bg-surface-muted">
                     {columns.map((c) => (
-                      <td key={c.key} className={cn("px-4 py-3 align-top text-fg", c.hideOnMobile && "hidden md:table-cell", c.className)}>{c.cell(row)}</td>
+                      <td key={c.key} className={cn("h-13 px-4 py-3 align-middle text-fg sm:px-6", c.hideOnMobile && "hidden md:table-cell", c.className)}>{c.cell(row)}</td>
                     ))}
                   </tr>
                 ))}

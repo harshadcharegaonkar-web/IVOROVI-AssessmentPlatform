@@ -36,8 +36,8 @@
 | C15 | Least-privilege CI (`contents: read`), SHA-pinned actions | ✅ | `.github/workflows/ci.yml` review |
 | C16 | Dependency and secret scanning in CI (Trivy fs including the Java lockfile, plus both images) | ✅ | Executed in CI. The first run found SA-08 and SA-09; run 41444289316 is clean at HIGH/CRITICAL (fixable) |
 | C17 | Containers run as non-root (API) | 🟨 | API Dockerfile `USER ivorovi`. The nginx master process runs as root (worker processes do not) |
-| C18 | Rate limiting | ⬜ | Phase 1 |
-| C19 | Idempotency keys for create/submit | ⬜ | Phase 1 |
+| C18 | Rate limiting | ✅ | Increment 1.0: per user/tenant buckets, failed-auth limit per IP; `RateLimitIT` |
+| C19 | Idempotency keys for create/submit | ✅ | Increment 1.0: tenant/user-scoped, RLS; `IdempotencyIT` |
 | C20 | DAST (OWASP ZAP), external penetration test | ⬜ | Phase 8, plus before first production tenant |
 | C21 | Field-level encryption of sensitive PII | ⬜ | When such fields are introduced (Phase 1 does not store government IDs) |
 | C22 | Production IdP hardening (TLS, MFA policies, brute-force settings beyond dev realm) | ⬜ | Phase 8 deployment work |
@@ -46,11 +46,11 @@
 
 | ID | Severity | Finding | Status |
 |---|---|---|---|
-| SA-01 | Medium | No rate limiting: authenticated users can issue unbounded requests; each performs 3 DB lookups | Open → Phase 1 (rate limiting + principal cache) |
+| SA-01 | Medium | No rate limiting: authenticated users can issue unbounded requests; each performs 3 DB lookups | Fixed in increment 1.0 |
 | SA-02 | Low | Outbox table is readable by the app role in platform context. Mitigated by RLS policy and kernel-only access, but payloads must never contain secrets | Accepted, documented |
 | SA-03 | Low | Dev realm contains a password-grant client (`ivorovi-dev-cli`) | Accepted for dev only. A production realm template must not include it (Phase 8 checklist) |
 | SA-04 | Low | nginx master process runs as root in the web image | Open → Phase 8 (unprivileged nginx image) |
-| SA-05 | Info | Seeder code and Datafaker ship in the production jar (guarded by environment check) | Open → Phase 1 (split dev artifact) |
+| SA-05 | Info | Seeder code and Datafaker ship in the production jar (guarded by environment check) | Fixed in increment 1.0 (`backend:devtools`) |
 | SA-06 | Info | Moderate DoS advisory in `minimatch` (dev tooling only) | Fixed via override in `a239681` |
 | SA-07 | Info | CI security scan not yet executed | Closed (run 41444289316) |
 | SA-08 | High | `amqp-client` 5.30.0 with 4 HIGH CVEs (Boot-managed) | Fixed: 5.37.0 override |

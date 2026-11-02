@@ -1,6 +1,6 @@
 export { cn, focusRing } from "./lib/cn";
 export { applyBrandColor } from "./lib/branding";
-export { Button, type ButtonProps } from "./components/Button";
+export { Button, buttonClasses, type ButtonProps } from "./components/Button";
 export { Spinner, Skeleton } from "./components/Spinner";
 export { Card, CardHeader, CardBody } from "./components/Card";
 export { Badge, type BadgeTone } from "./components/Badge";
@@ -12,3 +12,9 @@ export { PageHeader } from "./components/PageHeader";
 export { DataTable, type Column, type SortState, type DataTableProps } from "./components/DataTable";
 export { Pagination } from "./components/Pagination";
 export { ToastProvider, useToast } from "./components/Toast";
+export { KpiCard } from "./components/KpiCard";
+export { ButtonLink, Link, LinkProvider } from "./components/link";
+export { Breadcrumbs, type Crumb } from "./components/Breadcrumbs";
+export { Avatar } from "./components/Avatar";
+export { Menu, MenuItem, MenuLabel, MenuSeparator, Popover, Tooltip, TooltipProvider, SideSheet, Dialog } from "./components/Overlay";
+export { FilterBar } from "./components/FilterBar";

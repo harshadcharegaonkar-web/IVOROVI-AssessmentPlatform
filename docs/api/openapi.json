@@ -736,6 +736,9 @@
           "actorSubject" : {
             "type" : "string"
           },
+          "actorName" : {
+            "type" : "string"
+          },
           "action" : {
             "type" : "string"
           },

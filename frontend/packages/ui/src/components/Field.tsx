@@ -2,7 +2,7 @@ import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type Selec
 import { cn, focusRing } from "../lib/cn";
 
 const control =
-  "block w-full rounded-md border border-border bg-surface px-3 h-10 text-sm text-fg placeholder:text-muted disabled:opacity-60 aria-[invalid=true]:border-danger";
+  "block w-full rounded-lg border border-border-strong bg-surface px-3 h-10 text-sm text-fg shadow-xs placeholder:text-muted disabled:bg-surface-muted disabled:opacity-70 aria-[invalid=true]:border-danger";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
   return <input ref={ref} className={cn(control, focusRing, className)} {...rest} />;
@@ -32,7 +32,7 @@ export function Field({ label, hint, error, children, className }: {
       <label htmlFor={id} className="block text-sm font-medium text-fg">{label}</label>
       {children({ id, "aria-describedby": describedBy, "aria-invalid": error ? true : undefined })}
       {hint && <p id={hintId} className="text-xs text-muted">{hint}</p>}
-      {error && <p id={errorId} role="alert" className="text-xs text-danger">{error}</p>}
+      {error && <p id={errorId} role="alert" className="text-xs text-danger-text">{error}</p>}
     </div>
   );
 }

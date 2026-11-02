@@ -2,15 +2,15 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { signIn, USERS } from "./support";
 
-test.describe("Phase 0 application shell", () => {
+test.describe("Application shell and Phase 0 workflows", () => {
   test("org admin signs in through Keycloak and sees their tenant workspace", async ({ page }) => {
     await signIn(page, USERS.orgAdmin);
     await expect(page.getByTestId("tenant-name")).toHaveText("Aurora Education Group");
     await expect(page.getByTestId("user-name")).toHaveText("Alice Admin");
-    await expect(page.getByRole("heading", { name: "Welcome, Alice" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     await expect(page.getByTestId("institution-count")).toHaveText("2");
     const nav = page.getByRole("navigation", { name: "Main" });
-    for (const item of ["Dashboard", "Institutions", "Features", "Audit log", "My access"]) {
+    for (const item of ["Dashboard", "Institution Management", "Feature Settings", "Audit Logs"]) {
       await expect(nav.getByRole("link", { name: item })).toBeVisible();
     }
   });
@@ -69,8 +69,9 @@ test.describe("Phase 0 application shell", () => {
     await signIn(page, USERS.student);
     const nav = page.getByRole("navigation", { name: "Main" });
     await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "Audit log" })).toHaveCount(0);
-    await expect(nav.getByRole("link", { name: "Institutions" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Audit Logs" })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: "Institution Management" })).toHaveCount(0);
+    await expect(page.getByText("Organization", { exact: true })).toHaveCount(0); // empty groups are hidden
     await page.goto("/audit");
     await expect(page.getByText("Access denied")).toBeVisible();
   });
@@ -91,7 +92,7 @@ test.describe("Phase 0 application shell", () => {
 
   test("dashboard has no serious accessibility violations", async ({ page }) => {
     await signIn(page, USERS.orgAdmin);
-    await expect(page.getByRole("heading", { name: "Welcome, Alice" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", level: 1 })).toBeVisible();
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
     const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(serious.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
@@ -100,8 +101,64 @@ test.describe("Phase 0 application shell", () => {
   test("mobile navigation drawer @mobile", async ({ page }) => {
     await signIn(page, USERS.orgAdmin);
     await page.getByRole("button", { name: "Open navigation" }).click();
-    await page.locator("#mobile-nav").getByRole("link", { name: "Institutions" }).click();
+    await page.locator("#mobile-nav").getByRole("link", { name: "Institution Management" }).click();
     await expect(page.getByRole("heading", { name: "Institutions" })).toBeVisible();
     await expect(page.locator("#mobile-nav")).toHaveCount(0);
   });
+
+  test("sidebar collapses to an icon rail and remembers the preference", async ({ page }) => {
+    await signIn(page, USERS.orgAdmin);
+    const sidebar = page.getByTestId("sidebar");
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+    await expect(sidebar).toHaveCSS("width", "72px");
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Feature Settings" })).toBeVisible(); // icon link keeps its accessible name
+    await page.reload();
+    await expect(page.getByTestId("sidebar")).toHaveCSS("width", "72px");
+    await page.getByRole("button", { name: "Expand sidebar" }).click();
+    await expect(page.getByTestId("sidebar")).toHaveCSS("width", "256px");
+  });
+
+  test("breadcrumbs, global search and account menu", async ({ page }) => {
+    await signIn(page, USERS.orgAdmin, "/settings/features");
+    const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(crumbs.getByRole("link", { name: "Dashboard" })).toBeVisible();
+    await expect(crumbs.getByText("Feature Settings")).toHaveAttribute("aria-current", "page");
+
+    await page.keyboard.press("Control+k");
+    const search = page.getByRole("combobox", { name: "Search pages and records" });
+    await search.fill("commerce");
+    await expect(page.getByRole("option", { name: /Aurora College of Commerce/ })).toBeVisible();
+    await search.press("Enter");
+    await expect(page.getByRole("heading", { name: "Aurora College of Commerce" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Account menu" }).click();
+    await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
+    await page.getByRole("menuitem", { name: "My Access" }).click();
+    await expect(page.getByRole("heading", { name: "My access", level: 1 })).toBeVisible();
+  });
+
+  test("notification centre lists the caller's notifications", async ({ page }) => {
+    await signIn(page, USERS.orgAdmin);
+    await page.getByRole("button", { name: /^Notifications/ }).click();
+    const panel = page.getByRole("dialog", { name: "Notifications" });
+    await expect(panel.getByText("Notifications", { exact: true })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Mark all as read" })).toBeVisible();
+  });
+
+  test("tablet layout uses a navy top bar and icon rail @tablet", async ({ page }) => {
+    await signIn(page, USERS.orgAdmin);
+    await expect(page.getByTestId("sidebar")).toHaveCSS("width", "72px");
+    await expect(page.locator("header")).toHaveCSS("background-color", "rgb(23, 36, 58)");
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Audit Logs" })).toBeVisible();
+  });
+
+  for (const path of ["/", "/institutions", "/settings/features", "/audit", "/me"]) {
+    test(`no horizontal scrolling on ${path} @mobile`, async ({ page }) => {
+      await signIn(page, USERS.orgAdmin, path);
+      await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow).toBeLessThanOrEqual(0);
+    });
+  }
 });

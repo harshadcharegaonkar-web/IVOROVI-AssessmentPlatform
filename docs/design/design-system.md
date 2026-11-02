@@ -56,7 +56,8 @@
 | `--ivo-success-text` | `#15803D` | Success text and badges | 5.0:1 |
 | `--ivo-warning` | `#D97706` | Icons, fills | 3.2:1: icons/fills only |
 | `--ivo-warning-text` | `#B45309` | Warning text and badges | 5.0:1 |
-| `--ivo-danger` | `#DC2626` | Errors, destructive buttons, text | 4.8:1 |
+| `--ivo-danger` | `#DC2626` | Errors, destructive buttons, icons, large text | 4.8:1 on white; **4.41:1 on `#FEF2F2` (fails for small text)** |
+| `--ivo-danger-text` | `#B91C1C` | Small danger text and badges (added in 1.0 after the axe finding) | 6.5:1 on white, 5.9:1 on `#FEF2F2` |
 | `--ivo-focus` | `#2563EB` | 2 px focus ring, 2 px offset | |
 
 Tenant branding (existing `applyBrandColor`) may replace `--ivo-primary` and its contrast colour. Validation keeps

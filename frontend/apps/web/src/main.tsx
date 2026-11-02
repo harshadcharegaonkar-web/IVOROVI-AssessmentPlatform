@@ -1,4 +1,5 @@
-import { ErrorState, Spinner, ToastProvider } from "@ivorovi/ui";
+import "@fontsource-variable/inter";
+import { ErrorState, Spinner, ToastProvider, TooltipProvider } from "@ivorovi/ui";
 import { UserManager } from "oidc-client-ts";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -28,6 +29,7 @@ loadConfig()
           }}
         >
           <ToastProvider>
+            <TooltipProvider>
             <RequireAuth>
               <ApiProvider baseUrl={config.apiBaseUrl} userManager={userManager}>
                 <SessionProvider>
@@ -35,6 +37,7 @@ loadConfig()
                 </SessionProvider>
               </ApiProvider>
             </RequireAuth>
+            </TooltipProvider>
           </ToastProvider>
         </AuthProvider>
       </StrictMode>,
