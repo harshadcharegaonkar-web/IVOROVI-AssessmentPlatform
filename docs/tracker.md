@@ -34,7 +34,7 @@ Plan approved with Amendment 1 and design system.
 | Increment | Status | Report |
 |---|---|---|
 | 1.0 Platform hardening + design-system shell | ✅ complete and signed off (CI run 41452811631); visual baseline `design/evidence/1.0/` | `phase-1/increment-1.0.md` |
-| 1.1 Organization hierarchy | ✅ implemented and verified, **awaiting review** (CI run: see report); evidence `design/evidence/1.1/` | `phase-1/increment-1.1.md` |
+| 1.1 Organization hierarchy | ✅ implemented and verified, **awaiting review** (CI run 41478606816 green on `344d9f8`); evidence `design/evidence/1.1/` | `phase-1/increment-1.1.md` |
 | 1.2–1.7 | ⬜ (1.2 not started; needs authorization) | |
 
 Open decisions: XLSX library (fastexcel) to be requested before 1.6.

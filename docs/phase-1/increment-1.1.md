@@ -105,7 +105,7 @@ organization distribution.
 | Bundle budget | initial **173.3 kB gzip** (152.0 kB Brotli, 564.3 kB raw) ≤ 180 kB; largest lazy chunk 34.1 kB ≤ 40 kB. Lower than 1.0 (175.8 kB) after marking `@ivorovi/ui` side-effect free, which keeps page-only Radix parts (Tabs) out of the initial payload |
 | Playwright (real Keycloak + API + DB), desktop 1440, tablet 1024, mobile Pixel 7 | **34 passed**, 0 failed: 1.0 suite updated for org units (regression) + 1.1 suite (hierarchy, lifecycle, listings, scoped admin, System Settings, overflow at tablet/mobile on every new screen) |
 | Accessibility | axe WCAG 2.1 AA: no serious/critical violations on dashboard, hierarchy, department listing, unit detail, System Settings |
-| GitHub Actions | recorded in the tracker after push |
+| GitHub Actions | run 41478606816 on `344d9f8`: backend, frontend (incl. bundle budget), end-to-end (compose stack, Trivy image scans, smoke, Playwright) and security scan all green |
 
 E2E workflows covered: create a stand-alone college (client validation, server-side duplicate code `au` → field
 error), add campus and department via "Add sub-unit", breadcrumbs, edit, move with reason, history (created /
