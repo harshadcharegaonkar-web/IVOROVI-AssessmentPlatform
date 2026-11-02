@@ -59,12 +59,12 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 16 | Role management | 1.4 | ☐ | ☐ | ☐ |
 | 17 | Permission matrix | 1.4 | ☐ | ☐ | ☐ |
 | 18 | Access management | 1.4 | ☐ | ☐ | ☐ |
-| 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ✅ 1.0 restyle | ✅ | ☐ product owner |
-| 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ☐ product owner |
-| 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ☐ product owner |
+| 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ✅ 1.0 restyle | ✅ | ✅ 1.0 approved 2026-11-02 |
+| 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ✅ approved 2026-11-02 |
+| 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ✅ approved 2026-11-02 |
 | + | System settings | 1.1 | ☐ | ☐ | ☐ |
 
-## D. Results: increment 1.0 (2026-11-02)
+## D. Results: increment 1.0 (2026-11-02), approved by the product owner as the visual baseline
 
 Shell checks A1–A7: **pass** at 1440 × 900, 1024 × 768, 390 × 844 (and 360 px overflow check). Evidence:
 `docs/design/evidence/1.0/`. Automated in Playwright: A3 (rail accessible names), A4 (collapse persists), A6

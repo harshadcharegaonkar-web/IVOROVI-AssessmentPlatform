@@ -33,11 +33,11 @@ Plan approved with Amendment 1 and design system.
 
 | Increment | Status | Report |
 |---|---|---|
-| 1.0 Platform hardening + design-system shell | ✅ complete (CI run 41452811631 green); bundle-budget deviation awaiting decision (KI-24) | `phase-1/increment-1.0.md` |
-| 1.1 Organization hierarchy | ⬜ next | |
+| 1.0 Platform hardening + design-system shell | ✅ complete and signed off (CI run 41452811631); visual baseline `design/evidence/1.0/` | `phase-1/increment-1.0.md` |
+| 1.1 Organization hierarchy | 🟨 in progress (authorized 2026-11-02) | `phase-1/increment-1.1.md` |
 | 1.2–1.7 | ⬜ | |
 
-Open decisions: KI-24 (initial JS budget 180 kB). XLSX library (fastexcel) to be requested before 1.6.
+Open decisions: XLSX library (fastexcel) to be requested before 1.6.
 
 ## Decisions
 

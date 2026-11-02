@@ -105,3 +105,27 @@ bundle budget (176.1 kB / 180 kB).
 | 8 | Initial JS ≤ 120 kB gzip | **176 kB** | The approved stack's own floor is 133 kB (`react-dom` 71 kB + React Router/TanStack Query/oidc-client-ts 62 kB) before any Ivorovi code; the shell (Radix menu, popover, tooltip, dialog; icons; providers) adds ~43 kB and is needed at first paint. **Proposed budget: 180 kB initial (enforced in CI), 80 kB per lazy chunk.** Page code is now lazy (largest page chunk 36 kB). Reducing further would mean replacing approved libraries (e.g. Preact, a lighter router), which this increment did not do |
 | 7 | Pixel-diff baselines (`toHaveScreenshot`) in CI | Screenshots captured for manual sign-off; automated checks cover axe, overflow, layout widths/colours | Generate baselines in CI's own browser image in increment 1.1 (font rendering differs between environments, so baselines produced in the sandbox would be flaky in CI) |
 | — | SVG chart components in 1.0 | Deferred to 1.1 | Built together with the first dashboard charts that use them (no unused components) |
+
+## KI-24 closure: bundle measurement (approved budget 180 kB, 2026-11-02)
+
+Measured on commit `ab7c253` with `pnpm --filter @ivorovi/web budget` (production build, `dist/`).
+
+**What is counted.** The initial payload is the entry script referenced by `index.html` plus every chunk it
+imports *statically*, recursively. That includes shared vendor chunks and the bundler runtime. Lazily imported
+chunks (pages, search palette) are excluded. Source maps (`*.map`) are never counted. The script derives the set
+by parsing import statements itself; it matches the 5 `modulepreload` links + 1 entry in `index.html`.
+
+| File (initial) | Raw kB | Gzip kB | Brotli kB |
+|---|---:|---:|---:|
+| vendor-react (react-dom, scheduler) | 227.0 | 71.3 | 61.9 |
+| vendor-app (React Router, TanStack Query, oidc-client-ts, openapi-fetch) | 210.6 | 61.6 | 54.3 |
+| ApiProvider (shell: Radix menu/popover/tooltip/dialog, icons, providers) | 105.8 | 32.5 | 28.8 |
+| index (entry, router, auth) | 25.6 | 8.9 | 7.9 |
+| SessionProvider | 2.1 | 1.2 | 1.0 |
+| rolldown-runtime | 0.6 | 0.4 | 0.3 |
+| **Total initial JavaScript** | **571.7** | **175.8** | **154.3** |
+
+**Enforced by CI** (`frontend` job, step "Bundle budget"): the sum of per-file **gzip** sizes (zlib level 9) of the
+initial payload must be **≤ 180 kB**, and **every lazy chunk ≤ 40 kB gzip**. The largest page chunk is
+AuditPage at 36.2 kB (react-hook-form + zod), which is the approved 36 kB page target plus a small margin.
+Raw and Brotli sizes are printed for information. CSS (≈ 5 kB gzip) and the Inter font file are not part of the JS metric.

@@ -27,7 +27,7 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 | KI-21 | Container image | `nginx:1.29-alpine` base (Alpine 3.23.4): CRITICAL brotli CVE-2026-111497 | Critical | Fixed | `nginx:1.30.6-alpine3.24` + `apk upgrade` in `1dba95c` |
 | KI-22 | CI | Backend test-report artifact cannot be downloaded from the build sandbox (artifact host blocked by its network policy) | Info | Accepted | Reports remain available in the GitHub UI |
 | KI-23 | Documents | No malware scanner integrated (ADR-0006) | **Release blocker** for real student document uploads | Planned | ClamAV or approved equivalent before first production document upload |
-| KI-24 | Frontend | Initial JS budget 120 kB (increment 1.0 AC8) is below the approved stack's floor; actual 176 kB | Low | **Decision needed** | Proposed CI budget 180 kB (see increment-1.0.md §Deviations) |
+| KI-24 | Frontend | Initial JS budget 120 kB was below the approved stack's floor | Low | Closed | Budget 180 kB approved 2026-11-02; measurement and enforced metric documented in increment-1.0.md (175.8 kB gzip / 154.3 kB Brotli / 571.7 kB raw) |
 | KI-25 | Dev environment | Build-sandbox containers cannot run `apk upgrade` (no package mirror access); images verified in CI only | Info | Accepted | Environment limitation, not a product issue |
 | KI-26 | Visual QA | Pixel-diff baselines not yet automated | Low | Planned | Increment 1.1, baselines generated in CI's browser image |
 | KI-27 | Identity | Roles granting no permissions were omitted from `/me` | Medium | Fixed | Increment 1.0, regression test |
