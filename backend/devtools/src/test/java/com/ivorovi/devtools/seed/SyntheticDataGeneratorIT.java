@@ -1,4 +1,4 @@
-package com.ivorovi.seed;
+package com.ivorovi.devtools.seed;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** Acceptance criterion 10: synthetic data can be generated (and respects tenant isolation). */
+@org.springframework.boot.test.context.SpringBootTest(classes = com.ivorovi.devtools.DevtoolsApplication.class)
 class SyntheticDataGeneratorIT extends IntegrationTest {
 
     @Autowired SyntheticDataGenerator generator;

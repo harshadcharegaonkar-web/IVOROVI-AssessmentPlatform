@@ -1,4 +1,4 @@
-package com.ivorovi.seed;
+package com.ivorovi.devtools.seed;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Command-line entry point, active only with the {@code seed} profile. Runs once and exits.
- * Example: {@code ./gradlew :backend:api:bootRun --args='--spring.profiles.active=dev,seed --ivorovi.seed.tenants=3'}
+ * Example: {@code ./scripts/seed.sh --ivorovi.seed.tenants=3}
  */
 @Component
 @Profile("seed")

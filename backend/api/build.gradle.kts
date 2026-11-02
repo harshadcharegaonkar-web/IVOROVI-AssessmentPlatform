@@ -1,5 +1,6 @@
 plugins {
     java
+    `java-test-fixtures`
     alias(libs.plugins.spring.boot)
     alias(libs.plugins.spring.dependency.management)
 }
@@ -39,11 +40,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-amqp")
     implementation("org.springframework.boot:spring-boot-starter-mail")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.modulith:spring-modulith-starter-core")
+    // Annotations only at runtime; module verification (ArchUnit) runs in tests.
+    implementation("org.springframework.modulith:spring-modulith-api")
     implementation(libs.springdoc.webmvc)
-    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:s3") {
+        // The synchronous client uses the Apache HTTP client; the Netty async client is unused.
+        exclude(group = "software.amazon.awssdk", module = "netty-nio-client")
+    }
     implementation(libs.uuid.creator)
-    implementation(libs.datafaker) // synthetic data generator (seed profile only, never real data)
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
@@ -58,6 +62,16 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers-rabbitmq")
     testImplementation(libs.greenmail)
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // Shared integration-test support (containers, signed test tokens, fixtures), also used by backend:devtools.
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-test")
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    testFixturesImplementation("org.springframework.boot:spring-boot-testcontainers")
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-jdbc")
+    testFixturesImplementation("org.testcontainers:testcontainers-junit-jupiter")
+    testFixturesImplementation("org.testcontainers:testcontainers-postgresql")
+    testFixturesImplementation("org.testcontainers:testcontainers-rabbitmq")
 }
 
 tasks.withType<JavaCompile> {
@@ -72,4 +86,5 @@ tasks.test {
 }
 
 tasks.bootJar { archiveFileName = "ivorovi-api.jar" }
-tasks.jar { enabled = false }
+// Plain jar (classes only) so backend:devtools can depend on this project.
+tasks.jar { archiveClassifier = "plain" }

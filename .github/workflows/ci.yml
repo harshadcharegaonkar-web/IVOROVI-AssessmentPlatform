@@ -26,14 +26,16 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
       - name: Build and test (Testcontainers - Postgres, RabbitMQ, Valkey, SeaweedFS)
-        run: ./gradlew :backend:api:build --no-daemon
+        run: ./gradlew :backend:api:build :backend:devtools:build --no-daemon
       - name: OpenAPI contract is committed and current
         run: git diff --exit-code -- docs/api/openapi.json
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: always()
         with:
           name: backend-test-reports
-          path: backend/api/build/reports/tests/
+          path: |
+            backend/api/build/reports/tests/
+            backend/devtools/build/reports/tests/
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: api-jar

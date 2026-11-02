@@ -1,4 +1,4 @@
-package com.ivorovi.seed;
+package com.ivorovi.devtools.seed;
 
 import com.ivorovi.platform.audit.AuditLog;
 import com.ivorovi.platform.config.DeploymentProperties;

@@ -9,7 +9,7 @@ failed on genuine HIGH/CRITICAL findings, which were fixed (see known issues KI-
 
 | Job | Runs | Gate |
 |---|---|---|
-| `backend` | Gradle wrapper validation → `./gradlew :backend:api:build` (unit, Testcontainers integration, Spring Modulith verification) → OpenAPI drift check | Any test failure; `docs/api/openapi.json` differs from what the tests export |
+| `backend` | Gradle wrapper validation → `./gradlew :backend:api:build :backend:devtools:build` (unit, Testcontainers integration, Spring Modulith verification) → OpenAPI drift check | Any test failure; `docs/api/openapi.json` differs from what the tests export |
 | `frontend` | `pnpm install --frozen-lockfile` → regenerate API client and check drift → lint → typecheck → unit tests → build | Lint/type/test failure; stale generated client; lockfile mismatch |
 | `e2e` (needs both) | Throwaway secrets → `docker compose --profile app up --build --wait` → Trivy scan of `ivorovi-api` and `ivorovi-web` images (CRITICAL, fixable) → smoke test via web container → Playwright → logs on failure → teardown | Any failure |
 | `security` | Trivy filesystem scan (vulnerabilities and secrets, HIGH and CRITICAL, fixable), including `backend/api/gradle.lockfile` and `frontend/pnpm-lock.yaml` | Any finding at threshold |

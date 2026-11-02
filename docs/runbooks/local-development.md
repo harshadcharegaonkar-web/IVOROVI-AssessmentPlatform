@@ -73,6 +73,7 @@ Fixtures live in `backend/api/src/main/resources/db/devdata` (loaded **only** wi
   --ivorovi.seed.users-per-tenant=200 --ivorovi.seed.random-seed=42
 ```
 
+* The generator lives in the separate `backend:devtools` application (`ivorovi-devtools.jar`); the production API jar contains no seeding code or Datafaker.
 * The generator refuses to run unless `ivorovi.deployment.environment` is DEVELOPMENT or TEST.
 * Tenant codes derive from the random seed, so re-running with the **same** seed fails on duplicate tenant codes. Use a new seed for more data.
 * Generated accounts (`synthetic|<uuid>` subjects, `*.example.test` emails) cannot sign in. They exist for volume and isolation testing.
