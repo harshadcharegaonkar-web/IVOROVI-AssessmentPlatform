@@ -27,10 +27,12 @@ public class IvoroviJwtAuthenticationConverter implements Converter<Jwt, Abstrac
 
     private final TenantDirectory tenants;
     private final PrincipalResolver principals;
+    private final PrincipalCache cache;
 
-    IvoroviJwtAuthenticationConverter(TenantDirectory tenants, PrincipalResolver principals) {
+    IvoroviJwtAuthenticationConverter(TenantDirectory tenants, PrincipalResolver principals, PrincipalCache cache) {
         this.tenants = tenants;
         this.principals = principals;
+        this.cache = cache;
     }
 
     @Override
@@ -42,7 +44,8 @@ public class IvoroviJwtAuthenticationConverter implements Converter<Jwt, Abstrac
         }
         TenantContext.bindRequestTenant(tenantId);
         MDC.put("tenantId", tenantId.toString());
-        IvoroviPrincipal principal = principals.resolve(tenantId, jwt.getSubject())
+        IvoroviPrincipal principal = cache.get(tenantId, jwt.getSubject())
+                .or(() -> principals.resolve(tenantId, jwt.getSubject()).map(p -> { cache.put(p); return p; }))
                 .orElseThrow(() -> { TenantContext.clear(); return deny("no_active_account", jwt); });
         MDC.put("userId", principal.userId().toString());
         return new IvoroviAuthentication(principal, jwt);

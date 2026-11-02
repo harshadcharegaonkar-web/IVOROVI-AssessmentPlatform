@@ -88,6 +88,14 @@ ivorovi:
   features:
     # e.g. "ai.*" on an on-premises deployment without an approved AI provider
     deployment-disabled: ${IVOROVI_FEATURES_DEPLOYMENT_DISABLED:}
+  rate-limit:
+    enabled: ${IVOROVI_RATE_LIMIT_ENABLED:true}
+    user-read-per-minute: ${IVOROVI_RATE_LIMIT_USER_READ:300}
+    user-write-per-minute: ${IVOROVI_RATE_LIMIT_USER_WRITE:60}
+    tenant-per-minute: ${IVOROVI_RATE_LIMIT_TENANT:3000}
+    failed-auth-per-ip-per-minute: ${IVOROVI_RATE_LIMIT_FAILED_AUTH_IP:30}
+  retention:
+    outbox-days: 7
   outbox:
     exchange: ivorovi.events
     batch-size: 100

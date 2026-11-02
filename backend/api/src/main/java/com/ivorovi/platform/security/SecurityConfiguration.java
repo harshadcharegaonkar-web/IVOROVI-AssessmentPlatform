@@ -1,6 +1,9 @@
 package com.ivorovi.platform.security;
 
 import com.ivorovi.platform.config.SecurityProperties;
+import com.ivorovi.platform.ratelimit.RateLimitFilters;
+import com.ivorovi.platform.ratelimit.RateLimitProperties;
+import com.ivorovi.platform.ratelimit.RateLimiter;
 import com.ivorovi.platform.web.ProblemResponses;
 import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -22,6 +25,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnWebApplication
@@ -30,7 +34,8 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain api(HttpSecurity http, IvoroviJwtAuthenticationConverter converter,
-                            ProblemResponses problems) throws Exception {
+                            ProblemResponses problems, RateLimiter rateLimiter, RateLimitProperties rateLimits)
+            throws Exception {
         AuthenticationEntryPoint entryPoint = (request, response, ex) -> {
             if (ex instanceof TenantAccessDeniedException tad) {
                 problems.write(response, HttpStatus.FORBIDDEN, "tenant_access_denied",
@@ -57,7 +62,11 @@ public class SecurityConfiguration {
                 .accessDeniedHandler(denied)
                 .jwt(j -> j.jwtAuthenticationConverter(converter)))
             .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(denied))
-            .headers(h -> h.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'")));
+            .headers(h -> h.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'")))
+            .addFilterBefore(new RateLimitFilters.FailedAuthentication(rateLimiter, rateLimits, problems),
+                    BearerTokenAuthenticationFilter.class)
+            .addFilterAfter(new RateLimitFilters.Authenticated(rateLimiter, rateLimits, problems),
+                    BearerTokenAuthenticationFilter.class);
         return http.build();
     }
 

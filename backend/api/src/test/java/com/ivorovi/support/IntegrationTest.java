@@ -11,12 +11,21 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @Import(TestSecurityConfiguration.class)
 @Tag("integration")
+@TestPropertySource(properties = {
+        // generous defaults so functional tests are never throttled; RateLimitIT overrides them
+        "ivorovi.rate-limit.user-read-per-minute=100000",
+        "ivorovi.rate-limit.user-write-per-minute=100000",
+        "ivorovi.rate-limit.tenant-per-minute=100000",
+        "ivorovi.rate-limit.failed-auth-per-ip-per-minute=100000",
+        // test-only probe endpoints never appear in the exported API contract
+        "springdoc.paths-to-exclude=/api/v1/test-probe/**"})
 public abstract class IntegrationTest {
 
     @Autowired
