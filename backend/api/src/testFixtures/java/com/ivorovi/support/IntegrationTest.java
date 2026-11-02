@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "ivorovi.rate-limit.user-write-per-minute=100000",
         "ivorovi.rate-limit.tenant-per-minute=100000",
         "ivorovi.rate-limit.failed-auth-per-ip-per-minute=100000",
+        "ivorovi.rate-limit.public-per-ip-per-minute=100000",
         // test-only probe endpoints never appear in the exported API contract
         "springdoc.paths-to-exclude=/api/v1/test-probe/**"})
 public abstract class IntegrationTest {

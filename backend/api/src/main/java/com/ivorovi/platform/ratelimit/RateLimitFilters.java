@@ -70,6 +70,37 @@ public final class RateLimitFilters {
         }
     }
 
+    /** Unauthenticated public endpoints ({@code /api/v1/public/**}): every request counts against the caller's IP. */
+    public static final class PublicEndpoints extends OncePerRequestFilter {
+        private final RateLimiter limiter;
+        private final RateLimitProperties props;
+        private final ProblemResponses problems;
+
+        public PublicEndpoints(RateLimiter limiter, RateLimitProperties props, ProblemResponses problems) {
+            this.limiter = limiter;
+            this.props = props;
+            this.problems = problems;
+        }
+
+        @Override
+        protected boolean shouldNotFilter(HttpServletRequest request) {
+            return !request.getRequestURI().startsWith("/api/v1/public/");
+        }
+
+        @Override
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+                throws ServletException, IOException {
+            if (props.enabled()) {
+                RateLimiter.Decision d = limiter.acquire("public:" + request.getRemoteAddr(), props.publicPerIpPerMinute(), true);
+                if (!d.allowed()) {
+                    reject(response, problems, d);
+                    return;
+                }
+            }
+            chain.doFilter(request, response);
+        }
+    }
+
     /** After authentication: per-user (read/write classes) and per-tenant ceilings. */
     public static final class Authenticated extends OncePerRequestFilter {
         private final RateLimiter limiter;

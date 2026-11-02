@@ -69,6 +69,7 @@ dependencies {
     testFixturesImplementation("org.springframework.boot:spring-boot-testcontainers")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     testFixturesImplementation("org.springframework.boot:spring-boot-starter-jdbc")
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-mail")
     testFixturesImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testFixturesImplementation("org.testcontainers:testcontainers-postgresql")
     testFixturesImplementation("org.testcontainers:testcontainers-rabbitmq")

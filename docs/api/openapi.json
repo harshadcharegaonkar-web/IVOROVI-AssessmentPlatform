@@ -55,6 +55,69 @@
         }
       }
     },
+    "/api/v1/staff/{id}" : {
+      "get" : {
+        "tags" : [ "Staff" ],
+        "operationId" : "detail",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Staff" ],
+        "summary" : "Update a staff profile (optimistic version required)",
+        "operationId" : "update_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StaffRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/features/{key}/override" : {
       "put" : {
         "tags" : [ "Features" ],
@@ -125,11 +188,707 @@
         }
       }
     },
+    "/api/v1/users" : {
+      "get" : {
+        "tags" : [ "Users" ],
+        "summary" : "List users visible to the caller (search, filters, sort, pagination)",
+        "operationId" : "list",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "INVITED", "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          }
+        }, {
+          "name" : "invitation",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "NONE", "PENDING", "EXPIRED", "ACCEPTED", "REVOKED" ]
+          }
+        }, {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "role",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "[A-Z_]{2,63}"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|email|status|lastLoginAt|createdAt"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseUserSummary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Users" ],
+        "summary" : "Create a user (status INVITED) with a primary organizational assignment; optionally email an invitation",
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserCreateResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/status" : {
+      "post" : {
+        "tags" : [ "Users" ],
+        "summary" : "Suspend, reactivate, deactivate or activate an account (also enables/disables the login)",
+        "operationId" : "status",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/role-assignments" : {
+      "get" : {
+        "tags" : [ "Users" ],
+        "summary" : "Role assignments of the user, including revoked and expired ones",
+        "operationId" : "roleAssignments",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/RoleAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Users" ],
+        "summary" : "Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there)",
+        "operationId" : "assignRole",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoleAssignmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RoleAssignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/role-assignments/{assignmentId}/revoke" : {
+      "post" : {
+        "tags" : [ "Users" ],
+        "summary" : "Revoke a role assignment (kept in history with the reason)",
+        "operationId" : "revokeRole",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RoleRevokeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/org-assignments" : {
+      "get" : {
+        "tags" : [ "Users" ],
+        "operationId" : "orgAssignments",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/OrgAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Users" ],
+        "summary" : "Assign the user to a unit (or the whole organization when orgUnitId is omitted)",
+        "operationId" : "addOrgAssignment",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OrgAssignmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrgAssignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/org-assignments/{assignmentId}/primary" : {
+      "post" : {
+        "tags" : [ "Users" ],
+        "operationId" : "makePrimary",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/invitation" : {
+      "post" : {
+        "tags" : [ "Users" ],
+        "summary" : "Send or re-send the invitation email (a new link replaces the previous one)",
+        "operationId" : "sendInvitation",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Invitation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/staff" : {
+      "get" : {
+        "tags" : [ "Staff" ],
+        "summary" : "List staff profiles visible to the caller",
+        "operationId" : "list_1",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "FACULTY", "DEPARTMENT_ADMIN", "ACADEMIC_ADMIN", "EVALUATOR", "EXAM_CONTROLLER", "PROCTOR", "ADMISSIONS_OFFICER", "PLACEMENT_OFFICER", "ADMINISTRATIVE_STAFF" ]
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "ON_LEAVE", "SEPARATED" ]
+          }
+        }, {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "linked",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|staffNo|category|status|joinedOn"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseStaffProfile"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Staff" ],
+        "summary" : "Create a staff profile (no login account required)",
+        "operationId" : "create_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StaffRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/staff/{id}/unlink" : {
+      "post" : {
+        "tags" : [ "Staff" ],
+        "operationId" : "unlink",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/staff/{id}/org-assignments" : {
+      "post" : {
+        "tags" : [ "Staff" ],
+        "operationId" : "addOrgAssignment_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OrgAssignmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/OrgAssignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/staff/{id}/org-assignments/{assignmentId}/primary" : {
+      "post" : {
+        "tags" : [ "Staff" ],
+        "operationId" : "makePrimary_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/staff/{id}/link" : {
+      "post" : {
+        "tags" : [ "Staff" ],
+        "summary" : "Link the profile to a user account",
+        "operationId" : "link",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StaffLinkRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/invitations/lookup" : {
+      "post" : {
+        "tags" : [ "Invitations" ],
+        "summary" : "Public: describe an invitation for the acceptance page (token in the body, never in the URL)",
+        "operationId" : "lookup",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitationTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvitationLookup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/public/invitations/accept" : {
+      "post" : {
+        "tags" : [ "Invitations" ],
+        "summary" : "Public: accept an invitation, creating the login with the chosen password",
+        "operationId" : "accept",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InvitationAcceptRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/v1/org-units" : {
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "List organization units visible to the caller (search, filters, sort, pagination)",
-        "operationId" : "list",
+        "operationId" : "list_2",
         "parameters" : [ {
           "name" : "type",
           "in" : "query",
@@ -217,7 +976,7 @@
       "post" : {
         "tags" : [ "Organization" ],
         "summary" : "Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units)",
-        "operationId" : "create",
+        "operationId" : "create_2",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -400,6 +1159,91 @@
         }
       }
     },
+    "/api/v1/invitations/{id}/revoke" : {
+      "post" : {
+        "tags" : [ "Invitations" ],
+        "summary" : "Revoke an open invitation; its link stops working immediately",
+        "operationId" : "revoke",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}" : {
+      "get" : {
+        "tags" : [ "Users" ],
+        "summary" : "User details, including what the caller may do with the account",
+        "operationId" : "detail_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Users" ],
+        "summary" : "Edit profile fields (email only before the first sign-in)",
+        "operationId" : "update_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-units/{id}" : {
       "get" : {
         "tags" : [ "Organization" ],
@@ -457,7 +1301,7 @@
       "patch" : {
         "tags" : [ "Organization" ],
         "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
-        "operationId" : "update_1",
+        "operationId" : "update_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -484,6 +1328,56 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OrgUnitDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}/access" : {
+      "get" : {
+        "tags" : [ "Users" ],
+        "summary" : "Access overview: organizational assignments, roles and effective permissions by scope",
+        "operationId" : "access",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UserAccess"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/roles" : {
+      "get" : {
+        "tags" : [ "Roles" ],
+        "summary" : "System roles that can be assigned, with their permissions",
+        "operationId" : "list_3",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssignableRole"
+                  }
                 }
               }
             }
@@ -583,7 +1477,7 @@
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first)",
-        "operationId" : "list_1",
+        "operationId" : "list_4",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -661,6 +1555,62 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invitations" : {
+      "get" : {
+        "tags" : [ "Invitations" ],
+        "summary" : "Invitations of users visible to the caller",
+        "operationId" : "list_5",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "EXPIRED", "ACCEPTED", "REVOKED" ]
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseInvitation"
                 }
               }
             }
@@ -827,6 +1777,62 @@
           }
         }
       }
+    },
+    "/api/v1/users/{id}/org-assignments/{assignmentId}" : {
+      "delete" : {
+        "tags" : [ "Users" ],
+        "operationId" : "removeOrgAssignment",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/staff/{id}/org-assignments/{assignmentId}" : {
+      "delete" : {
+        "tags" : [ "Staff" ],
+        "operationId" : "removeOrgAssignment_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
     }
   },
   "components" : {
@@ -874,6 +1880,197 @@
           },
           "timeZone" : {
             "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StaffRequest" : {
+        "type" : "object",
+        "properties" : {
+          "staffNo" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 1
+          },
+          "givenName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 1
+          },
+          "familyName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "FACULTY", "DEPARTMENT_ADMIN", "ACADEMIC_ADMIN", "EVALUATOR", "EXAM_CONTROLLER", "PROCTOR", "ADMISSIONS_OFFICER", "PLACEMENT_OFFICER", "ADMINISTRATIVE_STAFF" ]
+          },
+          "designation" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "employmentStatus" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "ON_LEAVE", "SEPARATED" ]
+          },
+          "employmentType" : {
+            "type" : "string",
+            "enum" : [ "PERMANENT", "CONTRACT", "VISITING", "ADJUNCT" ]
+          },
+          "joinedOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "category", "givenName", "staffNo" ]
+      },
+      "OrgAssignment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "orgUnitType" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "startsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "source" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StaffDetail" : {
+        "type" : "object",
+        "properties" : {
+          "staff" : {
+            "$ref" : "#/components/schemas/StaffProfile"
+          },
+          "assignments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrgAssignment"
+            }
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StaffProfile" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "staffNo" : {
+            "type" : "string"
+          },
+          "givenName" : {
+            "type" : "string"
+          },
+          "familyName" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "FACULTY", "DEPARTMENT_ADMIN", "ACADEMIC_ADMIN", "EVALUATOR", "EXAM_CONTROLLER", "PROCTOR", "ADMISSIONS_OFFICER", "PLACEMENT_OFFICER", "ADMINISTRATIVE_STAFF" ]
+          },
+          "designation" : {
+            "type" : "string"
+          },
+          "employmentStatus" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "ON_LEAVE", "SEPARATED" ]
+          },
+          "employmentType" : {
+            "type" : "string",
+            "enum" : [ "PERMANENT", "CONTRACT", "VISITING", "ADJUNCT" ]
+          },
+          "joinedOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "userEmail" : {
+            "type" : "string"
+          },
+          "userStatus" : {
+            "type" : "string",
+            "enum" : [ "INVITED", "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          },
+          "primaryUnitName" : {
+            "type" : "string"
+          },
+          "units" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
           },
           "version" : {
             "type" : "integer",
@@ -934,6 +2131,412 @@
             "type" : "string"
           }
         }
+      },
+      "UserCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "givenName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 1
+          },
+          "familyName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "sendInvitation" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "email", "givenName" ]
+      },
+      "Invitation" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "userName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "EXPIRED", "ACCEPTED", "REVOKED" ]
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSentAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "sendCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deliveryStatus" : {
+            "type" : "string"
+          },
+          "acceptedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "revokedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "invitedByName" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "UserCreateResponse" : {
+        "type" : "object",
+        "properties" : {
+          "user" : {
+            "$ref" : "#/components/schemas/UserDetail"
+          },
+          "invitationSent" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "UserDetail" : {
+        "type" : "object",
+        "properties" : {
+          "user" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          },
+          "statusReason" : {
+            "type" : "string"
+          },
+          "statusChangedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          },
+          "canAssignRoles" : {
+            "type" : "boolean"
+          },
+          "self" : {
+            "type" : "boolean"
+          },
+          "staffProfile" : {
+            "$ref" : "#/components/schemas/UserStaffLink"
+          },
+          "invitation" : {
+            "$ref" : "#/components/schemas/Invitation"
+          }
+        }
+      },
+      "UserStaffLink" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "staffNo" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "designation" : {
+            "type" : "string"
+          }
+        }
+      },
+      "UserSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "givenName" : {
+            "type" : "string"
+          },
+          "familyName" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "INVITED", "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          },
+          "invitationStatus" : {
+            "type" : "string",
+            "enum" : [ "NONE", "PENDING", "EXPIRED", "ACCEPTED", "REVOKED" ]
+          },
+          "lastLoginAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "units" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "staffProfileId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "UserStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string",
+            "enum" : [ "SUSPEND", "REACTIVATE", "DEACTIVATE", "ACTIVATE" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "action", "version" ]
+      },
+      "RoleAssignmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "roleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validTo" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "roleId" ]
+      },
+      "RoleAssignment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "roleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "roleCode" : {
+            "type" : "string"
+          },
+          "roleName" : {
+            "type" : "string"
+          },
+          "scopeType" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scopeName" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validTo" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "grantedByName" : {
+            "type" : "string"
+          },
+          "revokedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "revokedByName" : {
+            "type" : "string"
+          },
+          "revocationReason" : {
+            "type" : "string"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "RoleRevokeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "OrgAssignmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "startsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endsOn" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }
+      },
+      "StaffLinkRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "userId" ]
+      },
+      "InvitationTokenRequest" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "maxLength" : 43,
+            "minLength" : 43
+          }
+        },
+        "required" : [ "token" ]
+      },
+      "InvitationLookup" : {
+        "type" : "object",
+        "properties" : {
+          "organizationName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "givenName" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "existingLogin" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "InvitationAcceptRequest" : {
+        "type" : "object",
+        "properties" : {
+          "token" : {
+            "type" : "string",
+            "maxLength" : 43,
+            "minLength" : 43
+          },
+          "password" : {
+            "type" : "string",
+            "maxLength" : 256,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "token" ]
       },
       "OrgUnitCreateRequest" : {
         "type" : "object",
@@ -1073,6 +2676,10 @@
           "featureOverrides" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "members" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -1134,6 +2741,36 @@
         },
         "required" : [ "version" ]
       },
+      "UserUpdateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "givenName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 1
+          },
+          "familyName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "phone" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "version" ]
+      },
       "OrgUnitUpdateRequest" : {
         "type" : "object",
         "properties" : {
@@ -1170,6 +2807,153 @@
           }
         },
         "required" : [ "version" ]
+      },
+      "PageResponseUserSummary" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/UserSummary"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "EffectivePermission" : {
+        "type" : "object",
+        "properties" : {
+          "permission" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "scopes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PermissionScope"
+            }
+          }
+        }
+      },
+      "PermissionScope" : {
+        "type" : "object",
+        "properties" : {
+          "scopeType" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scopeName" : {
+            "type" : "string"
+          },
+          "viaRoles" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "UserAccess" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "INVITED", "ACTIVE", "SUSPENDED", "DEACTIVATED" ]
+          },
+          "invitationStatus" : {
+            "type" : "string",
+            "enum" : [ "NONE", "PENDING", "EXPIRED", "ACCEPTED", "REVOKED" ]
+          },
+          "assignments" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrgAssignment"
+            }
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RoleAssignment"
+            }
+          },
+          "permissions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EffectivePermission"
+            }
+          }
+        }
+      },
+      "PageResponseStaffProfile" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StaffProfile"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AssignableRole" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "permissions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
       },
       "PageResponseOrgUnit" : {
         "type" : "object",
@@ -1467,6 +3251,33 @@
           "branding" : {
             "type" : "object",
             "additionalProperties" : { }
+          }
+        }
+      },
+      "PageResponseInvitation" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Invitation"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },

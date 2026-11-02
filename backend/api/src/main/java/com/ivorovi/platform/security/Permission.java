@@ -15,7 +15,11 @@ public enum Permission {
     TENANT_SETTINGS_MANAGE("tenant.settings.manage", "Change organization settings such as terminology"),
     USER_READ("user.read", "View user accounts"),
     USER_MANAGE("user.manage", "Invite, modify and deactivate user accounts"),
-    ROLE_MANAGE("role.manage", "Create custom roles and assign roles"),
+    ROLE_MANAGE("role.manage", "Create and edit custom roles"),
+    ROLE_READ("role.read", "View roles and role assignments"),
+    ROLE_ASSIGN("role.assign", "Assign and revoke roles within your own permissions and scope"),
+    STAFF_READ("staff.read", "View staff profiles"),
+    STAFF_MANAGE("staff.manage", "Create and edit staff profiles and their organizational assignments"),
     FEATURE_READ("feature.read", "View feature configuration"),
     FEATURE_MANAGE("feature.manage", "Enable or disable features"),
     AUDIT_READ("audit.read", "View and verify the audit trail");

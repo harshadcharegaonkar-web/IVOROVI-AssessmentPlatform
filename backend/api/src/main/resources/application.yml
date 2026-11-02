@@ -98,6 +98,7 @@ ivorovi:
     user-write-per-minute: ${IVOROVI_RATE_LIMIT_USER_WRITE:60}
     tenant-per-minute: ${IVOROVI_RATE_LIMIT_TENANT:3000}
     failed-auth-per-ip-per-minute: ${IVOROVI_RATE_LIMIT_FAILED_AUTH_IP:30}
+    public-per-ip-per-minute: ${IVOROVI_RATE_LIMIT_PUBLIC_IP:20}
   retention:
     outbox-days: 7
   outbox:
@@ -115,6 +116,16 @@ ivorovi:
     create-bucket: ${IVOROVI_S3_CREATE_BUCKET:false}
   mail:
     from: ${IVOROVI_MAIL_FROM:no-reply@ivorovi.invalid}
+  identity:
+    # Public address of the web application; invitation links point here.
+    app-base-url: ${IVOROVI_APP_BASE_URL:http://localhost:5173}
+    invitation-ttl: ${IVOROVI_INVITATION_TTL:P7D}
+    provisioning:
+      # Keycloak admin API through a confidential client that holds only realm-management manage-users/view-users.
+      admin-url: ${IVOROVI_IDP_ADMIN_URL:http://localhost:8180}
+      realm: ${IVOROVI_IDP_REALM:ivorovi}
+      client-id: ${IVOROVI_IDP_PROVISIONER_CLIENT_ID:ivorovi-provisioner}
+      client-secret: ${IVOROVI_IDP_PROVISIONER_SECRET:}
 
 springdoc:
   api-docs:

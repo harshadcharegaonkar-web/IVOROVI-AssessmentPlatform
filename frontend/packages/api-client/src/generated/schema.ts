@@ -22,6 +22,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail"];
+        /** Update a staff profile (optimistic version required) */
+        put: operations["update_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/features/{key}/override": {
         parameters: {
             query?: never;
@@ -40,6 +57,243 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users visible to the caller (search, filters, sort, pagination) */
+        get: operations["list"];
+        put?: never;
+        /** Create a user (status INVITED) with a primary organizational assignment; optionally email an invitation */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend, reactivate, deactivate or activate an account (also enables/disables the login) */
+        post: operations["status"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/role-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Role assignments of the user, including revoked and expired ones */
+        get: operations["roleAssignments"];
+        put?: never;
+        /** Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there) */
+        post: operations["assignRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/role-assignments/{assignmentId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a role assignment (kept in history with the reason) */
+        post: operations["revokeRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/org-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["orgAssignments"];
+        put?: never;
+        /** Assign the user to a unit (or the whole organization when orgUnitId is omitted) */
+        post: operations["addOrgAssignment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/org-assignments/{assignmentId}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["makePrimary"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}/invitation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send or re-send the invitation email (a new link replaces the previous one) */
+        post: operations["sendInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List staff profiles visible to the caller */
+        get: operations["list_1"];
+        put?: never;
+        /** Create a staff profile (no login account required) */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/{id}/unlink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["unlink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/{id}/org-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addOrgAssignment_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/{id}/org-assignments/{assignmentId}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["makePrimary_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/{id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link the profile to a user account */
+        post: operations["link"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/invitations/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Public: describe an invitation for the acceptance page (token in the body, never in the URL) */
+        post: operations["lookup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/invitations/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Public: accept an invitation, creating the login with the chosen password */
+        post: operations["accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/org-units": {
         parameters: {
             query?: never;
@@ -48,10 +302,10 @@ export interface paths {
             cookie?: never;
         };
         /** List organization units visible to the caller (search, filters, sort, pagination) */
-        get: operations["list"];
+        get: operations["list_2"];
         put?: never;
         /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
-        post: operations["create"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -143,6 +397,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invitations/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an open invitation; its link stops working immediately */
+        post: operations["revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** User details, including what the caller may do with the account */
+        get: operations["detail_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit profile fields (email only before the first sign-in) */
+        patch: operations["update_2"];
+        trace?: never;
+    };
     "/api/v1/org-units/{id}": {
         parameters: {
             query?: never;
@@ -159,7 +448,41 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_1"];
+        patch: operations["update_3"];
+        trace?: never;
+    };
+    "/api/v1/users/{id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access overview: organizational assignments, roles and effective permissions by scope */
+        get: operations["access"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** System roles that can be assigned, with their permissions */
+        get: operations["list_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/org-units/{id}/history": {
@@ -221,7 +544,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first) */
-        get: operations["list_1"];
+        get: operations["list_4"];
         put?: never;
         post?: never;
         delete?: never;
@@ -256,6 +579,23 @@ export interface paths {
         };
         /** Current user, tenant (with branding) and effective scoped permissions */
         get: operations["me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invitations of users visible to the caller */
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -332,6 +672,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{id}/org-assignments/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeOrgAssignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/{id}/org-assignments/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeOrgAssignment_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -356,6 +728,78 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        StaffRequest: {
+            staffNo: string;
+            givenName: string;
+            familyName?: string;
+            email?: string;
+            phone?: string;
+            /** @enum {string} */
+            category: "FACULTY" | "DEPARTMENT_ADMIN" | "ACADEMIC_ADMIN" | "EVALUATOR" | "EXAM_CONTROLLER" | "PROCTOR" | "ADMISSIONS_OFFICER" | "PLACEMENT_OFFICER" | "ADMINISTRATIVE_STAFF";
+            designation?: string;
+            /** @enum {string} */
+            employmentStatus?: "ACTIVE" | "ON_LEAVE" | "SEPARATED";
+            /** @enum {string} */
+            employmentType?: "PERMANENT" | "CONTRACT" | "VISITING" | "ADJUNCT";
+            /** Format: date */
+            joinedOn?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        OrgAssignment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            orgUnitType?: string;
+            primary?: boolean;
+            title?: string;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: date */
+            endsOn?: string;
+            source?: string;
+        };
+        StaffDetail: {
+            staff?: components["schemas"]["StaffProfile"];
+            assignments?: components["schemas"]["OrgAssignment"][];
+            canManage?: boolean;
+        };
+        StaffProfile: {
+            /** Format: uuid */
+            id?: string;
+            staffNo?: string;
+            givenName?: string;
+            familyName?: string;
+            displayName?: string;
+            email?: string;
+            phone?: string;
+            /** @enum {string} */
+            category?: "FACULTY" | "DEPARTMENT_ADMIN" | "ACADEMIC_ADMIN" | "EVALUATOR" | "EXAM_CONTROLLER" | "PROCTOR" | "ADMISSIONS_OFFICER" | "PLACEMENT_OFFICER" | "ADMINISTRATIVE_STAFF";
+            designation?: string;
+            /** @enum {string} */
+            employmentStatus?: "ACTIVE" | "ON_LEAVE" | "SEPARATED";
+            /** @enum {string} */
+            employmentType?: "PERMANENT" | "CONTRACT" | "VISITING" | "ADJUNCT";
+            /** Format: date */
+            joinedOn?: string;
+            /** Format: uuid */
+            userId?: string;
+            userEmail?: string;
+            /** @enum {string} */
+            userStatus?: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            primaryUnitName?: string;
+            units?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
         OverrideRequest: {
             /** Format: uuid */
             orgUnitId?: string;
@@ -374,6 +818,160 @@ export interface components {
             inheritedSource?: string;
             enabled?: boolean;
             source?: string;
+        };
+        UserCreateRequest: {
+            email: string;
+            givenName: string;
+            familyName?: string;
+            phone?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            title?: string;
+            sendInvitation?: boolean;
+        };
+        Invitation: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            userId?: string;
+            email?: string;
+            userName?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            lastSentAt?: string;
+            /** Format: int32 */
+            sendCount?: number;
+            deliveryStatus?: string;
+            /** Format: date-time */
+            acceptedAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            invitedByName?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        UserCreateResponse: {
+            user?: components["schemas"]["UserDetail"];
+            invitationSent?: boolean;
+        };
+        UserDetail: {
+            user?: components["schemas"]["UserSummary"];
+            statusReason?: string;
+            /** Format: date-time */
+            statusChangedAt?: string;
+            canManage?: boolean;
+            canAssignRoles?: boolean;
+            self?: boolean;
+            staffProfile?: components["schemas"]["UserStaffLink"];
+            invitation?: components["schemas"]["Invitation"];
+        };
+        UserStaffLink: {
+            /** Format: uuid */
+            id?: string;
+            staffNo?: string;
+            category?: string;
+            designation?: string;
+        };
+        UserSummary: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            givenName?: string;
+            familyName?: string;
+            displayName?: string;
+            phone?: string;
+            /** @enum {string} */
+            status?: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            /** @enum {string} */
+            invitationStatus?: "NONE" | "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+            /** Format: date-time */
+            lastLoginAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            roles?: string[];
+            units?: string[];
+            /** Format: uuid */
+            staffProfileId?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        UserStatusRequest: {
+            /** @enum {string} */
+            action: "SUSPEND" | "REACTIVATE" | "DEACTIVATE" | "ACTIVATE";
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        RoleAssignmentRequest: {
+            /** Format: uuid */
+            roleId: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validTo?: string;
+        };
+        RoleAssignment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            roleId?: string;
+            roleCode?: string;
+            roleName?: string;
+            scopeType?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            scopeName?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validTo?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            grantedByName?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            revokedByName?: string;
+            revocationReason?: string;
+            active?: boolean;
+        };
+        RoleRevokeRequest: {
+            reason: string;
+        };
+        OrgAssignmentRequest: {
+            /** Format: uuid */
+            orgUnitId?: string;
+            title?: string;
+            primary?: boolean;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: date */
+            endsOn?: string;
+        };
+        StaffLinkRequest: {
+            /** Format: uuid */
+            userId: string;
+        };
+        InvitationTokenRequest: {
+            token: string;
+        };
+        InvitationLookup: {
+            organizationName?: string;
+            email?: string;
+            givenName?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            existingLogin?: boolean;
+        };
+        InvitationAcceptRequest: {
+            token: string;
+            password?: string;
         };
         OrgUnitCreateRequest: {
             /** @enum {string} */
@@ -434,6 +1032,8 @@ export interface components {
             roleAssignments?: number;
             /** Format: int64 */
             featureOverrides?: number;
+            /** Format: int64 */
+            members?: number;
         };
         OrgUnitDetail: {
             unit?: components["schemas"]["OrgUnit"];
@@ -455,6 +1055,14 @@ export interface components {
             version: number;
             reason?: string;
         };
+        UserUpdateRequest: {
+            /** Format: int64 */
+            version: number;
+            email?: string;
+            givenName?: string;
+            familyName?: string;
+            phone?: string;
+        };
         OrgUnitUpdateRequest: {
             /** Format: int64 */
             version: number;
@@ -467,6 +1075,57 @@ export interface components {
             branding?: {
                 [key: string]: string;
             };
+        };
+        PageResponseUserSummary: {
+            items?: components["schemas"]["UserSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        EffectivePermission: {
+            permission?: string;
+            description?: string;
+            scopes?: components["schemas"]["PermissionScope"][];
+        };
+        PermissionScope: {
+            scopeType?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            scopeName?: string;
+            viaRoles?: string[];
+        };
+        UserAccess: {
+            /** @enum {string} */
+            status?: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+            /** @enum {string} */
+            invitationStatus?: "NONE" | "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+            assignments?: components["schemas"]["OrgAssignment"][];
+            roles?: components["schemas"]["RoleAssignment"][];
+            permissions?: components["schemas"]["EffectivePermission"][];
+        };
+        PageResponseStaffProfile: {
+            items?: components["schemas"]["StaffProfile"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        AssignableRole: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            permissions?: string[];
         };
         PageResponseOrgUnit: {
             items?: components["schemas"]["OrgUnit"][];
@@ -593,6 +1252,17 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        PageResponseInvitation: {
+            items?: components["schemas"]["Invitation"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
         EffectiveFeature: {
             key?: string;
             category?: string;
@@ -692,6 +1362,54 @@ export interface operations {
             };
         };
     };
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffDetail"];
+                };
+            };
+        };
+    };
+    update_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffDetail"];
+                };
+            };
+        };
+    };
     setOverride: {
         parameters: {
             query?: never;
@@ -745,6 +1463,445 @@ export interface operations {
     list: {
         parameters: {
             query?: {
+                q?: string;
+                status?: "INVITED" | "ACTIVE" | "SUSPENDED" | "DEACTIVATED";
+                invitation?: "NONE" | "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+                orgUnitId?: string;
+                role?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseUserSummary"];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserCreateResponse"];
+                };
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
+    roleAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleAssignment"][];
+                };
+            };
+        };
+    };
+    assignRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleAssignment"];
+                };
+            };
+        };
+    };
+    revokeRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    orgAssignments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgAssignment"][];
+                };
+            };
+        };
+    };
+    addOrgAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgAssignment"];
+                };
+            };
+        };
+    };
+    makePrimary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    sendInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Invitation"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: {
+                q?: string;
+                category?: "FACULTY" | "DEPARTMENT_ADMIN" | "ACADEMIC_ADMIN" | "EVALUATOR" | "EXAM_CONTROLLER" | "PROCTOR" | "ADMISSIONS_OFFICER" | "PLACEMENT_OFFICER" | "ADMINISTRATIVE_STAFF";
+                status?: "ACTIVE" | "ON_LEAVE" | "SEPARATED";
+                orgUnitId?: string;
+                linked?: boolean;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseStaffProfile"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffDetail"];
+                };
+            };
+        };
+    };
+    unlink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffDetail"];
+                };
+            };
+        };
+    };
+    addOrgAssignment_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgAssignmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["OrgAssignment"];
+                };
+            };
+        };
+    };
+    makePrimary_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffDetail"];
+                };
+            };
+        };
+    };
+    lookup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvitationLookup"];
+                };
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InvitationAcceptRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_2: {
+        parameters: {
+            query?: {
                 type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
                 parentId?: string;
                 status?: "ACTIVE" | "INACTIVE";
@@ -771,7 +1928,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -915,6 +2072,74 @@ export interface operations {
             };
         };
     };
+    revoke: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    detail_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
+    update_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserDetail"];
+                };
+            };
+        };
+    };
     get_1: {
         parameters: {
             query?: never;
@@ -959,7 +2184,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -981,6 +2206,48 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    access: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserAccess"];
+                };
+            };
+        };
+    };
+    list_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssignableRole"][];
                 };
             };
         };
@@ -1050,7 +2317,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_4: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -1112,6 +2379,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
+            query?: {
+                status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseInvitation"];
                 };
             };
         };
@@ -1205,6 +2497,48 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["AuditVerification"];
                 };
+            };
+        };
+    };
+    removeOrgAssignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removeOrgAssignment_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

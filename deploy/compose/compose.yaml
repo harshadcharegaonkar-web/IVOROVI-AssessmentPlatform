@@ -92,6 +92,7 @@ services:
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_HEALTH_ENABLED: "true"
       DEV_USER_PASSWORD: ${DEV_USER_PASSWORD:?}
+      KEYCLOAK_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
     volumes:
       - ./keycloak/realm-ivorovi.json:/opt/keycloak/data/import/realm-ivorovi.json:ro
     ports: ["127.0.0.1:8180:8080"]
@@ -121,6 +122,9 @@ services:
       IVOROVI_S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
       IVOROVI_S3_SECRET_KEY: ${S3_SECRET_KEY:?}
       IVOROVI_SMTP_HOST: mailpit
+      IVOROVI_IDP_ADMIN_URL: http://keycloak:8080
+      IVOROVI_IDP_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      IVOROVI_APP_BASE_URL: http://localhost:8081
       IVOROVI_OIDC_ISSUER: http://localhost:8180/realms/ivorovi
       IVOROVI_OIDC_JWKS: http://keycloak:8080/realms/ivorovi/protocol/openid-connect/certs
     ports: ["127.0.0.1:8080:8080"]

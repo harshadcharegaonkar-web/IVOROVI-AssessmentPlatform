@@ -117,6 +117,21 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "ivorovi-provisioner",
+      "name": "Ivorovi user provisioning (service account, D-P1-04)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${KEYCLOAK_PROVISIONER_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [],
+      "webOrigins": []
     }
   ],
   "users": [
@@ -245,6 +260,18 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "username": "service-account-ivorovi-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "ivorovi-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
   ]
 }

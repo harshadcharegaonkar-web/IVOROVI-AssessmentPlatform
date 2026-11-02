@@ -55,6 +55,8 @@ public class SecurityConfiguration {
             .authorizeHttpRequests(a -> a
                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                // invitation lookup/acceptance: the single-use token is the credential (rate limited per IP)
+                .requestMatchers("/api/v1/public/**").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
             .oauth2ResourceServer(o -> o
@@ -63,6 +65,8 @@ public class SecurityConfiguration {
                 .jwt(j -> j.jwtAuthenticationConverter(converter)))
             .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(denied))
             .headers(h -> h.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'")))
+            .addFilterBefore(new RateLimitFilters.PublicEndpoints(rateLimiter, rateLimits, problems),
+                    BearerTokenAuthenticationFilter.class)
             .addFilterBefore(new RateLimitFilters.FailedAuthentication(rateLimiter, rateLimits, problems),
                     BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new RateLimitFilters.Authenticated(rateLimiter, rateLimits, problems),

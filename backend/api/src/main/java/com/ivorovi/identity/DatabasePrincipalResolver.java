@@ -38,7 +38,7 @@ class DatabasePrincipalResolver implements PrincipalResolver {
         return jdbc.sql("""
                 SELECT DISTINCT r.code FROM role_assignment ra JOIN role r ON r.id = ra.role_id
                 WHERE ra.tenant_id = ? AND ra.user_account_id = ?
-                  AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
+                  AND ra.revoked_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
                 ORDER BY r.code""")
                 .params(tenantId, userId).query(String.class).list();
     }
@@ -50,7 +50,7 @@ class DatabasePrincipalResolver implements PrincipalResolver {
                 JOIN role r ON r.id = ra.role_id
                 CROSS JOIN LATERAL unnest(r.permissions) AS p(permission)
                 WHERE ra.tenant_id = ? AND ra.user_account_id = ?
-                  AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())""")
+                  AND ra.revoked_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())""")
                 .params(tenantId, userId)
                 .query((rs, n) -> new Grant(rs.getString(1), rs.getString(2), ScopeType.valueOf(rs.getString(3)),
                         rs.getObject(4, UUID.class)))
