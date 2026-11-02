@@ -1,6 +1,8 @@
 # ADR-0004: Code execution service — own orchestration, established isolation, no in-house sandbox
 
-* Status: **Proposed**. Needs product-owner approval before Phase 6. Implementation starts with the spike below.
+* Status: **Conditionally approved** (product owner, 2026-11-02). Architecture approved. **Production
+  implementation is blocked until the proof of concept below passes**, its findings are recorded in this ADR,
+  and final implementation approval is given.
 * Date: 2026-11-02
 * Supersedes: tracker decision D-04
 
@@ -82,13 +84,32 @@ Rejected by directive, and rightly so. It concentrates the hardest security prob
 | Audit and execution logs | Each execution record stores: tenant, attempt/question reference, language, image digest, limits applied, start/end, CPU time, peak memory, exit code/signal, verdict, and truncated stdout/stderr (stored in object storage). Admin actions such as changing language profiles or limits go to the platform audit log |
 | Never in the API server | Enforced architecturally: the API only publishes jobs to RabbitMQ and reads results. The code-runner has no route back except the result queue |
 
-## Spike before implementation (Phase 6, week 1)
+## Proof of concept (required before implementation approval)
 
-1. Measure cold-start and throughput for Kata (Cloud Hypervisor), Kata (Firecracker) and gVisor with a burst of
-   2,000 submissions (Python, Java, C++), and confirm KVM availability on our target clouds.
-2. Run an escape-attempt test suite inside each backend (fork bombs, memory bombs, `/proc` and `/sys` probes,
-   network egress, metadata endpoint, symlink and mount tricks), so we don't simply assume isolation works.
-3. Legal review of every bundled component's licence for on-prem distribution.
+**Environment:** a KVM-capable Linux host (bare metal or a cloud VM with nested virtualization), Kubernetes with
+Kata Containers (Cloud Hypervisor and Firecracker runtime classes) and gVisor (`runsc`) installed, plus a
+Docker host with `runsc` for the non-Kubernetes on-prem variant. The Phase 0 build sandbox **cannot** host this
+PoC: it has no `/dev/kvm` and does not allow installing third-party runtimes.
+
+**Artefacts:** throwaway orchestrator prototype (outside `main`), language images for Python 3, Java 21 and C++ (gcc),
+an attack-payload corpus, and a load generator. All results go into `docs/poc/code-execution/` together with raw data.
+
+| # | Test area | Procedure | Pass criteria |
+|---|---|---|---|
+| P1 | Runtime compatibility | Run the reference suite (hello world, stdin/stdout, multi-file Java, C++ with `-O2`, Python with stdlib) on each backend, and compare verdicts with a plain container | 100% identical verdicts and outputs. Documented per-language start overhead |
+| P2 | Concurrent submission performance | 2,000 submissions over 60 s (exam-end burst), 3 languages, against a pool sized for 1 node, then 3 nodes | p95 queue-to-verdict ≤ 10 s on 3 nodes. No lost or duplicated jobs. Measured cold start per backend |
+| P3 | Sandbox escape | Corpus: mount/`/proc`/`/sys` probing, kernel-interface abuse (ptrace, keyctl, bpf, userfaultfd), symlink/hardlink tricks on the work dir, setuid binaries, container-runtime socket access, cloud metadata endpoint, known CVE PoCs for the runtime versions used | No access outside the sandbox. All attempts fail or are contained, as confirmed by host-side monitoring (auditd/Falco) |
+| P4 | Resource exhaustion | Fork bomb, memory bomb, CPU spin, disk fill of the work dir, output flood (stdout ≥ 1 GB), open-file exhaustion, sleep beyond wall clock | Each yields the correct verdict (TLE/MLE/OLE/RE) within limit + 1 s. The node and neighbouring sandboxes are unaffected (latency of a concurrent probe sandbox within 10% of baseline) |
+| P5 | Cross-candidate isolation | Two concurrent and two sequential submissions from different "candidates" try to read or write each other's files, processes, sockets, shared memory, and leftovers in `/tmp` | Zero observable cross-talk. A new sandbox never contains data from a previous one |
+| P6 | Environment cleanup | 10,000 executions including kills, timeouts and crashes, then inventory pods/VMs, cgroups, network namespaces, tmpfs mounts and disk usage | Zero leaked resources after the reaper interval. Disk and memory back to baseline |
+| P7 | Failure recovery | Kill the orchestrator mid-batch. Kill a node. Restart RabbitMQ. Exhaust capacity (queue back-pressure) | Every job reaches exactly one terminal verdict (retry is idempotent by job id). No sandbox survives its job's TTL. Back-pressure surfaces as a "queued" state, not errors |
+| P8 | Network restriction | Attempt DNS, TCP/UDP egress, IPv6, and access to the API, database and metadata IPs | All blocked at two independent layers (sandbox has no interface plus NetworkPolicy) |
+
+**Decision rule:** Kata is confirmed as the preferred backend if P1–P8 pass and P2 meets the target. If Kata
+fails P2 but gVisor passes everything, gVisor becomes the default with Kata reserved for high-stakes exams. Any
+P3/P5/P8 failure blocks the affected backend outright.
+
+**Findings:** _pending. To be filled in with dates, versions, raw data links and the final recommendation._
 
 ## Consequences
 

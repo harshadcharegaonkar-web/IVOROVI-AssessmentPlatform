@@ -1,7 +1,11 @@
 # Phase 0 (Foundation): completion report
 
-Date: 2026-11-02 · Status: **Acceptance criteria met, except CI execution on GitHub (criterion 9, partial)**.
-See "Acceptance criteria" below.
+Date: 2026-11-02 (closure update same day) · Status: **11 of 12 criteria verified. Criterion 9 (CI execution on
+GitHub) remains partial** until a GitHub Actions run succeeds. Phase 0 closure was authorized by the product
+owner, subject to that run.
+
+Related: [security assessment](security/security-assessment.md) · [known issues register](known-issues.md) ·
+[CI/CD runbook](runbooks/ci-cd.md)
 
 ## What was built
 
@@ -69,12 +73,34 @@ See "Acceptance criteria" below.
 | 6 | Backend authorization tests pass | ✅ | `AuthorizationIT`: scope confinement, escalation attempts, expired grants, token role claims ignored, denial audited |
 | 7 | Migrations execute | ✅ | Flyway as owner role: on the compose DB (dev) and in every Testcontainers run |
 | 8 | Frontend and backend builds pass | ✅ | Gradle build, `pnpm build`, Docker images |
-| 9 | Automated tests execute through the CI pipeline | ⚠️ **Partial** | Workflow written and structurally validated, and every CI command was run locally with passing results. It has **not run on GitHub Actions** because this workspace has no git remote. Pending: attach a repository, push, and confirm a green run |
+| 9 | Automated tests execute through the CI pipeline | ⚠️ **Partial** | Workflow written, reviewed and hardened (`a239681`). Every CI command except Trivy was run locally with passing results. **Not yet run on GitHub Actions**: no GitHub account is linked to the build session, so the repository cannot be attached or pushed. CI run reference: _pending_ |
 | 10 | Synthetic test data can be generated | ✅ | `scripts/seed.sh` produced 3 tenants, 9 institutions and 600 users. `SyntheticDataGeneratorIT` passes |
 | 11 | Technical documentation updated | ✅ | Architecture v0.2, ADRs, runbooks, OpenAPI, tracker, this report |
 | 12 | Deployment instructions verified | ✅ | Runbook followed verbatim from a clean state. The seeding command was missing S3 credentials; fixed with `scripts/api-env.sh` and `scripts/seed.sh`, then re-verified |
 
+## Pre-push review (closure step A.1–A.6, 2026-11-02)
+
+| Check | Result |
+|---|---|
+| Commit review | 5 commits (4 Phase 0 plus `a239681` CI hardening), single author identity, no generated or binary artifacts except the Gradle wrapper jar, working tree clean |
+| Secret scan, full history | 318 blobs scanned for private keys, cloud/GitHub/Slack/LLM tokens, JWTs, credential assignments and credentialed URLs: 0 true findings (1 false positive: a psql variable reference). None of the generated `.env` values occur in any commit |
+| `.gitignore` | Covers `deploy/compose/.env`, any `.env`/`.env.*` (except `.env.example`), key stores, builds, `node_modules`, test output |
+| Environment configuration | Only `deploy/compose/.env.example` (placeholders) is tracked. Realm import uses the `${DEV_USER_PASSWORD}` placeholder. No default secrets in `application*.yml` |
+| CI review | Least privilege (`contents: read`). Actions pinned to SHAs. **Fixed a defect**: the trivy-action tag was wrong (`0.33.1` → would have failed). Added image scans and a Gradle lockfile so Java dependencies are scanned |
+| Dependency audit | `pnpm audit`: moderate `minimatch` advisory (dev tooling) fixed by override; now 0 known vulnerabilities. Trivy could not run locally (sandbox policy) |
+| Re-verification after changes | Backend `build` (73 tests) and the full frontend pipeline pass with the lockfile and override |
+
+## Verified vs planned
+
+Everything in "What was built", "Database changes" and "APIs" is **implemented and verified** by the tests
+listed. The following are **planned only** and must not be read as delivered: rate limiting, idempotency keys,
+principal caching, campus/department hierarchy, user/role administration APIs, code execution (ADR-0004 PoC
+pending), Helm/production deployment, DAST/penetration testing, OpenTelemetry export. See the
+[known issues register](known-issues.md) for target phases.
+
 ## Known issues and limitations
+
+The maintained list is the [known issues register](known-issues.md). Snapshot at Phase 0 completion:
 
 1. **CI not yet executed on GitHub** (criterion 9). The Trivy scan was not run locally either: running a downloaded scanner binary was not permitted in this environment.
 2. Every authenticated request performs 3 small indexed queries (tenant, account, grants). A short-TTL principal cache with invalidation on role changes is planned for Phase 1.

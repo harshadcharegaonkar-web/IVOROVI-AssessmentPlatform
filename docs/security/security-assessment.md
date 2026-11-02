@@ -1,0 +1,61 @@
+# Security assessment: Phase 0 foundation
+
+* Date: 2026-11-02 · Scope: code in this repository at commit `a239681` and later documentation commits
+* Method: design review, automated tests (listed per control), a full-history secret scan, and a dependency
+  audit. **No external penetration test or DAST has been performed yet.**
+* Legend: ✅ verified by an automated test or a reproducible check · 🟨 implemented, partially verified · ⬜ planned (not implemented)
+
+## 1. Assets and threats in scope
+
+| Asset | Main threats |
+|---|---|
+| Tenant data (institutions, users, audit trail) | Cross-tenant disclosure or modification (broken isolation, IDOR) |
+| Authorization state | Privilege escalation, forged tokens or claims |
+| Audit trail | Tampering or deletion by insiders |
+| Secrets (DB, broker, storage, IdP) | Leakage through VCS, logs or images |
+| Availability | Request floods, expensive queries (rate limiting is not yet implemented) |
+
+## 2. Controls
+
+| # | Control | Status | Evidence |
+|---|---|---|---|
+| C1 | Tenant bound only to the signed `tid` claim. Headers and parameters are ignored | ✅ | `TenantIsolationIT.tenantHeadersAndParametersAreIgnored`, `userOfTenantBCannotClaimTenantA` |
+| C2 | Token validation: signature, issuer, audience, expiry | ✅ | `TenantIsolationIT.Establishment` (untrusted key, wrong issuer, wrong audience, expired) |
+| C3 | Tenant must be ACTIVE/TRIAL and the account ACTIVE in that tenant | ✅ | suspended tenant, suspended account and no-account tests, plus smoke test with real Keycloak |
+| C4 | Database row-level security on every tenant table. App role without `BYPASSRLS` | ✅ | `DatabaseLevel` tests incl. "every `tenant_id` table has RLS" (a build gate) |
+| C5 | Cross-tenant resource access yields 404 (no existence oracle) | ✅ | `otherTenantsInstitutionIsNotFound`, E2E "other tenant's data is not reachable" |
+| C6 | Server-side, scope-aware authorization. Token role claims ignored | ✅ | `AuthorizationIT` (9 tests incl. escalation attempts and forged role claims) |
+| C7 | Denied attempts are audited | ✅ | `facultyCannotReadAuditTrailAndAttemptIsAudited` |
+| C8 | Audit trail is append-only (DB grants) and hash-chained | ✅ | `applicationRoleCannotModifyOrDeleteAuditEvents`, `hashChainVerifiesAndDetectsTampering` |
+| C9 | Errors never leak internals (stack traces, parser messages) | ✅ | `ErrorHandlingIT` |
+| C10 | Input validation (bean validation, pattern-restricted sort, page-size cap) | ✅ | `ErrorHandlingIT` |
+| C11 | Object storage namespaced per tenant. Path traversal rejected | ✅ | `InfrastructureAdaptersIT` |
+| C12 | AI features off by default. A deployment ceiling can force them off | ✅ | `FeatureFlagIT`, `FeatureResolverTest` |
+| C13 | Browser hardening: CSP, nosniff, referrer policy, COOP. Tokens in memory only. Open-redirect-safe return paths | 🟨 | Headers verified with curl, `auth.test.ts`. No automated header test in CI yet |
+| C14 | Secrets never committed. Generated per environment | ✅ | Full-history scan (318 blobs, 0 true findings), exact-value check of generated `.env`, `.gitignore` covers `.env*` and key material |
+| C15 | Least-privilege CI (`contents: read`), SHA-pinned actions | ✅ | `.github/workflows/ci.yml` review |
+| C16 | Dependency and secret scanning in CI (Trivy fs including the Java lockfile, plus both images) | 🟨 | Configured, **not yet executed** (no CI run yet). `pnpm audit`: 0 known vulnerabilities after the minimatch override |
+| C17 | Containers run as non-root (API) | 🟨 | API Dockerfile `USER ivorovi`. The nginx master process runs as root (worker processes do not) |
+| C18 | Rate limiting | ⬜ | Phase 1 |
+| C19 | Idempotency keys for create/submit | ⬜ | Phase 1 |
+| C20 | DAST (OWASP ZAP), external penetration test | ⬜ | Phase 8, plus before first production tenant |
+| C21 | Field-level encryption of sensitive PII | ⬜ | When such fields are introduced (Phase 1 does not store government IDs) |
+| C22 | Production IdP hardening (TLS, MFA policies, brute-force settings beyond dev realm) | ⬜ | Phase 8 deployment work |
+
+## 3. Findings
+
+| ID | Severity | Finding | Status |
+|---|---|---|---|
+| SA-01 | Medium | No rate limiting: authenticated users can issue unbounded requests; each performs 3 DB lookups | Open → Phase 1 (rate limiting + principal cache) |
+| SA-02 | Low | Outbox table is readable by the app role in platform context. Mitigated by RLS policy and kernel-only access, but payloads must never contain secrets | Accepted, documented |
+| SA-03 | Low | Dev realm contains a password-grant client (`ivorovi-dev-cli`) | Accepted for dev only. A production realm template must not include it (Phase 8 checklist) |
+| SA-04 | Low | nginx master process runs as root in the web image | Open → Phase 8 (unprivileged nginx image) |
+| SA-05 | Info | Seeder code and Datafaker ship in the production jar (guarded by environment check) | Open → Phase 1 (split dev artifact) |
+| SA-06 | Info | Moderate DoS advisory in `minimatch` (dev tooling only) | Fixed via override in `a239681` |
+| SA-07 | Info | CI security scan not yet executed | Open until first CI run |
+
+## 4. Residual risk statement
+
+The tenant-isolation and authorization model is verified by automated tests at both the API and the database
+layer. The main open risks before any production use are SA-01 (abuse and availability), the unexecuted CI
+security scans (SA-07), and the absence of DAST and penetration testing (C20).

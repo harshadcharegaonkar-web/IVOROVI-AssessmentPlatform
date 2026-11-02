@@ -1,0 +1,26 @@
+# Known issues register
+
+Status values: **Open**, **Planned** (scheduled in a phase), **Accepted** (conscious risk, documented), **Fixed**.
+Only items verified as fixed by a test or a reproducible check are marked Fixed.
+
+| ID | Area | Issue | Severity | Status | Target / note |
+|---|---|---|---|---|---|
+| KI-01 | CI | Pipeline not yet executed on GitHub (acceptance criterion 9 partial) | High (process) | Open | Blocked on repository connection |
+| KI-02 | Security | No API rate limiting (SA-01) | Medium | Planned | Phase 1 increment 1.0 |
+| KI-03 | Performance | 3 DB lookups per authenticated request (tenant, account, grants) | Medium | Planned | Phase 1 increment 1.0 (tenant-aware principal cache) |
+| KI-04 | API | No `Idempotency-Key` support | Medium | Planned | Phase 1 increment 1.0 |
+| KI-05 | Frontend | Single 635 kB JS bundle (195 kB gzip), no code splitting | Low | Planned | Phase 1 increment 1.0 |
+| KI-06 | Audit | Chain verification is synchronous O(n) | Low | Planned | Background job before large tenants (Phase 2) |
+| KI-07 | Build | 105 MB API jar includes seeder/Datafaker and two AWS HTTP clients | Low | Planned | Phase 1 (split dev artifact) |
+| KI-08 | Events | No consumer inbox/de-duplication helper. No retention cleanup of published outbox rows | Low | Planned | Phase 1 (retention); inbox with first consumer (Phase 2) |
+| KI-09 | Observability | No OpenTelemetry trace export (correlation id only) | Low | Planned | Phase 2 |
+| KI-10 | Dev tooling | Seeder with the same `random-seed` fails on duplicate tenant codes | Info | Accepted | Documented in runbook |
+| KI-11 | Dev tooling | Keycloak realm import only on first start | Info | Accepted | Documented. Reset procedure in runbook |
+| KI-12 | Security | Dev realm has a password-grant CLI client | Low | Accepted | Must not exist in production realms (Phase 8 checklist) |
+| KI-13 | Security | nginx master runs as root in web image | Low | Planned | Phase 8 |
+| KI-14 | Deployment | No Helm chart, production Keycloak config, or digest-pinned images | Medium | Planned | Phase 8 |
+| KI-15 | Code execution | Kata PoC needs KVM; build sandbox has no `/dev/kvm` | Info | Open | PoC must run on a KVM-capable host (ADR-0004) |
+| KI-16 | Supply chain | Docker Hub rate limits observed while pulling images | Low | Open | Mirror base images to a controlled registry before production |
+| KI-17 | Dependencies | `minimatch` moderate DoS advisory (dev tooling) | Info | Fixed | pnpm override, `pnpm audit` clean (`a239681`) |
+| KI-18 | CI | trivy-action referenced with a non-existent tag (`0.33.1` instead of `v0.33.1`) | High (would fail CI) | Fixed | Pinned to SHA of `v0.36.0` (`a239681`) |
+| KI-19 | Security scanning | Java dependencies were invisible to Trivy (no lockfile) | Medium | Fixed | Gradle dependency locking (`a239681`) |
