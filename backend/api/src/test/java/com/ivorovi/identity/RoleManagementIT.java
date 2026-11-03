@@ -430,6 +430,138 @@ class RoleManagementIT extends IntegrationTest {
         }
     }
 
+    /** Increment 1.3 acceptance review (2026-11-03): scope coverage and college administrator safeguards. */
+    @Nested
+    class AcceptanceVerification {
+
+        private UUID holder(UUID role, UUID scope) throws Exception {
+            UUID u = UUID.randomUUID();
+            account(u, null, scope);
+            assign(admin, u, role, scope).andExpect(status().isCreated());
+            return u;
+        }
+
+        private Fixture.Caller callerOf(UUID user) {
+            return new Fixture.Caller("sub-" + user, tenant);
+        }
+
+        @Test
+        void universityAndCampusScopesWorkForCreationAssignmentEvaluationInheritanceAndSummaries() throws Exception {
+            UUID campusB = unit("CAMPUS", collegeB, "KB");
+            UUID deptB = unit("DEPARTMENT", campusB, "DB");
+            // creation at university and campus level
+            UUID uniRole = created(createRole(admin, "University reader", university, "org_unit.read", "user.read"));
+            UUID campusRole = created(createRole(admin, "Campus reader", campusA, "org_unit.read"));
+            as(admin, get("/api/v1/roles/" + uniRole)).andExpect(jsonPath("$.role.scopeOrgUnitId").value(university.toString()))
+                    .andExpect(jsonPath("$.role.scopeName").value("Unit U"));
+            as(admin, get("/api/v1/roles/" + campusRole)).andExpect(jsonPath("$.role.scopeName").value("Unit K"));
+
+            // assignment: at the role's own level and below; never above or beside it
+            UUID atUniversity = holder(uniRole, university);
+            UUID uniRoleAtCampus = holder(uniRole, campusA);
+            holder(uniRole, collegeB);
+            UUID atCampus = holder(campusRole, campusA);
+            holder(campusRole, deptA);
+            UUID other = UUID.randomUUID();
+            account(other, null, collegeA);
+            assign(admin, other, campusRole, collegeA).andExpect(status().isUnprocessableContent()).andExpect(jsonPath("$.code").value("role_scope_mismatch"));
+            assign(admin, other, campusRole, university).andExpect(status().isUnprocessableContent());
+            assign(admin, other, campusRole, campusB).andExpect(status().isUnprocessableContent());
+            assign(admin, other, uniRole, null).andExpect(status().isUnprocessableContent());
+
+            // evaluation and inheritance
+            Fixture.Caller u = callerOf(atUniversity);
+            for (UUID unit : new UUID[] {university, collegeA, collegeB, campusA, deptA, campusB, deptB}) {
+                as(u, get("/api/v1/org-units/" + unit)).andExpect(status().isOk());              // university covers its whole subtree
+            }
+            Fixture.Caller c = callerOf(atCampus);
+            as(c, get("/api/v1/org-units/" + campusA)).andExpect(status().isOk());
+            as(c, get("/api/v1/org-units/" + deptA)).andExpect(status().isOk());               // campus covers its departments
+            for (UUID unit : new UUID[] {university, collegeA, collegeB, campusB, deptB}) {
+                as(c, get("/api/v1/org-units/" + unit)).andExpect(status().isForbidden());       // but nothing above or beside
+            }
+            Fixture.Caller uc = callerOf(uniRoleAtCampus);
+            as(uc, get("/api/v1/org-units/" + deptA)).andExpect(status().isOk());
+            as(uc, get("/api/v1/org-units/" + collegeA)).andExpect(status().isForbidden());    // a university role assigned at a campus covers the campus only
+            as(uc, get("/api/v1/users")).andExpect(status().isOk());
+
+            // summaries: scope counts, holders, access overview and comparison data name the level
+            as(admin, get("/api/v1/roles/" + uniRole)).andExpect(jsonPath("$.assignmentsByScope.UNIVERSITY").value(1))
+                    .andExpect(jsonPath("$.assignmentsByScope.CAMPUS").value(1)).andExpect(jsonPath("$.assignmentsByScope.COLLEGE").value(1));
+            as(admin, get("/api/v1/roles/" + campusRole)).andExpect(jsonPath("$.assignmentsByScope.CAMPUS").value(1))
+                    .andExpect(jsonPath("$.assignmentsByScope.DEPARTMENT").value(1));
+            as(admin, get("/api/v1/roles/" + uniRole + "/holders")).andExpect(jsonPath("$.items[*].scopeName", Matchers.hasItems("Unit U", "Unit K", "Unit B")));
+            as(admin, get("/api/v1/users/" + atUniversity + "/access"))
+                    .andExpect(jsonPath("$.permissions[?(@.permission == 'org_unit.read')].scopes[0].scopeName").value("Unit U"));
+            as(admin, get("/api/v1/users/" + atCampus + "/access"))
+                    .andExpect(jsonPath("$.permissions[?(@.permission == 'org_unit.read')].scopes[0].scopeName").value("Unit K"));
+            as(admin, get("/api/v1/roles/assignable")).andExpect(jsonPath("$[?(@.id == '" + campusRole + "')].scopeName").value("Unit K"));
+            as(admin, get("/api/v1/role-assignments").param("orgUnitId", university.toString())).andExpect(jsonPath("$.totalElements").value(5));
+            as(admin, get("/api/v1/role-assignments").param("orgUnitId", campusA.toString())).andExpect(jsonPath("$.totalElements").value(3));
+        }
+
+        @Test
+        void collegeAdministratorSafeguards() throws Exception {
+            UUID campusB = unit("CAMPUS", collegeB, "KB");
+            UUID collegeAdminId = UUID.randomUUID();
+            Fixture.Caller ca = account(collegeAdminId, INSTITUTION_ADMIN, collegeA);
+
+            // 1. only within the authorized college subtree
+            created(createRole(ca, "College role", collegeA, "org_unit.read"));
+            created(createRole(ca, "Campus role", campusA, "org_unit.read"));
+            created(createRole(ca, "Department role", deptA, "org_unit.read"));
+            // 3. never organization-wide or cross-college (including above the college)
+            createRole(ca, "Org-wide", null, "org_unit.read").andExpect(status().isForbidden());
+            createRole(ca, "University", university, "org_unit.read").andExpect(status().isForbidden());
+            createRole(ca, "Other college", collegeB, "org_unit.read").andExpect(status().isForbidden());
+            createRole(ca, "Other campus", campusB, "org_unit.read").andExpect(status().isForbidden());
+            UUID bRole = created(createRole(admin, "College B role", collegeB, "org_unit.read"));
+            edit(ca, bRole, "org_unit.read", "user.read").andExpect(status().isForbidden());
+            setStatus(ca, bRole, "INACTIVE", "x").andExpect(status().isForbidden());
+            as(ca, delete("/api/v1/roles/" + bRole).param("version", String.valueOf(version(bRole)))).andExpect(status().isForbidden());
+            UUID aUser = UUID.randomUUID();
+            account(aUser, null, collegeA);
+            assign(ca, aUser, bRole, collegeA).andExpect(status().isUnprocessableContent());              // B's role cannot be used in A
+            UUID aRole = created(createRole(ca, "Assistant", collegeA, "org_unit.read"));
+            UUID bUser = UUID.randomUUID();
+            account(bUser, null, collegeB);
+            assign(ca, bUser, aRole, collegeB).andExpect(status().isForbidden());                        // B's people are not even visible
+            assign(admin, bUser, aRole, collegeB).andExpect(status().isUnprocessableContent())              // and A's role cannot be used in B,
+                    .andExpect(jsonPath("$.code").value("role_scope_mismatch"));                            // even by the organization admin
+            // 4. never platform-level or organization-only permissions
+            createRole(ca, "Platform", collegeA, "platform.tenant.manage").andExpect(status().isBadRequest());
+            createRole(ca, "Settings", collegeA, "tenant.settings.manage").andExpect(status().isUnprocessableContent());
+            createRole(ca, "Audit", collegeA, "audit.read").andExpect(status().isUnprocessableContent());
+
+            // 2. only permissions held at that scope: a college-level role editor without user.manage
+            UUID editorRole = created(createRole(admin, "College role editor", collegeA, "role.manage", "role.read", "role.assign", "user.read"));
+            UUID editorId = UUID.randomUUID();
+            Fixture.Caller editor = account(editorId, null, collegeA);
+            assign(admin, editorId, editorRole, collegeA).andExpect(status().isCreated());
+            createRole(editor, "Too strong", collegeA, "user.read", "user.manage").andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.code").value("privilege_escalation"));
+            String clone = "{\"name\":\"Clone of college admin\",\"scopeOrgUnitId\":\"" + collegeA + "\",\"clonedFromRoleId\":\"" + INSTITUTION_ADMIN
+                    + "\",\"permissions\":" + perms("org_unit.read", "org_unit.manage", "user.read", "user.manage") + "}";
+            as(editor, json(post("/api/v1/roles"), clone).header("Idempotency-Key", "k-" + UUID.randomUUID())).andExpect(status().isForbidden());
+
+            // 5. no self-elevation: not by editing the role you hold, not by assigning to yourself, not by reactivation
+            edit(editor, editorRole, "role.manage", "role.read", "role.assign", "user.read", "user.manage").andExpect(status().isForbidden());
+            UUID mine = created(createRole(editor, "Readers", collegeA, "user.read"));
+            assign(editor, editorId, mine, collegeA).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("self_assignment_forbidden"));
+            UUID strong = created(createRole(admin, "Strong A", collegeA, "user.read", "user.manage"));
+            setStatus(admin, strong, "INACTIVE", "parked").andExpect(status().isOk());
+            setStatus(editor, strong, "ACTIVE", null).andExpect(status().isForbidden());                  // reactivation is bounded by the ceiling too
+            edit(ca, editorRole, "role.manage", "role.read", "role.assign", "user.read", "user.manage").andExpect(status().isOk()); // the college admin may (holds it)
+            as(editor, get("/api/v1/users")).andExpect(status().isOk());
+            as(ca, json(post("/api/v1/users/" + collegeAdminId + "/role-assignments"), "{\"roleId\":\"" + ORG_ADMIN + "\"}"))
+                    .andExpect(status().isForbidden());                                                   // and cannot elevate themselves
+
+            assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND outcome = 'DENIED' AND action IN "
+                    + "('role.change_denied', 'role.self_assignment_denied', 'security.access_denied', 'role.assignment_denied')")
+                    .param(tenant).query(Long.class).single()).isGreaterThanOrEqualTo(10);
+        }
+    }
+
     @Test
     void migrationKeepsSystemRolesActiveAndGivesUnitAdministratorsRoleManagement() {
         assertThat(ownerJdbc().sql("SELECT count(*) FROM role WHERE system_role AND status = 'ACTIVE' AND archived_at IS NULL").query(Long.class).single())

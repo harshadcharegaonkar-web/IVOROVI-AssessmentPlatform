@@ -75,3 +75,34 @@ Acceptance criteria 1–21: 1–3 `Lifecycle`, E2E; 4–5 `CeilingAndScope`; 6 `
 * Pixel-diff baselines (KI-26) remain open.
 
 Evidence: `docs/design/evidence/1.3/` (33 screenshots at 1440×900, 1024×768, 390×844).
+
+## Acceptance verification (2026-11-03)
+
+The product owner approved 1.3 subject to a scope check and the college-administrator safeguards.
+Evidence: `RoleManagementIT.AcceptanceVerification` (backend, real PostgreSQL/Valkey) and Playwright
+`roles can be limited to a university or a campus from the editor`.
+
+**1. University and campus scopes** are supported for every function (no change was needed; the tests make it explicit):
+
+| Function | University | Campus |
+|---|---|---|
+| Custom role creation (`scopeOrgUnitId`) | ✅ API and editor | ✅ API and editor |
+| Role assignment (at the level and below; refused above or beside) | ✅ | ✅ |
+| Permission evaluation | ✅ university-level role grants access in every college, campus and department below | ✅ campus-level role grants its departments; colleges, the university and other campuses refused |
+| Inheritance when a broader role is assigned lower | ✅ university role assigned at a campus covers only that campus | ✅ |
+| Summaries (assignments by scope, holders, access overview, assignable roles, assignment overview filter, comparison data) | ✅ `assignmentsByScope.UNIVERSITY`, scope names | ✅ `assignmentsByScope.CAMPUS`, scope names |
+
+**2. College administrator safeguards**, each asserted by a backend authorization test:
+
+| Safeguard | Result |
+|---|---|
+| Creates roles only within the college subtree (college, its campuses and departments) | ✅ 201 inside; 403 for organization-wide, the parent university, another college and another college's campus |
+| Cannot edit, deactivate or archive another college's roles; roles cannot be used across colleges | ✅ 403; 422 `role_scope_mismatch` even for the organization administrator |
+| Grants only permissions held at that scope | ✅ a college-level role editor without `user.manage` cannot create, clone or edit a role with it (403 `privilege_escalation`) |
+| Never platform-level or organization-only permissions | ✅ `platform.tenant.manage` 400; `tenant.settings.manage`, `audit.read` 422 |
+| Cannot elevate own privileges | ✅ editing the role they hold, self-assignment (403 `self_assignment_forbidden`), reactivating a stronger role, assigning themselves ORG_ADMIN — all refused and audited |
+
+**3. Follow-ups recorded:** KI-37 (initial JS 176.1 kB gzip against the enforced 180 kB budget) and KI-26
+(automated screenshot comparison in CI outstanding, tracked engineering deliverable).
+
+Increment 1.3 is closed. Existing test evidence and screenshots are retained.

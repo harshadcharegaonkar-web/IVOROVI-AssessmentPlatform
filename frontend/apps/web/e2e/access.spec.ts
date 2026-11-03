@@ -161,6 +161,24 @@ test.describe("Increment 1.3: custom roles and permissions", () => {
     expect(await seriousViolations(page)).toEqual([]);
   });
 
+  test("roles can be limited to a university or a campus from the editor", async ({ page }) => {
+    const id = stamp();
+    await signIn(page, USERS.orgAdmin);
+    for (const [label, unit] of [["University", /Aurora University/], ["Campus", /AIT North Campus/]] as const) {
+      await page.goto("/access/roles/new");
+      await page.getByLabel("Name", { exact: true }).fill(`E2E ${label} scoped ${id}`);
+      const scope = page.getByLabel("Where can this role be used?");
+      await scope.selectOption((await scope.locator("option").filter({ hasText: unit }).first().getAttribute("value"))!);
+      await expect(page.getByTestId("effective-access-summary")).toContainText("0 permission(s)");
+      await pickPermissions(page, ["View the organization hierarchy"]);
+      await expect(page.getByTestId("permission-configurator").getByRole("checkbox", { name: /^View the audit trail/ })).toBeDisabled();
+      await page.getByRole("button", { name: "Create role" }).click();
+      await expect(page.getByText(/Usable only within/)).toContainText(unit);
+      await page.goto("/access/roles?type=custom");
+      await expect(page.getByRole("table", { name: "Roles" }).getByRole("row", { name: new RegExp(`E2E ${label} scoped ${id}`) })).toContainText(unit);
+    }
+  });
+
   test("role assignment overview", async ({ page }) => {
     await signIn(page, USERS.orgAdmin, `/access/assignments?role=${INSTITUTION_ADMIN_ROLE}`);
     const table = page.getByRole("table", { name: "Role assignments" });
