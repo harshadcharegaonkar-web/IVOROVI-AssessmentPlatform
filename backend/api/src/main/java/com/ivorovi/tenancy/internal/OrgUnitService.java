@@ -49,8 +49,9 @@ public class OrgUnitService implements OrgUnitLookup {
     public record Ancestor(UUID id, OrgUnitType type, String code, String name) {}
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitDependents")
-    public record Dependents(long children, long activeChildren, long roleAssignments, long featureOverrides, long members, long customRoles) {
-        public boolean any() { return children + roleAssignments + featureOverrides + members + customRoles > 0; }
+    public record Dependents(long children, long activeChildren, long roleAssignments, long featureOverrides, long members, long customRoles,
+                             long academicRecords) {
+        public boolean any() { return children + roleAssignments + featureOverrides + members + customRoles + academicRecords > 0; }
     }
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitDetail")
@@ -266,7 +267,7 @@ public class OrgUnitService implements OrgUnitLookup {
         }
         OrgUnit created = load(id);
         recordChange(created, "CREATED", null, null, snapshot(created));
-        return new Detail(created, ancestors(created), Map.of(), new Dependents(0, 0, 0, 0, 0, 0));
+        return new Detail(created, ancestors(created), Map.of(), new Dependents(0, 0, 0, 0, 0, 0, 0));
     }
 
     @Transactional
@@ -316,6 +317,18 @@ public class OrgUnitService implements OrgUnitLookup {
             if (unit.status() == Status.ACTIVE && newParent.status() != Status.ACTIVE) {
                 throw ApiException.conflict("parent_inactive", "An active unit cannot be moved under an inactive parent.");
             }
+        }
+        // Academic records are anchored to the hierarchy (a course's department must stay inside its program's
+        // institution); moving such a subtree would silently break that, so it is refused.
+        long academic = jdbc.sql("""
+                SELECT (SELECT count(*) FROM program p JOIN org_unit u ON u.id = p.owner_org_unit_id WHERE u.path <@ CAST(? AS ltree))
+                     + (SELECT count(*) FROM course c JOIN org_unit u ON u.id = c.department_id WHERE u.path <@ CAST(? AS ltree))
+                     + (SELECT count(*) FROM subject s JOIN org_unit u ON u.id = s.owner_org_unit_id WHERE u.path <@ CAST(? AS ltree))
+                     + (SELECT count(*) FROM academic_year y JOIN org_unit u ON u.id = y.owner_org_unit_id WHERE u.path <@ CAST(? AS ltree))""")
+                .params(unit.path(), unit.path(), unit.path(), unit.path()).query(Long.class).single();
+        if (academic > 0) {
+            throw ApiException.conflict("org_unit_has_academic_records", "This unit (or a unit below it) owns " + academic
+                    + " academic records (programs, courses, subjects or academic years) and cannot be moved.");
         }
         String newPath = OrgPaths.childPath(newParent == null ? null : newParent.path(), id);
         List<UUID> subtree = jdbc.sql("SELECT id FROM org_unit WHERE path <@ CAST(? AS ltree)").param(unit.path())
@@ -376,7 +389,7 @@ public class OrgUnitService implements OrgUnitLookup {
         if (d.any()) {
             throw ApiException.conflict("org_unit_has_dependents", "This unit is in use (" + d.children() + " sub-units, "
                     + d.roleAssignments() + " role assignments, " + d.featureOverrides()
-                    + " feature settings). Deactivate it instead.");
+                    + " feature settings, " + d.academicRecords() + " academic records). Deactivate it instead.");
         }
         recordChange(unit, "DELETED", null, snapshot(unit), null);
         jdbc.sql("DELETE FROM org_unit WHERE id = ? AND version = ?").params(id, version).update();
@@ -444,9 +457,11 @@ public class OrgUnitService implements OrgUnitLookup {
                        (SELECT count(*) FROM role_assignment WHERE scope_type = 'ORG_UNIT' AND scope_id = :id AND revoked_at IS NULL),
                        (SELECT count(*) FROM feature_flag_override WHERE org_unit_id = :id),
                        (SELECT count(*) FROM org_assignment WHERE org_unit_id = :id),
-                       (SELECT count(*) FROM role WHERE scope_org_unit_id = :id)""")
+                       (SELECT count(*) FROM role WHERE scope_org_unit_id = :id),
+                       (SELECT count(*) FROM program WHERE owner_org_unit_id = :id) + (SELECT count(*) FROM course WHERE department_id = :id)
+                         + (SELECT count(*) FROM subject WHERE owner_org_unit_id = :id) + (SELECT count(*) FROM academic_year WHERE owner_org_unit_id = :id)""")
                 .param("id", id)
-                .query((rs, n) -> new Dependents(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getLong(6)))
+                .query((rs, n) -> new Dependents(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getLong(6), rs.getLong(7)))
                 .single();
     }
 

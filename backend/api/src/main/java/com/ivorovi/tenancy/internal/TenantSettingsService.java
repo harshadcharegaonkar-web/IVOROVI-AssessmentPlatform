@@ -18,12 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
-/** Organization settings: display labels for the stable unit types, and the organization's time zone. */
+/** Organization settings: display labels for the stable entity types, time zone and academic calendar rules. */
 @Service
-public class TenantSettingsService {
+public class TenantSettingsService implements com.ivorovi.tenancy.AcademicCalendarPolicy {
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "TenantSettings")
-    public record Settings(Map<OrgUnitType, Label> labels, String timeZone, long version) {}
+    public record Settings(Map<com.ivorovi.tenancy.Terminology, Label> labels, String timeZone, boolean allowOverlappingAcademicYears, long version) {}
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "UnitTypeLabel")
     public record Label(String singular, String plural) {}
@@ -48,28 +48,40 @@ public class TenantSettingsService {
                 .param(TenantContext.requireTenantId())
                 .query((rs, n) -> new Row(rs.getString(1), rs.getLong(2))).optional().orElse(new Row("{}", -1));
         Map<String, Object> raw = json.readValue(row.settings(), MAP);
-        Map<OrgUnitType, Label> labels = new EnumMap<>(OrgUnitType.class);
+        Map<com.ivorovi.tenancy.Terminology, Label> labels = new EnumMap<>(com.ivorovi.tenancy.Terminology.class);
         Object stored = raw.get("labels");
-        for (OrgUnitType t : OrgUnitType.values()) {
-            Label label = new Label(t.defaultLabel(), t.defaultPluralLabel());
+        for (com.ivorovi.tenancy.Terminology t : com.ivorovi.tenancy.Terminology.values()) {
+            Label label = new Label(t.defaultSingular(), t.defaultPlural());
             if (stored instanceof Map<?, ?> m && m.get(t.name()) instanceof Map<?, ?> l) {
                 label = new Label(String.valueOf(l.get("singular")), String.valueOf(l.get("plural")));
             }
             labels.put(t, label);
         }
         String zone = raw.get("timeZone") instanceof String z ? z : "Asia/Kolkata";
-        return new Settings(labels, zone, row.version());
+        boolean overlap = Boolean.TRUE.equals(raw.get("allowOverlappingAcademicYears"));
+        return new Settings(labels, zone, overlap, row.version());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean allowOverlappingAcademicYears() {
+        return get().allowOverlappingAcademicYears();
+    }
+
+    @Override
+    public java.time.LocalDate today() {
+        return java.time.LocalDate.now(ZoneId.of(get().timeZone()));
     }
 
     @Transactional
-    public Settings update(Map<OrgUnitType, Label> labels, String timeZone, long expectedVersion) {
+    public Settings update(Map<com.ivorovi.tenancy.Terminology, Label> labels, String timeZone, Boolean allowOverlappingAcademicYears, long expectedVersion) {
         if (!authz.has(Permission.TENANT_SETTINGS_MANAGE.key())) throw new AccessDeniedException("Missing permission");
         Settings current = get();
         if (current.version() != expectedVersion) {
             throw ApiException.conflict("concurrent_modification", "Settings were changed by someone else. Reload and try again.");
         }
         Map<String, Object> labelsJson = new LinkedHashMap<>();
-        for (OrgUnitType t : OrgUnitType.values()) {
+        for (com.ivorovi.tenancy.Terminology t : com.ivorovi.tenancy.Terminology.values()) {
             Label l = labels == null ? null : labels.get(t);
             if (l == null) l = current.labels().get(t);
             String singular = clean(l.singular()), plural = clean(l.plural());
@@ -81,7 +93,8 @@ public class TenantSettingsService {
         } catch (DateTimeException e) {
             throw ApiException.badRequest("invalid_time_zone", "Unknown time zone '" + zone + "'.");
         }
-        String settings = json.writeValueAsString(Map.of("labels", labelsJson, "timeZone", zone));
+        boolean overlap = allowOverlappingAcademicYears == null ? current.allowOverlappingAcademicYears() : allowOverlappingAcademicYears;
+        String settings = json.writeValueAsString(Map.of("labels", labelsJson, "timeZone", zone, "allowOverlappingAcademicYears", overlap));
         jdbc.sql("""
                 INSERT INTO tenant_settings (tenant_id, settings, updated_by) VALUES (?, CAST(? AS jsonb), ?)
                 ON CONFLICT (tenant_id) DO UPDATE SET settings = EXCLUDED.settings, updated_at = now(),
@@ -90,6 +103,7 @@ public class TenantSettingsService {
         Map<String, String> details = new LinkedHashMap<>();
         labelsJson.forEach((k, v) -> details.put("label." + k, String.valueOf(((Map<?, ?>) v).get("singular"))));
         details.put("timeZone", zone);
+        details.put("allowOverlappingAcademicYears", String.valueOf(overlap));
         audit.recordSuccess("tenant.settings.updated", "tenant_settings", TenantContext.requireTenantId().toString(), details);
         return get();
     }

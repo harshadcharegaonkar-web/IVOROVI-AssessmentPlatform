@@ -12,7 +12,7 @@
     "/api/v1/tenant/settings" : {
       "get" : {
         "tags" : [ "Organization" ],
-        "summary" : "Organization settings: unit-type display labels and time zone (all signed-in users)",
+        "summary" : "Organization settings: entity display labels, time zone and academic calendar rules (all signed-in users)",
         "operationId" : "get",
         "responses" : {
           "200" : {
@@ -1327,6 +1327,1326 @@
         }
       }
     },
+    "/api/v1/academics/subjects" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Subject masters visible to the caller (filter by course to see a curriculum's subjects)",
+        "operationId" : "subjects",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          }
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "CORE", "ELECTIVE", "OPEN_ELECTIVE", "FOUNDATION", "LABORATORY", "PROJECT", "SEMINAR", "INTERNSHIP", "AUDIT", "OTHER" ]
+          }
+        }, {
+          "name" : "ownerOrgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "courseId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|code|level|status|updatedAt|program|department|credits|category"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseSubject"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "createSubject",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubjectRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subjects/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "subjectStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subjects/{id}/prerequisites" : {
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Add a prerequisite (cycles are refused)",
+        "operationId" : "addPrerequisite",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PrerequisiteRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Subject offerings visible to the caller",
+        "operationId" : "offerings",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED" ]
+          }
+        }, {
+          "name" : "batchId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "termId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "courseId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "subjectId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "academicYearId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "withoutFaculty",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "subject",
+            "pattern" : "subject|batch|term|termNumber|status|updatedAt"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseSubjectOffering"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Offer a subject of the curriculum to a batch in a calendar term",
+        "operationId" : "createOffering",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OfferingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectOffering"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Planned → active → completed, or cancel (ends open faculty assignments)",
+        "operationId" : "offeringStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OfferingStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectOffering"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings/{id}/faculty" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Faculty assigned to the offering (optionally with ended assignments)",
+        "operationId" : "faculty",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "includeHistory",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacultyAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Assign a staff member (a new primary replaces the previous primary)",
+        "operationId" : "assign",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FacultyAssignRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacultyAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings/{id}/faculty/{assignmentId}/primary" : {
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "operationId" : "makePrimary_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacultyAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings/{id}/faculty/{assignmentId}/end" : {
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "End an assignment with a reason (kept as history)",
+        "operationId" : "end",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FacultyEndRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacultyAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/programs" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Programs visible to the caller (search, status/level/owner filters, sort, pagination)",
+        "operationId" : "programs",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          }
+        }, {
+          "name" : "level",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "CERTIFICATE", "DIPLOMA", "UNDERGRADUATE", "POSTGRADUATE", "DOCTORAL", "OTHER" ]
+          }
+        }, {
+          "name" : "ownerOrgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|code|level|status|updatedAt|program|department|credits|category"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseProgram"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Create a program owned by a university or college",
+        "operationId" : "createProgram",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProgramRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Program"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/programs/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Activate or deactivate a program (records are kept)",
+        "operationId" : "programStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Program"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/courses" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Courses (branches) visible to the caller",
+        "operationId" : "courses",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          }
+        }, {
+          "name" : "programId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "departmentId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|code|level|status|updatedAt|program|department|credits|category"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseCourse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Create a course of a program, owned by a department of the program's institution",
+        "operationId" : "createCourse",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Course"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/courses/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "courseStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Course"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/courses/{id}/curriculum" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Subjects taught in each term of the course",
+        "operationId" : "curriculum",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CurriculumEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Teach a subject in a term of the course (subjects are reused, never copied)",
+        "operationId" : "addCurriculum",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CurriculumEntryRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CurriculumEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/batches" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Batches visible to the caller (filters: status, course, program, academic year, admission year)",
+        "operationId" : "batches",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "GRADUATED", "INACTIVE" ]
+          }
+        }, {
+          "name" : "courseId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "programId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "academicYearId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "admissionYear",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "admissionYear",
+            "pattern" : "name|code|admissionYear|course|status|updatedAt"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "desc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseBatch"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "operationId" : "createBatch",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Batch"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/batches/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic delivery" ],
+        "operationId" : "batchStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Batch"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-years" : {
+      "get" : {
+        "tags" : [ "Academic calendar" ],
+        "summary" : "Academic years visible to the caller (organization-wide years are visible to every reader)",
+        "operationId" : "years",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED" ]
+          }
+        }, {
+          "name" : "ownerOrgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "startDate",
+            "pattern" : "startDate|name|code|status|updatedAt"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "desc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseAcademicYear"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Academic calendar" ],
+        "summary" : "Create an academic year for the organization (no owner) or a university/college",
+        "operationId" : "createYear",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicYearRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicYearDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-years/{id}/terms" : {
+      "post" : {
+        "tags" : [ "Academic calendar" ],
+        "summary" : "Add a term to the year (inside the year, never overlapping another term)",
+        "operationId" : "createTerm",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicTermRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicTerm"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-years/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic calendar" ],
+        "summary" : "Planned → active → completed (corrections need a reason)",
+        "operationId" : "yearStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CalendarStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicYearDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-terms/{id}/status" : {
+      "post" : {
+        "tags" : [ "Academic calendar" ],
+        "operationId" : "termStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CalendarStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicTerm"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/{id}" : {
       "get" : {
         "tags" : [ "Users" ],
@@ -1565,6 +2885,380 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/OrgUnitDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subjects/{id}" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Subject with prerequisites, dependants and the courses/terms that teach it",
+        "operationId" : "subject",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "updateSubject",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SubjectRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/programs/{id}" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "program",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Program"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Edit a program (optimistic version; the owner cannot change)",
+        "operationId" : "updateProgram",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProgramRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Program"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/courses/{id}" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "course",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Course"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "updateCourse",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CourseRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Course"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/batches/{id}" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "operationId" : "batch",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Batch"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Academic delivery" ],
+        "operationId" : "updateBatch",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/BatchRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Batch"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-years/{id}" : {
+      "get" : {
+        "tags" : [ "Academic calendar" ],
+        "operationId" : "year",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicYearDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Academic calendar" ],
+        "operationId" : "updateYear",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicYearRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicYearDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-terms/{id}" : {
+      "get" : {
+        "tags" : [ "Academic calendar" ],
+        "operationId" : "term",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicTerm"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Academic calendar" ],
+        "operationId" : "updateTerm",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AcademicTermRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicTerm"
                 }
               }
             }
@@ -2156,6 +3850,249 @@
         }
       }
     },
+    "/api/v1/academics/tree" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Program → course → batch tree",
+        "operationId" : "tree_1",
+        "parameters" : [ {
+          "name" : "ownerOrgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "includeInactive",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicTree"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings/{id}" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "operationId" : "offering",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectOffering"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/subject-offerings/{id}/faculty-candidates" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Active teaching staff of the program's institution who can be assigned",
+        "operationId" : "candidates",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/FacultyCandidate"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/staff/{staffProfileId}/teaching" : {
+      "get" : {
+        "tags" : [ "Academic delivery" ],
+        "summary" : "Offerings a staff member teaches (in offerings visible to the caller)",
+        "operationId" : "teaching",
+        "parameters" : [ {
+          "name" : "staffProfileId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "includeHistory",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StaffTeachingAssignment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/overview" : {
+      "get" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Academic KPIs from the caller's authorized data (cached; invalidated by every academic change)",
+        "operationId" : "kpis",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicKpis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/academic-terms" : {
+      "get" : {
+        "tags" : [ "Academic calendar" ],
+        "summary" : "Terms across visible academic years",
+        "operationId" : "terms",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "academicYearId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED" ]
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "startDate",
+            "pattern" : "startDate|name|sequence|status|year"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "desc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseAcademicTerm"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/{id}/org-assignments/{assignmentId}" : {
       "delete" : {
         "tags" : [ "Users" ],
@@ -2211,6 +4148,70 @@
           }
         }
       }
+    },
+    "/api/v1/academics/subjects/{id}/prerequisites/{prerequisiteId}" : {
+      "delete" : {
+        "tags" : [ "Academic structure" ],
+        "operationId" : "removePrerequisite",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "prerequisiteId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SubjectDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/academics/courses/{id}/curriculum/{entryId}" : {
+      "delete" : {
+        "tags" : [ "Academic structure" ],
+        "summary" : "Remove a curriculum entry that has not been offered",
+        "operationId" : "removeCurriculum",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "entryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
     }
   },
   "components" : {
@@ -2228,6 +4229,9 @@
             "type" : "string",
             "maxLength" : 64,
             "minLength" : 0
+          },
+          "allowOverlappingAcademicYears" : {
+            "type" : "boolean"
           },
           "version" : {
             "type" : "integer",
@@ -2258,6 +4262,9 @@
           },
           "timeZone" : {
             "type" : "string"
+          },
+          "allowOverlappingAcademicYears" : {
+            "type" : "boolean"
           },
           "version" : {
             "type" : "integer",
@@ -3213,6 +5220,10 @@
           "customRoles" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "academicRecords" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -3273,6 +5284,1097 @@
           }
         },
         "required" : [ "version" ]
+      },
+      "SubjectRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "credits" : {
+            "type" : "number"
+          },
+          "delivery" : {
+            "type" : "string",
+            "enum" : [ "THEORY", "PRACTICAL", "THEORY_AND_PRACTICAL" ]
+          },
+          "elective" : {
+            "type" : "boolean"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "CORE", "ELECTIVE", "OPEN_ELECTIVE", "FOUNDATION", "LABORATORY", "PROJECT", "SEMINAR", "INTERNSHIP", "AUDIT", "OTHER" ]
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "CurriculumEntry" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseCode" : {
+            "type" : "string"
+          },
+          "courseName" : {
+            "type" : "string"
+          },
+          "programName" : {
+            "type" : "string"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectCode" : {
+            "type" : "string"
+          },
+          "subjectName" : {
+            "type" : "string"
+          },
+          "credits" : {
+            "type" : "number"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "elective" : {
+            "type" : "boolean"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "CORE", "ELECTIVE", "OPEN_ELECTIVE", "FOUNDATION", "LABORATORY", "PROJECT", "SEMINAR", "INTERNSHIP", "AUDIT", "OTHER" ]
+          },
+          "delivery" : {
+            "type" : "string",
+            "enum" : [ "THEORY", "PRACTICAL", "THEORY_AND_PRACTICAL" ]
+          }
+        }
+      },
+      "Subject" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "credits" : {
+            "type" : "number"
+          },
+          "delivery" : {
+            "type" : "string",
+            "enum" : [ "THEORY", "PRACTICAL", "THEORY_AND_PRACTICAL" ]
+          },
+          "elective" : {
+            "type" : "boolean"
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "CORE", "ELECTIVE", "OPEN_ELECTIVE", "FOUNDATION", "LABORATORY", "PROJECT", "SEMINAR", "INTERNSHIP", "AUDIT", "OTHER" ]
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ownerName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          },
+          "courseCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "SubjectDetail" : {
+        "type" : "object",
+        "properties" : {
+          "subject" : {
+            "$ref" : "#/components/schemas/Subject"
+          },
+          "prerequisites" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SubjectRef"
+            }
+          },
+          "requiredBy" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SubjectRef"
+            }
+          },
+          "curriculum" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/CurriculumEntry"
+            }
+          }
+        }
+      },
+      "SubjectRef" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          }
+        }
+      },
+      "AcademicStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "status", "version" ]
+      },
+      "PrerequisiteRequest" : {
+        "type" : "object",
+        "properties" : {
+          "prerequisiteId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "prerequisiteId" ]
+      },
+      "OfferingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          },
+          "section" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "credits" : {
+            "type" : "number"
+          }
+        },
+        "required" : [ "batchId", "subjectId", "termId", "termNumber" ]
+      },
+      "SubjectOffering" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectCode" : {
+            "type" : "string"
+          },
+          "subjectName" : {
+            "type" : "string"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseCode" : {
+            "type" : "string"
+          },
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "batchCode" : {
+            "type" : "string"
+          },
+          "batchName" : {
+            "type" : "string"
+          },
+          "academicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearName" : {
+            "type" : "string"
+          },
+          "termId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termName" : {
+            "type" : "string"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "section" : {
+            "type" : "string"
+          },
+          "credits" : {
+            "type" : "number"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED" ]
+          },
+          "departmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "primaryFaculty" : {
+            "type" : "string"
+          },
+          "facultyCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          },
+          "canAssignFaculty" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "OfferingStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED", "CANCELLED" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "status", "version" ]
+      },
+      "FacultyAssignRequest" : {
+        "type" : "object",
+        "properties" : {
+          "staffProfileId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "startsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endsOn" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "staffProfileId" ]
+      },
+      "FacultyAssignment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "offeringId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "staffProfileId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "staffNo" : {
+            "type" : "string"
+          },
+          "staffName" : {
+            "type" : "string"
+          },
+          "designation" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "startsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "endReason" : {
+            "type" : "string"
+          },
+          "current" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "FacultyEndRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 1
+          },
+          "endsOn" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "ProgramRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "qualificationLevel" : {
+            "type" : "string",
+            "enum" : [ "CERTIFICATE", "DIPLOMA", "UNDERGRADUATE", "POSTGRADUATE", "DOCTORAL", "OTHER" ]
+          },
+          "awardedQualification" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termSystem" : {
+            "type" : "string",
+            "enum" : [ "SEMESTER", "TRIMESTER", "QUARTER", "ANNUAL", "OTHER" ]
+          },
+          "termsPerYear" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 6,
+            "minimum" : 1
+          },
+          "durationYears" : {
+            "type" : "number"
+          },
+          "totalTerms" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Program" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "qualificationLevel" : {
+            "type" : "string",
+            "enum" : [ "CERTIFICATE", "DIPLOMA", "UNDERGRADUATE", "POSTGRADUATE", "DOCTORAL", "OTHER" ]
+          },
+          "awardedQualification" : {
+            "type" : "string"
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ownerName" : {
+            "type" : "string"
+          },
+          "ownerType" : {
+            "type" : "string"
+          },
+          "termSystem" : {
+            "type" : "string",
+            "enum" : [ "SEMESTER", "TRIMESTER", "QUARTER", "ANNUAL", "OTHER" ]
+          },
+          "termsPerYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "durationYears" : {
+            "type" : "number"
+          },
+          "totalTerms" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          },
+          "courseCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CourseRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "departmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "specialization" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "totalTerms" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Course" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "programCode" : {
+            "type" : "string"
+          },
+          "programName" : {
+            "type" : "string"
+          },
+          "departmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "departmentName" : {
+            "type" : "string"
+          },
+          "specialization" : {
+            "type" : "string"
+          },
+          "totalTerms" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "effectiveTerms" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "ACTIVE", "INACTIVE" ]
+          },
+          "batchCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "curriculumCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "CurriculumEntryRequest" : {
+        "type" : "object",
+        "properties" : {
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          },
+          "elective" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "subjectId", "termNumber" ]
+      },
+      "BatchRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "admissionYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expectedGraduationYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "section" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "GRADUATED", "INACTIVE" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Batch" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseCode" : {
+            "type" : "string"
+          },
+          "courseName" : {
+            "type" : "string"
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "programName" : {
+            "type" : "string"
+          },
+          "departmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "departmentName" : {
+            "type" : "string"
+          },
+          "academicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearName" : {
+            "type" : "string"
+          },
+          "admissionYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "expectedGraduationYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "section" : {
+            "type" : "string"
+          },
+          "capacity" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "GRADUATED", "INACTIVE" ]
+          },
+          "offeringCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "BatchStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "GRADUATED", "INACTIVE" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "status", "version" ]
+      },
+      "AcademicYearRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "startDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AcademicTerm" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearCode" : {
+            "type" : "string"
+          },
+          "academicYearName" : {
+            "type" : "string"
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "sequence" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "startDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "registrationStart" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "registrationEnd" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "examStart" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "examEnd" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED" ]
+          },
+          "offeringCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AcademicYear" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "ownerOrgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ownerName" : {
+            "type" : "string"
+          },
+          "startDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED" ]
+          },
+          "termCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "batchCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AcademicYearDetail" : {
+        "type" : "object",
+        "properties" : {
+          "year" : {
+            "$ref" : "#/components/schemas/AcademicYear"
+          },
+          "terms" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AcademicTerm"
+            }
+          },
+          "overlappingYearsAllowed" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AcademicTermRequest" : {
+        "type" : "object",
+        "properties" : {
+          "sequence" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 12,
+            "minimum" : 1
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "startDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "registrationStart" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "registrationEnd" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "examStart" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "examEnd" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "CalendarStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PLANNED", "ACTIVE", "COMPLETED" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "status", "version" ]
       },
       "UserUpdateRequest" : {
         "type" : "object",
@@ -3717,7 +6819,7 @@
         "properties" : {
           "domain" : {
             "type" : "string",
-            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "AUDIT", "PLATFORM" ]
+            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "ACADEMICS", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "AUDIT", "PLATFORM" ]
           },
           "label" : {
             "type" : "string"
@@ -3744,7 +6846,7 @@
           },
           "domain" : {
             "type" : "string",
-            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "AUDIT", "PLATFORM" ]
+            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "ACADEMICS", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "AUDIT", "PLATFORM" ]
           },
           "domainLabel" : {
             "type" : "string"
@@ -4201,6 +7303,414 @@
           "firstInvalidSeq" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "AcademicTree" : {
+        "type" : "object",
+        "properties" : {
+          "programs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AcademicTreeProgram"
+            }
+          },
+          "truncated" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AcademicTreeBatch" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "admissionYear" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "section" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "offerings" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AcademicTreeCourse" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "departmentName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "subjects" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "batches" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AcademicTreeBatch"
+            }
+          }
+        }
+      },
+      "AcademicTreeProgram" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "qualificationLevel" : {
+            "type" : "string"
+          },
+          "ownerName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "totalTerms" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "courses" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AcademicTreeCourse"
+            }
+          }
+        }
+      },
+      "PageResponseSubject" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Subject"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PageResponseSubjectOffering" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/SubjectOffering"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "FacultyCandidate" : {
+        "type" : "object",
+        "properties" : {
+          "staffProfileId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "staffNo" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "designation" : {
+            "type" : "string"
+          },
+          "unitName" : {
+            "type" : "string"
+          },
+          "alreadyAssigned" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StaffTeachingAssignment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "offeringId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectCode" : {
+            "type" : "string"
+          },
+          "subjectName" : {
+            "type" : "string"
+          },
+          "batchCode" : {
+            "type" : "string"
+          },
+          "termName" : {
+            "type" : "string"
+          },
+          "academicYearName" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "startsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endsOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "current" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "PageResponseProgram" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Program"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AcademicKpis" : {
+        "type" : "object",
+        "properties" : {
+          "programs" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "courses" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "subjects" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeAcademicYears" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeTerms" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeBatches" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "offerings" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "offeringsWithoutFaculty" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "facultyAssignments" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "facultyTeaching" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "PageResponseCourse" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Course"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PageResponseBatch" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Batch"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PageResponseAcademicYear" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AcademicYear"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PageResponseAcademicTerm" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AcademicTerm"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       }

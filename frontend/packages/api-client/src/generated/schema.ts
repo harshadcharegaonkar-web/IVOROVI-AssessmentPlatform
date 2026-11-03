@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Organization settings: unit-type display labels and time zone (all signed-in users) */
+        /** Organization settings: entity display labels, time zone and academic calendar rules (all signed-in users) */
         get: operations["get"];
         /** Update organization settings (requires tenant.settings.manage) */
         put: operations["update"];
@@ -449,6 +449,330 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academics/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subject masters visible to the caller (filter by course to see a curriculum's subjects) */
+        get: operations["subjects"];
+        put?: never;
+        post: operations["createSubject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subjects/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["subjectStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subjects/{id}/prerequisites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a prerequisite (cycles are refused) */
+        post: operations["addPrerequisite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subject offerings visible to the caller */
+        get: operations["offerings"];
+        put?: never;
+        /** Offer a subject of the curriculum to a batch in a calendar term */
+        post: operations["createOffering"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Planned → active → completed, or cancel (ends open faculty assignments) */
+        post: operations["offeringStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings/{id}/faculty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Faculty assigned to the offering (optionally with ended assignments) */
+        get: operations["faculty"];
+        put?: never;
+        /** Assign a staff member (a new primary replaces the previous primary) */
+        post: operations["assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings/{id}/faculty/{assignmentId}/primary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["makePrimary_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings/{id}/faculty/{assignmentId}/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End an assignment with a reason (kept as history) */
+        post: operations["end"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/programs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Programs visible to the caller (search, status/level/owner filters, sort, pagination) */
+        get: operations["programs"];
+        put?: never;
+        /** Create a program owned by a university or college */
+        post: operations["createProgram"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/programs/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate or deactivate a program (records are kept) */
+        post: operations["programStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Courses (branches) visible to the caller */
+        get: operations["courses"];
+        put?: never;
+        /** Create a course of a program, owned by a department of the program's institution */
+        post: operations["createCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/courses/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["courseStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/courses/{id}/curriculum": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subjects taught in each term of the course */
+        get: operations["curriculum"];
+        put?: never;
+        /** Teach a subject in a term of the course (subjects are reused, never copied) */
+        post: operations["addCurriculum"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Batches visible to the caller (filters: status, course, program, academic year, admission year) */
+        get: operations["batches"];
+        put?: never;
+        post: operations["createBatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/batches/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["batchStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/academic-years": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Academic years visible to the caller (organization-wide years are visible to every reader) */
+        get: operations["years"];
+        put?: never;
+        /** Create an academic year for the organization (no owner) or a university/college */
+        post: operations["createYear"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/academic-years/{id}/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a term to the year (inside the year, never overlapping another term) */
+        post: operations["createTerm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/academic-years/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Planned → active → completed (corrections need a reason) */
+        post: operations["yearStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/academic-terms/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["termStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}": {
         parameters: {
             query?: never;
@@ -502,6 +826,104 @@ export interface paths {
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
         patch: operations["update_4"];
+        trace?: never;
+    };
+    "/api/v1/academics/subjects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subject with prerequisites, dependants and the courses/terms that teach it */
+        get: operations["subject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateSubject"];
+        trace?: never;
+    };
+    "/api/v1/academics/programs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["program"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit a program (optimistic version; the owner cannot change) */
+        patch: operations["updateProgram"];
+        trace?: never;
+    };
+    "/api/v1/academics/courses/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["course"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateCourse"];
+        trace?: never;
+    };
+    "/api/v1/academics/batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["batch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateBatch"];
+        trace?: never;
+    };
+    "/api/v1/academics/academic-years/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["year"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateYear"];
+        trace?: never;
+    };
+    "/api/v1/academics/academic-terms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["term"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateTerm"];
         trace?: never;
     };
     "/api/v1/users/{id}/access": {
@@ -776,6 +1198,107 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academics/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Program → course → batch tree */
+        get: operations["tree_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["offering"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/subject-offerings/{id}/faculty-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active teaching staff of the program's institution who can be assigned */
+        get: operations["candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/staff/{staffProfileId}/teaching": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offerings a staff member teaches (in offerings visible to the caller) */
+        get: operations["teaching"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Academic KPIs from the caller's authorized data (cached; invalidated by every academic change) */
+        get: operations["kpis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/academic-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Terms across visible academic years */
+        get: operations["terms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{id}/org-assignments/{assignmentId}": {
         parameters: {
             query?: never;
@@ -808,6 +1331,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/academics/subjects/{id}/prerequisites/{prerequisiteId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removePrerequisite"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/academics/courses/{id}/curriculum/{entryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a curriculum entry that has not been offered */
+        delete: operations["removeCurriculum"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -817,6 +1373,7 @@ export interface components {
                 [key: string]: components["schemas"]["UnitTypeLabel"];
             };
             timeZone?: string;
+            allowOverlappingAcademicYears?: boolean;
             /** Format: int64 */
             version: number;
         };
@@ -829,6 +1386,7 @@ export interface components {
                 [key: string]: components["schemas"]["UnitTypeLabel"];
             };
             timeZone?: string;
+            allowOverlappingAcademicYears?: boolean;
             /** Format: int64 */
             version?: number;
         };
@@ -1192,6 +1750,8 @@ export interface components {
             members?: number;
             /** Format: int64 */
             customRoles?: number;
+            /** Format: int64 */
+            academicRecords?: number;
         };
         OrgUnitDetail: {
             unit?: components["schemas"]["OrgUnit"];
@@ -1209,6 +1769,447 @@ export interface components {
             reason?: string;
         };
         OrgUnitStatusRequest: {
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        SubjectRequest: {
+            code?: string;
+            name?: string;
+            description?: string;
+            credits?: number;
+            /** @enum {string} */
+            delivery?: "THEORY" | "PRACTICAL" | "THEORY_AND_PRACTICAL";
+            elective?: boolean;
+            /** @enum {string} */
+            category?: "CORE" | "ELECTIVE" | "OPEN_ELECTIVE" | "FOUNDATION" | "LABORATORY" | "PROJECT" | "SEMINAR" | "INTERNSHIP" | "AUDIT" | "OTHER";
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        CurriculumEntry: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            courseId?: string;
+            courseCode?: string;
+            courseName?: string;
+            programName?: string;
+            /** Format: uuid */
+            subjectId?: string;
+            subjectCode?: string;
+            subjectName?: string;
+            credits?: number;
+            /** Format: int32 */
+            termNumber?: number;
+            elective?: boolean;
+            /** @enum {string} */
+            category?: "CORE" | "ELECTIVE" | "OPEN_ELECTIVE" | "FOUNDATION" | "LABORATORY" | "PROJECT" | "SEMINAR" | "INTERNSHIP" | "AUDIT" | "OTHER";
+            /** @enum {string} */
+            delivery?: "THEORY" | "PRACTICAL" | "THEORY_AND_PRACTICAL";
+        };
+        Subject: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            credits?: number;
+            /** @enum {string} */
+            delivery?: "THEORY" | "PRACTICAL" | "THEORY_AND_PRACTICAL";
+            elective?: boolean;
+            /** @enum {string} */
+            category?: "CORE" | "ELECTIVE" | "OPEN_ELECTIVE" | "FOUNDATION" | "LABORATORY" | "PROJECT" | "SEMINAR" | "INTERNSHIP" | "AUDIT" | "OTHER";
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            ownerName?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** Format: int64 */
+            courseCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+        };
+        SubjectDetail: {
+            subject?: components["schemas"]["Subject"];
+            prerequisites?: components["schemas"]["SubjectRef"][];
+            requiredBy?: components["schemas"]["SubjectRef"][];
+            curriculum?: components["schemas"]["CurriculumEntry"][];
+        };
+        SubjectRef: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+        };
+        AcademicStatusRequest: {
+            /** @enum {string} */
+            status: "ACTIVE" | "INACTIVE";
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        PrerequisiteRequest: {
+            /** Format: uuid */
+            prerequisiteId: string;
+        };
+        OfferingRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            termId: string;
+            /** Format: int32 */
+            termNumber: number;
+            section?: string;
+            credits?: number;
+        };
+        SubjectOffering: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            subjectId?: string;
+            subjectCode?: string;
+            subjectName?: string;
+            /** Format: uuid */
+            courseId?: string;
+            courseCode?: string;
+            /** Format: uuid */
+            batchId?: string;
+            batchCode?: string;
+            batchName?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            academicYearName?: string;
+            /** Format: uuid */
+            termId?: string;
+            termName?: string;
+            /** Format: int32 */
+            termNumber?: number;
+            section?: string;
+            credits?: number;
+            /** @enum {string} */
+            status?: "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+            /** Format: uuid */
+            departmentId?: string;
+            primaryFaculty?: string;
+            /** Format: int64 */
+            facultyCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+            canAssignFaculty?: boolean;
+        };
+        OfferingStatusRequest: {
+            /** @enum {string} */
+            status: "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        FacultyAssignRequest: {
+            /** Format: uuid */
+            staffProfileId: string;
+            primary?: boolean;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: date */
+            endsOn?: string;
+        };
+        FacultyAssignment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            offeringId?: string;
+            /** Format: uuid */
+            staffProfileId?: string;
+            staffNo?: string;
+            staffName?: string;
+            designation?: string;
+            primary?: boolean;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: date */
+            endsOn?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            endReason?: string;
+            current?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        FacultyEndRequest: {
+            reason: string;
+            /** Format: date */
+            endsOn?: string;
+        };
+        ProgramRequest: {
+            code?: string;
+            name?: string;
+            /** @enum {string} */
+            qualificationLevel?: "CERTIFICATE" | "DIPLOMA" | "UNDERGRADUATE" | "POSTGRADUATE" | "DOCTORAL" | "OTHER";
+            awardedQualification?: string;
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            /** @enum {string} */
+            termSystem?: "SEMESTER" | "TRIMESTER" | "QUARTER" | "ANNUAL" | "OTHER";
+            /** Format: int32 */
+            termsPerYear?: number;
+            durationYears?: number;
+            /** Format: int32 */
+            totalTerms?: number;
+            description?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        Program: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** @enum {string} */
+            qualificationLevel?: "CERTIFICATE" | "DIPLOMA" | "UNDERGRADUATE" | "POSTGRADUATE" | "DOCTORAL" | "OTHER";
+            awardedQualification?: string;
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            ownerName?: string;
+            ownerType?: string;
+            /** @enum {string} */
+            termSystem?: "SEMESTER" | "TRIMESTER" | "QUARTER" | "ANNUAL" | "OTHER";
+            /** Format: int32 */
+            termsPerYear?: number;
+            durationYears?: number;
+            /** Format: int32 */
+            totalTerms?: number;
+            description?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** Format: int64 */
+            courseCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+        };
+        CourseRequest: {
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            programId?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            specialization?: string;
+            /** Format: int32 */
+            totalTerms?: number;
+            description?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        Course: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            programId?: string;
+            programCode?: string;
+            programName?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            departmentName?: string;
+            specialization?: string;
+            /** Format: int32 */
+            totalTerms?: number;
+            /** Format: int32 */
+            effectiveTerms?: number;
+            description?: string;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** Format: int64 */
+            batchCount?: number;
+            /** Format: int64 */
+            curriculumCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+        };
+        CurriculumEntryRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            /** Format: int32 */
+            termNumber: number;
+            elective?: boolean;
+        };
+        BatchRequest: {
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            courseId?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: int32 */
+            admissionYear?: number;
+            /** Format: int32 */
+            expectedGraduationYear?: number;
+            section?: string;
+            /** Format: int32 */
+            capacity?: number;
+            /** @enum {string} */
+            status?: "PLANNED" | "ACTIVE" | "GRADUATED" | "INACTIVE";
+            /** Format: int64 */
+            version?: number;
+        };
+        Batch: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            courseId?: string;
+            courseCode?: string;
+            courseName?: string;
+            /** Format: uuid */
+            programId?: string;
+            programName?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            departmentName?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            academicYearName?: string;
+            /** Format: int32 */
+            admissionYear?: number;
+            /** Format: int32 */
+            expectedGraduationYear?: number;
+            section?: string;
+            /** Format: int32 */
+            capacity?: number;
+            /** @enum {string} */
+            status?: "PLANNED" | "ACTIVE" | "GRADUATED" | "INACTIVE";
+            /** Format: int64 */
+            offeringCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+        };
+        BatchStatusRequest: {
+            /** @enum {string} */
+            status: "PLANNED" | "ACTIVE" | "GRADUATED" | "INACTIVE";
+            /** Format: int64 */
+            version: number;
+            reason?: string;
+        };
+        AcademicYearRequest: {
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        AcademicTerm: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            academicYearCode?: string;
+            academicYearName?: string;
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            /** Format: int32 */
+            sequence?: number;
+            name?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: date */
+            registrationStart?: string;
+            /** Format: date */
+            registrationEnd?: string;
+            /** Format: date */
+            examStart?: string;
+            /** Format: date */
+            examEnd?: string;
+            /** @enum {string} */
+            status?: "PLANNED" | "ACTIVE" | "COMPLETED";
+            /** Format: int64 */
+            offeringCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+        };
+        AcademicYear: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            ownerOrgUnitId?: string;
+            ownerName?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** @enum {string} */
+            status?: "PLANNED" | "ACTIVE" | "COMPLETED";
+            /** Format: int64 */
+            termCount?: number;
+            /** Format: int64 */
+            batchCount?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+        };
+        AcademicYearDetail: {
+            year?: components["schemas"]["AcademicYear"];
+            terms?: components["schemas"]["AcademicTerm"][];
+            overlappingYearsAllowed?: boolean;
+        };
+        AcademicTermRequest: {
+            /** Format: int32 */
+            sequence?: number;
+            name?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            endDate?: string;
+            /** Format: date */
+            registrationStart?: string;
+            /** Format: date */
+            registrationEnd?: string;
+            /** Format: date */
+            examStart?: string;
+            /** Format: date */
+            examEnd?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        CalendarStatusRequest: {
+            /** @enum {string} */
+            status: "PLANNED" | "ACTIVE" | "COMPLETED";
             /** Format: int64 */
             version: number;
             reason?: string;
@@ -1374,7 +2375,7 @@ export interface components {
         };
         PermissionDomain: {
             /** @enum {string} */
-            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
+            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "ACADEMICS" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
             label?: string;
             permissions?: components["schemas"]["PermissionInfo"][];
         };
@@ -1383,7 +2384,7 @@ export interface components {
             name?: string;
             description?: string;
             /** @enum {string} */
-            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
+            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "ACADEMICS" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
             domainLabel?: string;
             /** @enum {string} */
             level?: "READ" | "WRITE" | "MANAGE";
@@ -1574,6 +2575,170 @@ export interface components {
             eventsChecked?: number;
             /** Format: int64 */
             firstInvalidSeq?: number;
+        };
+        AcademicTree: {
+            programs?: components["schemas"]["AcademicTreeProgram"][];
+            truncated?: boolean;
+        };
+        AcademicTreeBatch: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            /** Format: int32 */
+            admissionYear?: number;
+            section?: string;
+            status?: string;
+            /** Format: int64 */
+            offerings?: number;
+        };
+        AcademicTreeCourse: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            departmentName?: string;
+            status?: string;
+            /** Format: int64 */
+            subjects?: number;
+            batches?: components["schemas"]["AcademicTreeBatch"][];
+        };
+        AcademicTreeProgram: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            qualificationLevel?: string;
+            ownerName?: string;
+            status?: string;
+            /** Format: int32 */
+            totalTerms?: number;
+            courses?: components["schemas"]["AcademicTreeCourse"][];
+        };
+        PageResponseSubject: {
+            items?: components["schemas"]["Subject"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseSubjectOffering: {
+            items?: components["schemas"]["SubjectOffering"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        FacultyCandidate: {
+            /** Format: uuid */
+            staffProfileId?: string;
+            staffNo?: string;
+            name?: string;
+            designation?: string;
+            unitName?: string;
+            alreadyAssigned?: boolean;
+        };
+        StaffTeachingAssignment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            offeringId?: string;
+            subjectCode?: string;
+            subjectName?: string;
+            batchCode?: string;
+            termName?: string;
+            academicYearName?: string;
+            primary?: boolean;
+            /** Format: date */
+            startsOn?: string;
+            /** Format: date */
+            endsOn?: string;
+            current?: boolean;
+        };
+        PageResponseProgram: {
+            items?: components["schemas"]["Program"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        AcademicKpis: {
+            /** Format: int64 */
+            programs?: number;
+            /** Format: int64 */
+            courses?: number;
+            /** Format: int64 */
+            subjects?: number;
+            /** Format: int64 */
+            activeAcademicYears?: number;
+            /** Format: int64 */
+            activeTerms?: number;
+            /** Format: int64 */
+            activeBatches?: number;
+            /** Format: int64 */
+            offerings?: number;
+            /** Format: int64 */
+            offeringsWithoutFaculty?: number;
+            /** Format: int64 */
+            facultyAssignments?: number;
+            /** Format: int64 */
+            facultyTeaching?: number;
+        };
+        PageResponseCourse: {
+            items?: components["schemas"]["Course"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseBatch: {
+            items?: components["schemas"]["Batch"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseAcademicYear: {
+            items?: components["schemas"]["AcademicYear"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseAcademicTerm: {
+            items?: components["schemas"]["AcademicTerm"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
         };
     };
     responses: never;
@@ -2436,6 +3601,712 @@ export interface operations {
             };
         };
     };
+    subjects: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "ACTIVE" | "INACTIVE";
+                category?: "CORE" | "ELECTIVE" | "OPEN_ELECTIVE" | "FOUNDATION" | "LABORATORY" | "PROJECT" | "SEMINAR" | "INTERNSHIP" | "AUDIT" | "OTHER";
+                ownerOrgUnitId?: string;
+                courseId?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseSubject"];
+                };
+            };
+        };
+    };
+    createSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectDetail"];
+                };
+            };
+        };
+    };
+    subjectStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectDetail"];
+                };
+            };
+        };
+    };
+    addPrerequisite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrerequisiteRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectDetail"];
+                };
+            };
+        };
+    };
+    offerings: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+                batchId?: string;
+                termId?: string;
+                courseId?: string;
+                subjectId?: string;
+                academicYearId?: string;
+                withoutFaculty?: boolean;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseSubjectOffering"];
+                };
+            };
+        };
+    };
+    createOffering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectOffering"];
+                };
+            };
+        };
+    };
+    offeringStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferingStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectOffering"];
+                };
+            };
+        };
+    };
+    faculty: {
+        parameters: {
+            query?: {
+                includeHistory?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FacultyAssignment"][];
+                };
+            };
+        };
+    };
+    assign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FacultyAssignment"][];
+                };
+            };
+        };
+    };
+    makePrimary_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FacultyAssignment"][];
+                };
+            };
+        };
+    };
+    end: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacultyEndRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FacultyAssignment"][];
+                };
+            };
+        };
+    };
+    programs: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "ACTIVE" | "INACTIVE";
+                level?: "CERTIFICATE" | "DIPLOMA" | "UNDERGRADUATE" | "POSTGRADUATE" | "DOCTORAL" | "OTHER";
+                ownerOrgUnitId?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseProgram"];
+                };
+            };
+        };
+    };
+    createProgram: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgramRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Program"];
+                };
+            };
+        };
+    };
+    programStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Program"];
+                };
+            };
+        };
+    };
+    courses: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "ACTIVE" | "INACTIVE";
+                programId?: string;
+                departmentId?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseCourse"];
+                };
+            };
+        };
+    };
+    createCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Course"];
+                };
+            };
+        };
+    };
+    courseStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Course"];
+                };
+            };
+        };
+    };
+    curriculum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CurriculumEntry"][];
+                };
+            };
+        };
+    };
+    addCurriculum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CurriculumEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CurriculumEntry"][];
+                };
+            };
+        };
+    };
+    batches: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "PLANNED" | "ACTIVE" | "GRADUATED" | "INACTIVE";
+                courseId?: string;
+                programId?: string;
+                academicYearId?: string;
+                admissionYear?: number;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseBatch"];
+                };
+            };
+        };
+    };
+    createBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Batch"];
+                };
+            };
+        };
+    };
+    batchStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Batch"];
+                };
+            };
+        };
+    };
+    years: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: "PLANNED" | "ACTIVE" | "COMPLETED";
+                ownerOrgUnitId?: string;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAcademicYear"];
+                };
+            };
+        };
+    };
+    createYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicYearRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicYearDetail"];
+                };
+            };
+        };
+    };
+    createTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicTermRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicTerm"];
+                };
+            };
+        };
+    };
+    yearStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicYearDetail"];
+                };
+            };
+        };
+    };
+    termStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicTerm"];
+                };
+            };
+        };
+    };
     detail_1: {
         parameters: {
             query?: never;
@@ -2620,6 +4491,294 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["OrgUnitDetail"];
+                };
+            };
+        };
+    };
+    subject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectDetail"];
+                };
+            };
+        };
+    };
+    updateSubject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubjectRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectDetail"];
+                };
+            };
+        };
+    };
+    program: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Program"];
+                };
+            };
+        };
+    };
+    updateProgram: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProgramRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Program"];
+                };
+            };
+        };
+    };
+    course: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Course"];
+                };
+            };
+        };
+    };
+    updateCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Course"];
+                };
+            };
+        };
+    };
+    batch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Batch"];
+                };
+            };
+        };
+    };
+    updateBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Batch"];
+                };
+            };
+        };
+    };
+    year: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicYearDetail"];
+                };
+            };
+        };
+    };
+    updateYear: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicYearRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicYearDetail"];
+                };
+            };
+        };
+    };
+    term: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicTerm"];
+                };
+            };
+        };
+    };
+    updateTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademicTermRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicTerm"];
                 };
             };
         };
@@ -2986,6 +5145,147 @@ export interface operations {
             };
         };
     };
+    tree_1: {
+        parameters: {
+            query?: {
+                ownerOrgUnitId?: string;
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicTree"];
+                };
+            };
+        };
+    };
+    offering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectOffering"];
+                };
+            };
+        };
+    };
+    candidates: {
+        parameters: {
+            query?: {
+                q?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FacultyCandidate"][];
+                };
+            };
+        };
+    };
+    teaching: {
+        parameters: {
+            query?: {
+                includeHistory?: boolean;
+            };
+            header?: never;
+            path: {
+                staffProfileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffTeachingAssignment"][];
+                };
+            };
+        };
+    };
+    kpis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicKpis"];
+                };
+            };
+        };
+    };
+    terms: {
+        parameters: {
+            query?: {
+                q?: string;
+                academicYearId?: string;
+                status?: "PLANNED" | "ACTIVE" | "COMPLETED";
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseAcademicTerm"];
+                };
+            };
+        };
+    };
     removeOrgAssignment: {
         parameters: {
             query?: never;
@@ -3014,6 +5314,50 @@ export interface operations {
             path: {
                 id: string;
                 assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removePrerequisite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                prerequisiteId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SubjectDetail"];
+                };
+            };
+        };
+    };
+    removeCurriculum: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                entryId: string;
             };
             cookie?: never;
         };

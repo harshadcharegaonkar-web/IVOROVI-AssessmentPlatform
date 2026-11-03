@@ -51,6 +51,13 @@ function page(load: () => Promise<{ default: React.ComponentType }>, check?: (a:
   };
 }
 
+const loadProgramEditorPage = () => import("./routes/academics/ProgramEditorPage");
+const loadCourseEditorPage = () => import("./routes/academics/CourseEditorPage");
+const loadSubjectEditorPage = () => import("./routes/academics/SubjectEditorPage");
+const loadBatchEditorPage = () => import("./routes/academics/BatchEditorPage");
+/** Academic routes are readable with academics.read anywhere; editors need the matching manage permission. */
+const READ_ACADEMICS = (a: Access) => a.hasAnywhere("academics.read");
+
 export const routes: RouteObject[] = [
   { path: CALLBACK_PATH, element: <AuthCallback /> },
   {
@@ -88,6 +95,43 @@ export const routes: RouteObject[] = [
           ] },
           { path: "permissions", handle: { crumb: "Permission Catalogue" }, ...page(() => import("./routes/access/PermissionCataloguePage"), (a) => a.hasAnywhere("role.read")) },
           { path: "assignments", handle: { crumb: "Role Assignments" }, ...page(() => import("./routes/access/RoleAssignmentsPage"), (a) => a.hasAnywhere("role.read")) },
+        ] },
+        { path: "academics", handle: { crumb: "Academics" }, children: [
+          { index: true, ...page(() => import("./routes/academics/AcademicOverviewPage"), READ_ACADEMICS) },
+          { path: "structure", handle: { crumb: "Structure" }, ...page(() => import("./routes/academics/StructureTreePage"), READ_ACADEMICS) },
+          { path: "programs", handle: { crumb: "Programs" }, children: [
+            { index: true, ...page(() => import("./routes/academics/ProgramListPage"), READ_ACADEMICS) },
+            { path: "new", handle: { crumb: "New" }, ...page(loadProgramEditorPage, (a) => a.hasAnywhere("program.manage")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/academics/ProgramDetailPage"), READ_ACADEMICS) },
+            { path: ":id/edit", handle: { crumb: "Edit" }, ...page(loadProgramEditorPage, (a) => a.hasAnywhere("program.manage")) },
+          ] },
+          { path: "courses", handle: { crumb: "Courses" }, children: [
+            { index: true, ...page(() => import("./routes/academics/CourseListPage"), READ_ACADEMICS) },
+            { path: "new", handle: { crumb: "New" }, ...page(loadCourseEditorPage, (a) => a.hasAnywhere("program.manage")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/academics/CourseDetailPage"), READ_ACADEMICS) },
+            { path: ":id/edit", handle: { crumb: "Edit" }, ...page(loadCourseEditorPage, (a) => a.hasAnywhere("program.manage")) },
+          ] },
+          { path: "subjects", handle: { crumb: "Subjects" }, children: [
+            { index: true, ...page(() => import("./routes/academics/SubjectListPage"), READ_ACADEMICS) },
+            { path: "new", handle: { crumb: "New" }, ...page(loadSubjectEditorPage, (a) => a.hasAnywhere("subject.manage")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/academics/SubjectDetailPage"), READ_ACADEMICS) },
+            { path: ":id/edit", handle: { crumb: "Edit" }, ...page(loadSubjectEditorPage, (a) => a.hasAnywhere("subject.manage")) },
+          ] },
+          { path: "calendar", handle: { crumb: "Academic Calendar" }, children: [
+            { index: true, ...page(() => import("./routes/academics/AcademicYearsPage"), READ_ACADEMICS) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/academics/AcademicYearDetailPage"), READ_ACADEMICS) },
+          ] },
+          { path: "terms", handle: { crumb: "Terms" }, ...page(() => import("./routes/academics/TermsPage"), READ_ACADEMICS) },
+          { path: "batches", handle: { crumb: "Batches" }, children: [
+            { index: true, ...page(() => import("./routes/academics/BatchListPage"), READ_ACADEMICS) },
+            { path: "new", handle: { crumb: "New" }, ...page(loadBatchEditorPage, (a) => a.hasAnywhere("batch.manage")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/academics/BatchDetailPage"), READ_ACADEMICS) },
+            { path: ":id/edit", handle: { crumb: "Edit" }, ...page(loadBatchEditorPage, (a) => a.hasAnywhere("batch.manage")) },
+          ] },
+          { path: "offerings", handle: { crumb: "Subject Offerings" }, children: [
+            { index: true, ...page(() => import("./routes/academics/OfferingListPage"), READ_ACADEMICS) },
+            { path: ":id", handle: { crumb: "Faculty" }, ...page(() => import("./routes/academics/OfferingDetailPage"), READ_ACADEMICS) },
+          ] },
         ] },
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
         { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },

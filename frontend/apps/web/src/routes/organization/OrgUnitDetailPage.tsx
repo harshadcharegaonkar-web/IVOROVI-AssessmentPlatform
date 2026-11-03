@@ -41,7 +41,7 @@ export function OrgUnitDetailPage() {
   const showFeatures = isInstitution(type) && access.hasInOrgUnit("feature.read", unit.id, ancestorIds);
   const childTypes = UNIT_TYPES.filter((t) => ALLOWED_PARENTS[t].includes(type));
   const dependents = detail.dependents;
-  const inUse = !!dependents && ((dependents.children ?? 0) + (dependents.roleAssignments ?? 0) + (dependents.featureOverrides ?? 0) > 0);
+  const inUse = !!dependents && ((dependents.children ?? 0) + (dependents.roleAssignments ?? 0) + (dependents.featureOverrides ?? 0) + (dependents.academicRecords ?? 0) > 0);
   const childTotal = Object.values((detail.childCounts ?? {}) as Record<string, number>).reduce((a, b) => a + b, 0);
   const attributes = (unit.attributes ?? {}) as Record<string, string>;
   const accent = ((unit.branding ?? {}) as Record<string, string>)["accentColor"];

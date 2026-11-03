@@ -1,14 +1,15 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
-import { BadgeCheck, BookKey, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import type { TerminologyKey } from "../session/useOrgLabels";
+import { BadgeCheck, BookKey, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
-export interface NavItem { to: string; label: string; icon: LucideIcon; visible: (a: Access) => boolean; orgType?: OrgUnitType }
+export interface NavItem { to: string; label: string; icon: LucideIcon; visible: (a: Access) => boolean; orgType?: OrgUnitType | TerminologyKey }
 export interface NavGroup { id: string; label: string | null; items: NavItem[] }
 
 /**
  * Navigation model (design system §3). Only implemented screens are listed: groups gain items as increments
- * deliver them (People 1.2; Access 1.3; Academics and Students later).
+ * deliver them (People 1.2; Access 1.3; Academics 1.4; Students later).
  * Visibility mirrors server permissions for convenience only; the API enforces every permission.
  */
 export const NAV_GROUPS: NavGroup[] = [
@@ -37,6 +38,19 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/access/roles", label: "Roles", icon: KeyRound, visible: (a) => a.hasAnywhere("role.read") },
       { to: "/access/permissions", label: "Permission Catalogue", icon: BookKey, visible: (a) => a.hasAnywhere("role.read") },
       { to: "/access/assignments", label: "Role Assignments", icon: ListChecks, visible: (a) => a.hasAnywhere("role.read") },
+    ],
+  },
+  {
+    id: "academics", label: "Academics",
+    items: [
+      { to: "/academics", label: "Academic Overview", icon: LibraryBig, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/programs", label: "Programs", orgType: "PROGRAM", icon: GraduationCap, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/courses", label: "Courses", orgType: "COURSE", icon: GitBranch, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/subjects", label: "Subjects", orgType: "SUBJECT", icon: BookOpen, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/calendar", label: "Academic Calendar", icon: CalendarRange, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/terms", label: "Semesters", orgType: "TERM", icon: CalendarDays, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/batches", label: "Batches", orgType: "BATCH", icon: Users, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/academics/offerings", label: "Subject Offerings", icon: Layers, visible: (a) => a.hasAnywhere("academics.read") },
     ],
   },
   {

@@ -50,6 +50,19 @@ public enum Permission {
     ROLE_MANAGE("role.manage", "Create and edit custom roles", "Create, edit, clone, deactivate and archive custom roles within your own permissions",
             Domain.ROLES, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
 
+    ACADEMICS_READ("academics.read", "View academic structure", "View programs, courses, subjects, the academic calendar, batches and subject offerings",
+            Domain.ACADEMICS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    PROGRAM_MANAGE("program.manage", "Manage programs and courses", "Create, edit and deactivate programs and their courses or branches",
+            Domain.ACADEMICS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    SUBJECT_MANAGE("subject.manage", "Manage subjects and curricula", "Create and edit subjects, prerequisites and which terms of a course teach them",
+            Domain.ACADEMICS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    ACADEMIC_CALENDAR_MANAGE("academic_calendar.manage", "Manage the academic calendar", "Create and edit academic years and their semesters or terms",
+            Domain.ACADEMICS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    BATCH_MANAGE("batch.manage", "Manage batches and subject offerings", "Create and edit batches and decide which subjects are offered to them in a term",
+            Domain.ACADEMICS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    FACULTY_ASSIGN("faculty.assign", "Assign faculty", "Assign faculty to subject offerings and end assignments",
+            Domain.ACADEMICS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
+
     AUDIT_READ("audit.read", "View the audit trail", "View and verify the tamper-evident audit trail",
             Domain.AUDIT, Level.READ, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
 
@@ -94,6 +107,7 @@ public enum Permission {
         USERS("User management"),
         STAFF("Staff management"),
         ROLES("Role management"),
+        ACADEMICS("Academic structure"),
         STUDENTS("Student management"),
         ADMISSIONS("Admissions"),
         ASSESSMENTS("Assessment management"),

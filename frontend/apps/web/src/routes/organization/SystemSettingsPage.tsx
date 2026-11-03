@@ -1,23 +1,29 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ApiError, unwrap, type OrgUnitType, type TenantSettings } from "@ivorovi/api-client";
-import { Alert, Button, Card, CardBody, CardHeader, ErrorState, Field, Input, PageHeader, Select, Skeleton, useToast } from "@ivorovi/ui";
+import { ApiError, unwrap, type TenantSettings } from "@ivorovi/api-client";
+import { Alert, Button, Card, CardBody, CardHeader, ErrorState, Field, Input, PageHeader, Select, Skeleton, Switch, useToast } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { errorInfo, useApi } from "../../api/ApiProvider";
 import { useSession } from "../../session/SessionProvider";
+import { TERMINOLOGY_DEFAULTS, type AcademicTermKey, type TerminologyKey } from "../../session/useOrgLabels";
 import { UNIT_TYPES } from "./orgModel";
+
+const ACADEMIC_TERMS: AcademicTermKey[] = ["PROGRAM", "COURSE", "SUBJECT", "TERM", "BATCH"];
+const ALL_TERMS: TerminologyKey[] = [...UNIT_TYPES, ...ACADEMIC_TERMS];
 
 const LABEL = z.string().trim().min(1, "Required").max(40, "At most 40 characters")
   .regex(/^[\p{L}\p{N} &'()./-]+$/u, "Letters, digits, spaces and & ' ( ) . / - only");
 const schema = z.object({
-  labels: z.object(Object.fromEntries(UNIT_TYPES.map((t) => [t, z.object({ singular: LABEL, plural: LABEL })])) as Record<OrgUnitType, z.ZodObject<{ singular: typeof LABEL; plural: typeof LABEL }>>),
+  labels: z.object(Object.fromEntries(ALL_TERMS.map((t) => [t, z.object({ singular: LABEL, plural: LABEL })])) as Record<TerminologyKey, z.ZodObject<{ singular: typeof LABEL; plural: typeof LABEL }>>),
   timeZone: z.string().min(1, "Required"),
+  allowOverlappingAcademicYears: z.boolean(),
 });
 type FormValues = z.infer<typeof schema>;
 
-const STABLE_NAMES: Record<OrgUnitType, string> = { UNIVERSITY: "University", COLLEGE: "College", CAMPUS: "Campus", DEPARTMENT: "Department" };
+/** Stable internal names shown next to the editable labels (the default singular of each type). */
+const STABLE_NAMES = (t: TerminologyKey) => t === "TERM" ? "Term (semester)" : TERMINOLOGY_DEFAULTS[t].singular;
 
 /** Organization-wide settings: terminology for the stable unit types and the organization's time zone. */
 export function SystemSettingsPage() {
@@ -48,18 +54,19 @@ function SettingsForm({ settings }: { settings: TenantSettings }) {
     const list = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
     return list.includes(settings.timeZone ?? "") ? list : [settings.timeZone ?? "Asia/Kolkata", ...list];
   }, [settings.timeZone]);
-  const stored = (settings.labels ?? {}) as Partial<Record<OrgUnitType, { singular?: string; plural?: string }>>;
+  const stored = (settings.labels ?? {}) as Partial<Record<TerminologyKey, { singular?: string; plural?: string }>>;
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      labels: Object.fromEntries(UNIT_TYPES.map((t) => [t, { singular: stored[t]?.singular ?? "", plural: stored[t]?.plural ?? "" }])) as FormValues["labels"],
+      labels: Object.fromEntries(ALL_TERMS.map((t) => [t, { singular: stored[t]?.singular ?? TERMINOLOGY_DEFAULTS[t].singular, plural: stored[t]?.plural ?? TERMINOLOGY_DEFAULTS[t].plural }])) as FormValues["labels"],
       timeZone: settings.timeZone ?? "Asia/Kolkata",
+      allowOverlappingAcademicYears: settings.allowOverlappingAcademicYears ?? false,
     },
   });
 
   const save = useMutation({
     mutationFn: async (v: FormValues) => unwrap(await api.PUT("/api/v1/tenant/settings", {
-      body: { version: settings.version!, labels: v.labels, timeZone: v.timeZone },
+      body: { version: settings.version!, labels: v.labels, timeZone: v.timeZone, allowOverlappingAcademicYears: v.allowOverlappingAcademicYears },
     })),
     onSuccess: (d) => {
       qc.setQueryData(["tenant-settings"], d);
@@ -73,6 +80,17 @@ function SettingsForm({ settings }: { settings: TenantSettings }) {
   });
 
   const err = form.formState.errors;
+  const row = (t: TerminologyKey) => (
+    <div key={t} className="grid grid-cols-1 gap-3 border-b border-border pb-5 last:border-0 last:pb-0 md:grid-cols-[10rem_1fr_1fr] md:items-start">
+      <p className="pt-2 text-sm font-semibold text-fg">{STABLE_NAMES(t)}</p>
+      <Field label="Singular" error={err.labels?.[t]?.singular?.message}>
+        {(p) => <Input {...p} data-testid={`label-${t}-singular`} {...form.register(`labels.${t}.singular`)} />}
+      </Field>
+      <Field label="Plural" error={err.labels?.[t]?.plural?.message}>
+        {(p) => <Input {...p} data-testid={`label-${t}-plural`} {...form.register(`labels.${t}.plural`)} />}
+      </Field>
+    </div>
+  );
   return (
     <form noValidate className="space-y-6" onSubmit={form.handleSubmit((v) => { setProblem(null); save.mutate(v); })}>
       {!canEdit && <Alert tone="info">You can view these settings. Changing them requires the organization administrator role.</Alert>}
@@ -82,17 +100,29 @@ function SettingsForm({ settings }: { settings: TenantSettings }) {
           description="Names shown for each level of your hierarchy. Stored types do not change, so renaming is safe at any time." />
         <CardBody>
           <fieldset disabled={!canEdit} className="space-y-5">
-            {UNIT_TYPES.map((t) => (
-              <div key={t} className="grid grid-cols-1 gap-3 border-b border-border pb-5 last:border-0 last:pb-0 md:grid-cols-[10rem_1fr_1fr] md:items-start">
-                <p className="pt-2 text-sm font-semibold text-fg">{STABLE_NAMES[t]}</p>
-                <Field label="Singular" error={err.labels?.[t]?.singular?.message}>
-                  {(p) => <Input {...p} data-testid={`label-${t}-singular`} {...form.register(`labels.${t}.singular`)} />}
-                </Field>
-                <Field label="Plural" error={err.labels?.[t]?.plural?.message}>
-                  {(p) => <Input {...p} data-testid={`label-${t}-plural`} {...form.register(`labels.${t}.plural`)} />}
-                </Field>
-              </div>
-            ))}
+            {UNIT_TYPES.map(row)}
+          </fieldset>
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title="Academic terminology"
+          description="Names of the academic levels (Program → Course → Subject), terms and batches. Stored types do not change." />
+        <CardBody>
+          <fieldset disabled={!canEdit} className="space-y-5">
+            {ACADEMIC_TERMS.map(row)}
+          </fieldset>
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title="Academic calendar" />
+        <CardBody>
+          <fieldset disabled={!canEdit} className="flex items-start gap-3">
+            <Controller control={form.control} name="allowOverlappingAcademicYears" render={({ field }) => (
+              <Switch id="overlap" checked={field.value} onCheckedChange={field.onChange} disabled={!canEdit} label="Allow overlapping academic years" />)} />
+            <label htmlFor="overlap" className="text-sm">
+              <span className="block font-medium text-fg">Allow overlapping academic years</span>
+              <span className="block text-muted-strong">When off, academic years of the same owner cannot share dates. Terms within a year never overlap.</span>
+            </label>
           </fieldset>
         </CardBody>
       </Card>
