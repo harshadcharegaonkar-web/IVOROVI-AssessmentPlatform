@@ -92,6 +92,16 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$KEYCLOAK_URL/realms/ivor
   -d client_id=ivorovi-dev-cli --data-urlencode "username=$NEW_EMAIL" --data-urlencode "password=$NEW_PASSWORD")
 [[ $code == 400 || $code == 401 ]] && { pass=$((pass+1)); echo "  PASS  deactivated user can no longer sign in to Keycloak ($code)"; } || { fail=$((fail+1)); echo "  FAIL  Keycloak still issues tokens ($code)"; }
 
+echo "Custom roles (increment 1.3) ..."
+check "permission catalogue"                            200 "$ALICE" GET /api/v1/permissions
+check "create a custom role"                            201 "$ALICE" POST /api/v1/roles \
+  "{\"name\":\"Smoke role $RANDOM$RANDOM\",\"permissions\":[\"org_unit.read\",\"user.read\"]}" "Idempotency-Key: smoke-role-$RANDOM-$RANDOM"
+SMOKE_ROLE=$(json 'd["role"]["id"]')
+check "faculty cannot create roles"                     403 "$ARUN"  POST /api/v1/roles '{"name":"x","permissions":["user.read"]}' "Idempotency-Key: smoke-deny-$RANDOM-$RANDOM"
+check "college admin cannot create an organization-wide role" 403 "$INES" POST /api/v1/roles '{"name":"x","permissions":["user.read"]}' "Idempotency-Key: smoke-deny-$RANDOM-$RANDOM"
+check "system roles cannot be edited"                   403 "$ALICE" PATCH /api/v1/roles/01920000-0000-7000-8000-000000000002 '{"version":0,"name":"x"}'
+check "archive the smoke role"                          204 "$ALICE" DELETE "/api/v1/roles/$SMOKE_ROLE?version=0"
+
 echo "Provisioning service account is least-privilege (real Keycloak) ..."
 PROV=$(curl -s -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=client_credentials \
   -d client_id=ivorovi-provisioner --data-urlencode "client_secret=$KEYCLOAK_PROVISIONER_SECRET" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("access_token",""))')

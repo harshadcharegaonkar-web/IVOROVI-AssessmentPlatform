@@ -115,6 +115,9 @@ erDiagram
   designation, employment status/type, joining date, optional one-to-one link to a user account.
 * **OrgAssignment**: user *or* staff profile × unit (null = organization), primary flag, title, optional dates.
   Membership only; permissions come from role assignments.
+* **Role (1.3 fields)**: `status ACTIVE | INACTIVE` (custom only), `scope_org_unit_id` (custom role limited to a unit
+  subtree), `cloned_from`, `archived_at`, `status_reason`; system roles (`tenant_id` NULL) are fixed. Permissions are
+  codes from the catalogue (`Permission` enum: domain, level, scope rule, availability).
 * **RoleAssignment**: `(user_id, role_id, scope_type, scope_id, valid_from, valid_to)`. Time-bound
   assignments support external evaluators and invigilators.
 

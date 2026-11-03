@@ -42,6 +42,9 @@
 | C24 | Least-privilege identity provisioning (`ivorovi-provisioner`: manage/view/query-users only) | ✅ | Probe: clients, roles and master realm return 403; secret generated per environment (`KEYCLOAK_PROVISIONER_SECRET`) |
 | C25 | Anti-escalation for role assignment, no self-assignment, last-organization-admin protection, scoped people management (all units) | ✅ | `UserManagementIT.Assignments`, `Lifecycle`, E2E scoped administrator |
 | C26 | Suspension/deactivation take effect on the next request (principal cache eviction) and in Keycloak (disabled, sessions ended) | ✅ | `Lifecycle.suspendReactivateDeactivateActivate`, smoke test, E2E (Keycloak refuses sign-in) |
+| C27 | Custom roles bounded by the editor's ceiling at the role scope; only catalogued, available permissions; reserved codes refused; platform permissions excluded (service + DB check) | ✅ | `RoleManagementIT.Catalogue`, `CeilingAndScope`, smoke |
+| C28 | System roles immutable through the API; denied attempts audited | ✅ | `systemRolesAreProtected`, smoke |
+| C29 | Role deactivation/edit/archive take effect on the next request (tenant-wide principal cache invalidation); concurrent archive/assign/edit serialised | ✅ | `deactivationSuspendsAssignments…`, `editingARole…`, `Concurrency` |
 | C20 | DAST (OWASP ZAP), external penetration test | ⬜ | Phase 8, plus before first production tenant |
 | C21 | Field-level encryption of sensitive PII | ⬜ | When such fields are introduced (Phase 1 does not store government IDs) |
 | C22 | Production IdP hardening (TLS, MFA policies, brute-force settings beyond dev realm) | ⬜ | Phase 8 deployment work |

@@ -40,4 +40,8 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 | KI-34 | Identity | Email of a user who has signed in cannot be changed in Ivorovi (identity provider owns it) | Low | Accepted | Change in Keycloak; self-service email change later |
 | KI-35 | Notifications | Invitation emails are plain text; a failed send is shown and can be re-sent but is not retried automatically | Low | Planned | Templates, retries and preferences in Phase 2 (module 17) |
 | KI-36 | Security | Provisioner service account can read the realm summary (`GET /admin/realms/ivorovi` → 200); clients, roles and other realms are denied | Info | Accepted | Keycloak behaviour for any realm-management role; no secrets exposed |
+| KI-37 | Frontend | Initial JS at 176.1 kB gzip: 3.9 kB below the 180 kB budget | Low | Open | Watch in each increment; next candidates for lazy loading are the notification centre and search dialog |
+| KI-38 | Roles | The scope of an existing custom role cannot be changed (clone instead) | Info | Accepted | Keeps existing assignments valid |
+| KI-39 | Authorization | Cached principals lived up to 60 s past an assignment's end date | Medium | Fixed | 1.2 verification item 5: cache expires at the next start/end (`IvoroviPrincipal.refreshBy`) |
+| KI-40 | Roles | Archive returned 500 (`count … FOR UPDATE`) during development | Medium | Fixed | Role row lock; covered by `RoleManagementIT.Concurrency` |
 | KI-19 | Security scanning | Java dependencies were invisible to Trivy (no lockfile) | Medium | Fixed | Gradle dependency locking (`a239681`) |

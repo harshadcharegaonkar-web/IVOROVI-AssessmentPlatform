@@ -108,6 +108,11 @@ from day one, but is not implemented until needed (ADR-0003).
   * `Role`: a named bundle of permissions. The 15 system roles are seeded and immutable. Tenants create custom roles.
   * `RoleAssignment`: (user, role, **scope**) where scope is `TENANT` or `ORG_UNIT` (implemented), later a
     specific resource (e.g. one assessment for an external evaluator).
+  * **Custom roles (1.3):** organization-defined bundles of catalogued permissions (`docs/security/permission-catalogue.md`),
+    organization-wide or limited to one unit's subtree; system roles are immutable. Creating, cloning, editing or
+    reactivating a role is bounded by the editor's own permissions at the role's scope (ceiling). Deactivating a role
+    suspends all of its assignments on the next request; archiving requires no active assignments. Any role change
+    invalidates the organization's cached principals; cached principals also expire at the next assignment start/end.
   * Role assignments are soft-revoked (history kept) and may end on a date. Granting follows the
     anti-escalation rule (increment 1.2): `role.assign` at the scope plus every permission of the role there;
     no self-assignment; the last organization administrator is protected.

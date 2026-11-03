@@ -56,9 +56,9 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 13 | Student management | 1.6 | ☐ | ☐ | ☐ |
 | 14 | Student profile | 1.6 | ☐ | ☐ | ☐ |
 | 15 | Bulk student import | 1.6 | ☐ | ☐ | ☐ |
-| 16 | Role management (custom roles) | 1.3 | ☐ | ☐ | ☐ |
-| 17 | Permission matrix | 1.3 | ☐ | ☐ | ☐ |
-| 18 | Access management (role assignment view, organizational assignments, effective access) | 1.2 (assignment of system roles) / 1.3 (custom roles) | ✅ 1.2 part | ✅ | ☐ |
+| 16 | Role management (list, details, create/edit/clone, deactivate, archive) | 1.3 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 17 | Permission catalogue, permission configurator, role comparison | 1.3 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 18 | Access management (role assignment view and overview, organizational assignments, effective access) | 1.2 / 1.3 | ✅ | ✅ | ☐ |
 | 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ✅ 1.0 restyle | ✅ | ✅ 1.0 approved 2026-11-02 |
 | 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ✅ approved 2026-11-02 |
 | 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ✅ approved 2026-11-02 |
@@ -86,6 +86,13 @@ All new screens follow the approved baseline at 1440×900, 1024×768 and 390×84
 runs axe on the users list, access overview, invitations, staff details and the public invitation page. Found
 and fixed during review: clipped status column on phones (moved under the name), duplicate assignment line in
 the access summary (now labelled "via staff profile"), contrast of a label on the invitation page.
+
+## G. Results: increment 1.3 (2026-11-03), awaiting review
+
+New Access screens follow the baseline at 1440×900, 1024×768 and 390×844 (`docs/design/evidence/1.3/`, 33
+screenshots). Overflow checks at tablet and mobile on every new screen; axe on list, catalogue, editor, detail,
+comparison and overview. Review changes: planned permission areas collapsed in the editor so a non-specialist sees
+only what can be granted today; organization-only permissions disabled with the reason for unit-limited roles.
 
 Automation (re-planned): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are

@@ -47,6 +47,11 @@ class OutboxIT extends IntegrationTest {
         UUID id = TenantContext.callInTenant(TENANT_A, () -> tx.execute(s ->
                 outbox.append("test", "agg-1", "test.outbox.created", Map.of("hello", "world"))));
         assertThat(publisher.publishPending()).isGreaterThanOrEqualTo(1);
+        // other suites leave unpublished events behind; publishing is oldest-first in batches, so drain until ours went out
+        for (int i = 0; i < 100 && !ownerJdbc().sql("SELECT published_at IS NOT NULL FROM outbox_event WHERE id = ?").param(id)
+                .query(Boolean.class).single(); i++) {
+            publisher.publishPending();
+        }
 
         Message m = rabbit.receive(queue, 5000);
         assertThat(m).isNotNull();

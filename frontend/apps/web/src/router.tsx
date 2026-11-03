@@ -77,6 +77,18 @@ export const routes: RouteObject[] = [
           ] },
           { path: "invitations", handle: { crumb: "Invitations" }, ...page(() => import("./routes/people/InvitationsPage"), (a) => a.hasAnywhere("user.read")) },
         ] },
+        { path: "access", handle: { crumb: "Access" }, children: [
+          { index: true, element: <Navigate to="/access/roles" replace /> },
+          { path: "roles", handle: { crumb: "Roles" }, children: [
+            { index: true, ...page(() => import("./routes/access/RoleListPage"), (a) => a.hasAnywhere("role.read")) },
+            { path: "new", handle: { crumb: "New role" }, ...page(() => import("./routes/access/RoleEditorPage"), (a) => a.hasAnywhere("role.manage")) },
+            { path: "compare", handle: { crumb: "Compare" }, ...page(() => import("./routes/access/RoleComparePage"), (a) => a.hasAnywhere("role.read")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/access/RoleDetailPage"), (a) => a.hasAnywhere("role.read")) },
+            { path: ":id/edit", handle: { crumb: "Edit" }, ...page(() => import("./routes/access/RoleEditorPage"), (a) => a.hasAnywhere("role.manage")) },
+          ] },
+          { path: "permissions", handle: { crumb: "Permission Catalogue" }, ...page(() => import("./routes/access/PermissionCataloguePage"), (a) => a.hasAnywhere("role.read")) },
+          { path: "assignments", handle: { crumb: "Role Assignments" }, ...page(() => import("./routes/access/RoleAssignmentsPage"), (a) => a.hasAnywhere("role.read")) },
+        ] },
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
         { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },
         { path: "audit", handle: { crumb: "Audit Logs" }, ...page(() => import("./routes/AuditPage"), (a) => a.has("audit.read")) },

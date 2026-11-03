@@ -67,3 +67,22 @@ export async function invitationLink(request: APIRequestContext, email: string):
   }
   throw new Error(`No invitation email for ${email}`);
 }
+
+/** Revokes every assignment of custom roles whose name starts with {@code prefix}, then archives them. */
+export async function archiveRolesNamed(request: APIRequestContext, prefix: string): Promise<void> {
+  const headers = { Authorization: `Bearer ${await apiToken(request, USERS.orgAdmin)}` };
+  const list = await request.get(`/api/v1/roles?type=custom&size=100&q=${encodeURIComponent(prefix)}`, { headers });
+  expect(list.ok()).toBeTruthy();
+  type Role = { id: string; name: string };
+  for (const role of ((await list.json()) as { items: Role[] }).items.filter((r) => r.name.startsWith(prefix))) {
+    const holders = await request.get(`/api/v1/roles/${role.id}/holders?size=100`, { headers });
+    for (const h of ((await holders.json()) as { items: { assignmentId: string; userId: string; active: boolean }[] }).items.filter((x) => x.active)) {
+      const r = await request.post(`/api/v1/users/${h.userId}/role-assignments/${h.assignmentId}/revoke`, { headers, data: { reason: "E2E cleanup" } });
+      expect(r.status(), "revoke").toBe(204);
+    }
+    const detail = await request.get(`/api/v1/roles/${role.id}`, { headers });
+    const version = ((await detail.json()) as { role: { version: number } }).role.version;
+    const del = await request.delete(`/api/v1/roles/${role.id}?version=${version}`, { headers });
+    expect(del.status(), `archive ${role.name}`).toBe(204);
+  }
+}

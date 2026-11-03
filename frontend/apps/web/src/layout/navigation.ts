@@ -1,5 +1,5 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
-import { BadgeCheck, Landmark, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { BadgeCheck, BookKey, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -29,6 +29,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/people/users", label: "Users", icon: UserCog, visible: (a) => a.hasAnywhere("user.read") },
       { to: "/people/staff", label: "Staff", icon: BadgeCheck, visible: (a) => a.hasAnywhere("staff.read") },
       { to: "/people/invitations", label: "Invitations", icon: MailPlus, visible: (a) => a.hasAnywhere("user.read") },
+    ],
+  },
+  {
+    id: "access", label: "Access",
+    items: [
+      { to: "/access/roles", label: "Roles", icon: KeyRound, visible: (a) => a.hasAnywhere("role.read") },
+      { to: "/access/permissions", label: "Permission Catalogue", icon: BookKey, visible: (a) => a.hasAnywhere("role.read") },
+      { to: "/access/assignments", label: "Role Assignments", icon: ListChecks, visible: (a) => a.hasAnywhere("role.read") },
     ],
   },
   {
