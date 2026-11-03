@@ -17,7 +17,9 @@ export function invalidatePeople(qc: ReturnType<typeof useQueryClient>) {
 }
 
 /** Units the caller may choose, indented by depth; "Whole organization" only with the tenant-wide permission. */
-export function UnitOptions({ permission, allowOrganization = true }: { permission: string; allowOrganization?: boolean }) {
+export function UnitOptions({ permission, allowOrganization = true, within, organizationOnly = false }: {
+  permission: string; allowOrganization?: boolean; within?: string | null; organizationOnly?: boolean;
+}) {
   const tree = useOrgTree();
   const labels = useOrgLabels();
   const { access } = useSession();
@@ -26,11 +28,14 @@ export function UnitOptions({ permission, allowOrganization = true }: { permissi
     const byId = new Map(nodes.map((n) => [n.id, n]));
     const depth = (n: OrgNode): number => (n.parentId && byId.has(n.parentId) ? 1 + depth(byId.get(n.parentId)!) : 0);
     const ancestors = (n: OrgNode): string[] => (n.parentId && byId.has(n.parentId) ? [...ancestors(byId.get(n.parentId)!), n.parentId] : []);
-    return nodes.filter((n) => access.hasInOrgUnit(permission, n.id, ancestors(n))).map((n) => ({ n, d: depth(n) }));
-  }, [tree.data, access, permission]);
+    if (organizationOnly) return [];
+    return nodes.filter((n) => access.hasInOrgUnit(permission, n.id, ancestors(n)))
+      .filter((n) => !within || n.id === within || ancestors(n).includes(within))
+      .map((n) => ({ n, d: depth(n) }));
+  }, [tree.data, access, permission, within, organizationOnly]);
   return (
     <>
-      {allowOrganization && access.has(permission) && <option value="">Whole organization</option>}
+      {allowOrganization && !within && access.has(permission) && <option value="">Whole organization</option>}
       {options.map(({ n, d }) => (
         <option key={n.id} value={n.id}>{" ".repeat(d * 2)}{n.name} ({labels.singular(n.type)})</option>
       ))}
@@ -183,7 +188,7 @@ export function AssignRoleDialog({ open, onOpenChange, userId }: { open: boolean
   const qc = useQueryClient();
   const toast = useToast();
   const { access } = useSession();
-  const roles = useQuery({ queryKey: ["roles"], staleTime: 5 * 60_000, queryFn: async () => unwrap(await api.GET("/api/v1/roles")) });
+  const roles = useQuery({ queryKey: ["roles", "assignable"], staleTime: 60_000, queryFn: async () => unwrap(await api.GET("/api/v1/roles/assignable")) });
   const [roleId, setRoleId] = useState("");
   const [unitId, setUnitId] = useState(access.has("role.assign") ? "" : "unset");
   const [validTo, setValidTo] = useState("");
@@ -206,9 +211,16 @@ export function AssignRoleDialog({ open, onOpenChange, userId }: { open: boolean
         {error && <Alert tone="danger">{error}</Alert>}
         <Field label="Role">
           {(p) => (
-            <Select {...p} value={roleId} onChange={(e) => setRoleId(e.target.value)}>
+            <Select {...p} value={roleId} onChange={(e) => {
+              setRoleId(e.target.value);
+              const next = roles.data?.find((r) => r.id === e.target.value);
+              setUnitId(next?.scopeOrgUnitId ?? (!next?.system && next?.organizationOnly ? "" : access.has("role.assign") ? "" : "unset"));
+            }}>
               <option value="">Choose a role…</option>
-              {(roles.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              <optgroup label="System roles">{(roles.data ?? []).filter((r) => r.system).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</optgroup>
+              {(roles.data ?? []).some((r) => !r.system) && (
+                <optgroup label="Custom roles">{(roles.data ?? []).filter((r) => !r.system).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</optgroup>
+              )}
             </Select>
           )}
         </Field>
@@ -217,13 +229,15 @@ export function AssignRoleDialog({ open, onOpenChange, userId }: { open: boolean
             <p className="text-muted">{role.description}</p>
             <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted">Permissions ({role.permissions?.length ?? 0})</p>
             <p className="mt-1 flex flex-wrap gap-1">{(role.permissions ?? []).map((p) => <code key={p} className="rounded bg-surface px-1.5 py-0.5 text-xs">{p}</code>)}</p>
+            {role.scopeOrgUnitId && <p className="mt-2 text-xs text-muted-strong">This custom role is limited to {role.scopeName} and units below it.</p>}
+            {!role.system && role.organizationOnly && <p className="mt-2 text-xs text-muted-strong">Contains organization-wide permissions: it can only be assigned for the whole organization.</p>}
           </div>
         )}
         <Field label="Scope" hint="The role applies to this unit and everything below it.">
           {(p) => (
             <Select {...p} value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-              {!access.has("role.assign") && <option value="unset">Choose a unit…</option>}
-              <UnitOptions permission="role.assign" />
+              {!access.has("role.assign") && !role?.scopeOrgUnitId && <option value="unset">Choose a unit…</option>}
+              <UnitOptions permission="role.assign" within={role?.scopeOrgUnitId ?? null} organizationOnly={!!role && !role.system && !!role.organizationOnly} />
             </Select>
           )}
         </Field>

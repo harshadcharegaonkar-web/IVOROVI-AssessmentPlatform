@@ -31,14 +31,27 @@ class DatabasePrincipalResolver implements PrincipalResolver {
                         rs.getString("display_name")))
                 .optional();
         return account.map(a -> new IvoroviPrincipal(a.id(), tenantId, subject, a.email(), a.displayName(),
-                grants(tenantId, a.id()), roles(tenantId, a.id())));
+                grants(tenantId, a.id()), roles(tenantId, a.id()), nextBoundary(tenantId, a.id())));
+    }
+
+    /** Earliest future start or end of one of the user's role assignments (null when none). */
+    private java.time.Instant nextBoundary(UUID tenantId, UUID userId) {
+        java.sql.Timestamp t = jdbc.sql("""
+                SELECT min(b) FROM (
+                    SELECT valid_from AS b FROM role_assignment WHERE tenant_id = ? AND user_account_id = ? AND revoked_at IS NULL
+                    UNION ALL
+                    SELECT valid_to FROM role_assignment WHERE tenant_id = ? AND user_account_id = ? AND revoked_at IS NULL
+                ) x WHERE b > now()""")
+                .params(tenantId, userId, tenantId, userId).query((rs, n) -> rs.getTimestamp(1)).list()
+                .stream().filter(java.util.Objects::nonNull).findFirst().orElse(null);
+        return t == null ? null : t.toInstant();
     }
 
     private List<String> roles(UUID tenantId, UUID userId) {
         return jdbc.sql("""
                 SELECT DISTINCT r.code FROM role_assignment ra JOIN role r ON r.id = ra.role_id
                 WHERE ra.tenant_id = ? AND ra.user_account_id = ?
-                  AND ra.revoked_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
+                  AND ra.revoked_at IS NULL AND r.status = 'ACTIVE' AND r.archived_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
                 ORDER BY r.code""")
                 .params(tenantId, userId).query(String.class).list();
     }
@@ -50,7 +63,7 @@ class DatabasePrincipalResolver implements PrincipalResolver {
                 JOIN role r ON r.id = ra.role_id
                 CROSS JOIN LATERAL unnest(r.permissions) AS p(permission)
                 WHERE ra.tenant_id = ? AND ra.user_account_id = ?
-                  AND ra.revoked_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())""")
+                  AND ra.revoked_at IS NULL AND r.status = 'ACTIVE' AND r.archived_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())""")
                 .params(tenantId, userId)
                 .query((rs, n) -> new Grant(rs.getString(1), rs.getString(2), ScopeType.valueOf(rs.getString(3)),
                         rs.getObject(4, UUID.class)))

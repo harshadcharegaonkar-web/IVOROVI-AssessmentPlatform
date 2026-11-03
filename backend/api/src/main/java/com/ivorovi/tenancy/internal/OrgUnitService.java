@@ -49,8 +49,8 @@ public class OrgUnitService implements OrgUnitLookup {
     public record Ancestor(UUID id, OrgUnitType type, String code, String name) {}
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitDependents")
-    public record Dependents(long children, long activeChildren, long roleAssignments, long featureOverrides, long members) {
-        public boolean any() { return children + roleAssignments + featureOverrides + members > 0; }
+    public record Dependents(long children, long activeChildren, long roleAssignments, long featureOverrides, long members, long customRoles) {
+        public boolean any() { return children + roleAssignments + featureOverrides + members + customRoles > 0; }
     }
 
     @io.swagger.v3.oas.annotations.media.Schema(name = "OrgUnitDetail")
@@ -266,7 +266,7 @@ public class OrgUnitService implements OrgUnitLookup {
         }
         OrgUnit created = load(id);
         recordChange(created, "CREATED", null, null, snapshot(created));
-        return new Detail(created, ancestors(created), Map.of(), new Dependents(0, 0, 0, 0, 0));
+        return new Detail(created, ancestors(created), Map.of(), new Dependents(0, 0, 0, 0, 0, 0));
     }
 
     @Transactional
@@ -443,9 +443,10 @@ public class OrgUnitService implements OrgUnitLookup {
                        (SELECT count(*) FROM org_unit WHERE parent_id = :id AND status = 'ACTIVE'),
                        (SELECT count(*) FROM role_assignment WHERE scope_type = 'ORG_UNIT' AND scope_id = :id AND revoked_at IS NULL),
                        (SELECT count(*) FROM feature_flag_override WHERE org_unit_id = :id),
-                       (SELECT count(*) FROM org_assignment WHERE org_unit_id = :id)""")
+                       (SELECT count(*) FROM org_assignment WHERE org_unit_id = :id),
+                       (SELECT count(*) FROM role WHERE scope_org_unit_id = :id)""")
                 .param("id", id)
-                .query((rs, n) -> new Dependents(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5)))
+                .query((rs, n) -> new Dependents(rs.getLong(1), rs.getLong(2), rs.getLong(3), rs.getLong(4), rs.getLong(5), rs.getLong(6)))
                 .single();
     }
 

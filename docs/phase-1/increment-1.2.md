@@ -83,3 +83,22 @@ Acceptance criteria 1–20 map to the tests above (creation/invitation 1–3: `I
 * Bulk user import and faculty teaching attributes from plan amendment 1 are outside the 1.2 scope given by the product owner.
 
 Evidence: `docs/design/evidence/1.2/` (41 screenshots, 1440×900, 1024×768, 390×844).
+
+## Acceptance security verification (2026-11-03)
+
+The product owner approved 1.2 and asked for six security verifications. Each is an automated test in
+`UserManagementIT.SecurityVerification` (real PostgreSQL, Valkey and RabbitMQ), plus a live probe in the smoke test.
+
+| # | Verification | Evidence | Result |
+|---|---|---|---|
+| 1 | Concurrent attempts cannot remove the last organization administrator | `item1_…`: two administrators deactivate each other at the same moment (5 rounds), then revoke each other's ORG_ADMIN at the same moment: exactly one request succeeds each time, one active administrator always remains (per-tenant advisory lock) | Pass |
+| 2 | Administrators cannot manage users whose assignments extend outside their scope | `item2_…`: a college administrator can suspend a user of their college; after the user gains an assignment (or a role) in another college, status change, profile edit, new assignment and invitation are all 403 | Pass |
+| 3 | Invitation tokens single-use, expiring, hashed, never logged | `item3_…` captures all application log output during invite, re-send, accept, re-use and expired lookup: neither token nor password appears; only hashes are stored; plus the 1.2 tests for audit/outbox | Pass |
+| 4 | Provisioning service account remains least-privilege | `item4_…` asserts the realm definition (confidential, service account only, no browser or password flow, secret is an environment placeholder, exactly `manage-users`/`view-users`/`query-users`, no realm roles); smoke test probes real Keycloak: users 200, clients 403, roles 403, master realm 403 | Pass |
+| 5 | Revoked, expired or not-yet-valid roles grant no access after cache invalidation | `item5_…`: an assignment ending in 3 s works, then stops at its end time; one starting in 3 s is refused, then works; a revoked one stops on the next request | Pass after fix (below) |
+| 6 | Lifecycle and permission changes are auditable | `item6_…`: create, invitation sent/accepted, role assigned/revoked, suspended/reactivated/deactivated are recorded with the acting administrator, target and reason; chain verification valid | Pass |
+
+**Defect found by item 5 and fixed:** cached principals lived up to 60 s, so an assignment that reached its end
+date kept granting access for up to a minute (and a future-dated one started up to a minute late). The resolver now
+records the next start/end time of the user's assignments and the cache entry expires no later than that
+(`IvoroviPrincipal.refreshBy`, `PrincipalCache`).

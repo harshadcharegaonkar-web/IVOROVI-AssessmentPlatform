@@ -39,8 +39,8 @@ export function UserListPage() {
   const update = (changes: Record<string, string | null>) =>
     setParams((p) => { const n = new URLSearchParams(p); Object.entries(changes).forEach(([k, v]) => (v ? n.set(k, v) : n.delete(k))); return n; });
 
-  const roles = useQuery({ queryKey: ["roles"], enabled: access.hasAnywhere("role.read"), staleTime: 5 * 60_000,
-    queryFn: async () => unwrap(await api.GET("/api/v1/roles")) });
+  const roles = useQuery({ queryKey: ["roles", "assignable"], enabled: access.hasAnywhere("role.read"), staleTime: 5 * 60_000,
+    queryFn: async () => unwrap(await api.GET("/api/v1/roles/assignable")) });
   const query = useQuery({
     queryKey: ["users", { q, status, invitation, unit, role, page, sortKey, direction }],
     placeholderData: keepPreviousData,

@@ -38,7 +38,13 @@ public class PrincipalCache {
 
     void put(IvoroviPrincipal principal) {
         requireBound(principal.tenantId());
-        cache.put(CACHE, key(principal.tenantId(), principal.subject()), principal, TTL);
+        Duration ttl = TTL;
+        if (principal.refreshBy() != null) {
+            Duration untilBoundary = Duration.between(java.time.Instant.now(), principal.refreshBy());
+            if (untilBoundary.compareTo(Duration.ofSeconds(1)) < 0) return;      // boundary imminent: do not cache
+            if (untilBoundary.compareTo(ttl) < 0) ttl = untilBoundary;
+        }
+        cache.put(CACHE, key(principal.tenantId(), principal.subject()), principal, ttl);
     }
 
     /** Call when one user's account status or role assignments change. */

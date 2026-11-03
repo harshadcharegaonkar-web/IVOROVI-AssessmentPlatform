@@ -260,6 +260,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** System and custom roles (search, type and status filters, sort, pagination) */
+        get: operations["list_2"];
+        put?: never;
+        /** Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope */
+        post: operations["create_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate or deactivate a custom role; deactivation suspends all of its assignments at once */
+        post: operations["status_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/public/invitations/lookup": {
         parameters: {
             query?: never;
@@ -302,10 +337,10 @@ export interface paths {
             cookie?: never;
         };
         /** List organization units visible to the caller (search, filters, sort, pagination) */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -432,6 +467,24 @@ export interface paths {
         patch: operations["update_2"];
         trace?: never;
     };
+    "/api/v1/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail_2"];
+        put?: never;
+        post?: never;
+        /** Archive a custom role that has no active assignments (history is kept) */
+        delete: operations["archive"];
+        options?: never;
+        head?: never;
+        /** Edit a custom role (system roles are protected); changes apply to every holder immediately */
+        patch: operations["update_3"];
+        trace?: never;
+    };
     "/api/v1/org-units/{id}": {
         parameters: {
             query?: never;
@@ -448,7 +501,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_3"];
+        patch: operations["update_4"];
         trace?: never;
     };
     "/api/v1/users/{id}/access": {
@@ -468,15 +521,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/roles": {
+    "/api/v1/roles/{id}/holders": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** System roles that can be assigned, with their permissions */
-        get: operations["list_3"];
+        /** Users who hold the role (only users visible to the caller) */
+        get: operations["holders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/roles/assignable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active roles that can be assigned, with their permissions and scope limits */
+        get: operations["assignable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/role-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current role assignments of visible users (filter by role, unit subtree or search) */
+        get: operations["overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Permission catalogue grouped by functional domain (planned permissions are listed but not grantable) */
+        get: operations["catalogue"];
         put?: never;
         post?: never;
         delete?: never;
@@ -940,6 +1044,8 @@ export interface components {
             revokedByName?: string;
             revocationReason?: string;
             active?: boolean;
+            roleStatus?: string;
+            systemRole?: boolean;
         };
         RoleRevokeRequest: {
             reason: string;
@@ -957,6 +1063,56 @@ export interface components {
         StaffLinkRequest: {
             /** Format: uuid */
             userId: string;
+        };
+        RoleCreateRequest: {
+            code?: string;
+            name: string;
+            description?: string;
+            /** Format: uuid */
+            scopeOrgUnitId?: string;
+            permissions: string[];
+            /** Format: uuid */
+            clonedFromRoleId?: string;
+        };
+        RoleDetail: {
+            role?: components["schemas"]["RoleSummary"];
+            permissions?: string[];
+            clonedFromName?: string;
+            statusReason?: string;
+            assignmentsByScope?: {
+                [key: string]: number;
+            };
+            canEdit?: boolean;
+            beyondYourCeiling?: string[];
+        };
+        RoleSummary: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            system?: boolean;
+            /** @enum {string} */
+            status?: "ACTIVE" | "INACTIVE";
+            /** Format: uuid */
+            scopeOrgUnitId?: string;
+            scopeName?: string;
+            /** Format: int32 */
+            permissionCount?: number;
+            /** Format: int64 */
+            activeAssignments?: number;
+            organizationOnly?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        RoleStatusRequest: {
+            /** @enum {string} */
+            status: "ACTIVE" | "INACTIVE";
+            /** Format: int64 */
+            version: number;
+            reason?: string;
         };
         InvitationTokenRequest: {
             token: string;
@@ -1034,6 +1190,8 @@ export interface components {
             featureOverrides?: number;
             /** Format: int64 */
             members?: number;
+            /** Format: int64 */
+            customRoles?: number;
         };
         OrgUnitDetail: {
             unit?: components["schemas"]["OrgUnit"];
@@ -1062,6 +1220,13 @@ export interface components {
             givenName?: string;
             familyName?: string;
             phone?: string;
+        };
+        RoleUpdateRequest: {
+            /** Format: int64 */
+            version: number;
+            name?: string;
+            description?: string;
+            permissions?: string[];
         };
         OrgUnitUpdateRequest: {
             /** Format: int64 */
@@ -1119,6 +1284,46 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        PageResponseRoleSummary: {
+            items?: components["schemas"]["RoleSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        PageResponseRoleHolder: {
+            items?: components["schemas"]["RoleHolder"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        RoleHolder: {
+            /** Format: uuid */
+            assignmentId?: string;
+            /** Format: uuid */
+            userId?: string;
+            userName?: string;
+            email?: string;
+            userStatus?: string;
+            scopeType?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            scopeName?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validTo?: string;
+            active?: boolean;
+        };
         AssignableRole: {
             /** Format: uuid */
             id?: string;
@@ -1126,6 +1331,67 @@ export interface components {
             name?: string;
             description?: string;
             permissions?: string[];
+            system?: boolean;
+            /** Format: uuid */
+            scopeOrgUnitId?: string;
+            scopeName?: string;
+            organizationOnly?: boolean;
+        };
+        PageResponseRoleAssignmentOverview: {
+            items?: components["schemas"]["RoleAssignmentOverview"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        RoleAssignmentOverview: {
+            /** Format: uuid */
+            assignmentId?: string;
+            /** Format: uuid */
+            userId?: string;
+            userName?: string;
+            email?: string;
+            /** Format: uuid */
+            roleId?: string;
+            roleName?: string;
+            systemRole?: boolean;
+            roleStatus?: string;
+            scopeType?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            scopeName?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validTo?: string;
+            grantedByName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PermissionDomain: {
+            /** @enum {string} */
+            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
+            label?: string;
+            permissions?: components["schemas"]["PermissionInfo"][];
+        };
+        PermissionInfo: {
+            code?: string;
+            name?: string;
+            description?: string;
+            /** @enum {string} */
+            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
+            domainLabel?: string;
+            /** @enum {string} */
+            level?: "READ" | "WRITE" | "MANAGE";
+            /** @enum {string} */
+            scope?: "ORGANIZATION" | "UNIT";
+            /** @enum {string} */
+            availability?: "AVAILABLE" | "PLANNED" | "PLATFORM";
+            heldByYou?: boolean;
         };
         PageResponseOrgUnit: {
             items?: components["schemas"]["OrgUnit"][];
@@ -1853,6 +2119,84 @@ export interface operations {
             };
         };
     };
+    list_2: {
+        parameters: {
+            query?: {
+                q?: string;
+                type?: string;
+                status?: "ACTIVE" | "INACTIVE";
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseRoleSummary"];
+                };
+            };
+        };
+    };
+    create_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleDetail"];
+                };
+            };
+        };
+    };
+    status_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleDetail"];
+                };
+            };
+        };
+    };
     lookup: {
         parameters: {
             query?: never;
@@ -1899,7 +2243,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
@@ -1928,7 +2272,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -2140,6 +2484,76 @@ export interface operations {
             };
         };
     };
+    detail_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleDetail"];
+                };
+            };
+        };
+    };
+    archive: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RoleDetail"];
+                };
+            };
+        };
+    };
     get_1: {
         parameters: {
             query?: never;
@@ -2184,7 +2598,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -2232,7 +2646,33 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    holders: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseRoleHolder"];
+                };
+            };
+        };
+    };
+    assignable: {
         parameters: {
             query?: never;
             header?: never;
@@ -2248,6 +2688,52 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AssignableRole"][];
+                };
+            };
+        };
+    };
+    overview: {
+        parameters: {
+            query?: {
+                q?: string;
+                roleId?: string;
+                orgUnitId?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseRoleAssignmentOverview"];
+                };
+            };
+        };
+    };
+    catalogue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PermissionDomain"][];
                 };
             };
         };

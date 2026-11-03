@@ -45,10 +45,17 @@ public class AssignmentService {
     @Schema(name = "RoleAssignment")
     public record RoleAssignmentView(UUID id, UUID roleId, String roleCode, String roleName, String scopeType, UUID orgUnitId,
                                      String scopeName, Instant validFrom, Instant validTo, Instant createdAt, String grantedByName,
-                                     Instant revokedAt, String revokedByName, String revocationReason, boolean active) {}
+                                     Instant revokedAt, String revokedByName, String revocationReason, boolean active,
+                                     String roleStatus, boolean systemRole) {}
 
     @Schema(name = "AssignableRole")
-    public record RoleView(UUID id, String code, String name, String description, List<String> permissions) {}
+    public record RoleView(UUID id, String code, String name, String description, List<String> permissions, boolean system,
+                           UUID scopeOrgUnitId, String scopeName, boolean organizationOnly) {}
+
+    @Schema(name = "RoleAssignmentOverview")
+    public record OverviewRow(UUID assignmentId, UUID userId, String userName, String email, UUID roleId, String roleName,
+                              boolean systemRole, String roleStatus, String scopeType, UUID orgUnitId, String scopeName,
+                              Instant validFrom, Instant validTo, String grantedByName, Instant createdAt) {}
 
     @Schema(name = "EffectivePermission")
     public record EffectivePermission(String permission, String description, List<PermissionScope> scopes) {}
@@ -157,11 +164,58 @@ public class AssignmentService {
     @Transactional(readOnly = true)
     public List<RoleView> assignableRoles() {
         if (!authz.hasAnywhere(Permission.ROLE_READ.key())) throw new AccessDeniedException("Missing permission role.read");
-        return jdbc.sql("SELECT id, code, name, description, permissions FROM role WHERE system_role AND NOT (code = ANY(?)) ORDER BY name")
+        return jdbc.sql("""
+                SELECT r.id, r.code, r.name, r.description, r.permissions, r.system_role, r.scope_org_unit_id, ou.name
+                FROM role r LEFT JOIN org_unit ou ON ou.id = r.scope_org_unit_id
+                WHERE r.status = 'ACTIVE' AND r.archived_at IS NULL AND NOT (r.code = ANY(?)) ORDER BY r.system_role DESC, r.name""")
                 .param(RoleRules.NOT_ASSIGNABLE.toArray(String[]::new))
-                .query((rs, n) -> new RoleView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4),
-                        Arrays.stream((String[]) rs.getArray(5).getArray()).sorted().toList()))
+                .query((rs, n) -> {
+                    List<String> perms = Arrays.stream((String[]) rs.getArray(5).getArray()).sorted().toList();
+                    return new RoleView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4), perms,
+                            rs.getBoolean(6), rs.getObject(7, UUID.class), rs.getObject(7) == null ? "Whole organization" : rs.getString(8),
+                            organizationOnly(perms));
+                })
                 .list();
+    }
+
+    /** All current role assignments of users the caller can see (role assignment overview). */
+    @Transactional(readOnly = true)
+    public UserService.Page<OverviewRow> overview(String q, UUID roleId, UUID orgUnitId, int page, int size) {
+        if (!authz.hasAnywhere(Permission.ROLE_READ.key())) throw new AccessDeniedException("Missing permission role.read");
+        List<Object> params = new ArrayList<>();
+        StringBuilder where = new StringBuilder(" WHERE ra.revoked_at IS NULL AND (ra.valid_to IS NULL OR ra.valid_to > now()) AND NOT (r.code = ANY(?))");
+        params.add(RoleRules.NOT_ASSIGNABLE.toArray(String[]::new));
+        if (roleId != null) { where.append(" AND ra.role_id = ?"); params.add(roleId); }
+        if (orgUnitId != null) {
+            where.append(" AND ra.scope_type = 'ORG_UNIT' AND ou.path <@ (SELECT path FROM org_unit WHERE id = ?)");
+            params.add(orgUnitId);
+        }
+        if (q != null && !q.isBlank()) {
+            where.append(" AND (u.display_name ILIKE ? OR u.email ILIKE ? OR r.name ILIKE ?)");
+            String like = UserService.like(q);
+            params.add(like); params.add(like); params.add(like);
+        }
+        if (!scope.appendVisibility(UserService.READ, PeopleScope.USER_UNITS_OF_U, where, params)) return new UserService.Page<>(List.of(), 0);
+        String from = " FROM role_assignment ra JOIN user_account u ON u.id = ra.user_account_id JOIN role r ON r.id = ra.role_id"
+                + " LEFT JOIN org_unit ou ON ra.scope_type = 'ORG_UNIT' AND ou.id = ra.scope_id LEFT JOIN user_account g ON g.id = ra.created_by";
+        long total = jdbc.sql("SELECT count(*)" + from + where).params(params).query(Long.class).single();
+        params.add(size);
+        params.add((long) page * size);
+        List<OverviewRow> rows = jdbc.sql("SELECT ra.id, u.id, u.display_name, u.email, r.id, r.name, r.system_role, r.status, ra.scope_type,"
+                        + " ou.id, ou.name, ra.valid_from, ra.valid_to, g.display_name, ra.created_at" + from + where
+                        + " ORDER BY u.display_name, r.name, ra.id LIMIT ? OFFSET ?")
+                .params(params)
+                .query((rs, n) -> new OverviewRow(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3), rs.getString(4),
+                        rs.getObject(5, UUID.class), rs.getString(6), rs.getBoolean(7), rs.getString(8), rs.getString(9), rs.getObject(10, UUID.class),
+                        "TENANT".equals(rs.getString(9)) ? "Whole organization" : rs.getString(11),
+                        UserService.instant(rs, "valid_from"), UserService.instant(rs, "valid_to"), rs.getString(14), UserService.instant(rs, "created_at")))
+                .list();
+        return new UserService.Page<>(rows, total);
+    }
+
+    private static boolean organizationOnly(List<String> perms) {
+        return perms.stream().map(Permission::fromKey).flatMap(java.util.Optional::stream)
+                .anyMatch(p -> p.scope() == Permission.ScopeRule.ORGANIZATION);
     }
 
     @Transactional(readOnly = true)
@@ -177,7 +231,27 @@ public class AssignmentService {
         if (user.summary().status() == UserService.AccountStatus.DEACTIVATED) {
             throw ApiException.conflict("user_deactivated", "Activate the account before assigning roles.");
         }
+        // serialise with archive/deactivation of the same custom role (system roles are immutable)
+        jdbc.sql("SELECT id FROM role WHERE id = ? AND NOT system_role FOR SHARE").param(c.roleId()).query(UUID.class).list();
         Role role = role(c.roleId());
+        if (!"ACTIVE".equals(role.status())) {
+            throw ApiException.conflict("role_inactive", "This role is deactivated. Reactivate it before assigning it.");
+        }
+        if (role.scopeOrgUnitId() != null) {
+            boolean within = c.orgUnitId() != null && jdbc.sql("""
+                    SELECT count(*) FROM org_unit t JOIN org_unit s ON s.id = ? WHERE t.id = ? AND t.path <@ s.path""")
+                    .params(role.scopeOrgUnitId(), c.orgUnitId()).query(Long.class).single() > 0;
+            if (!within) {
+                throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "role_scope_mismatch",
+                        "This role is limited to " + role.scopeName() + " and can only be assigned there or below.");
+            }
+        }
+        // custom roles with organization-only permissions only make sense for the whole organization (system roles keep
+        // their historical shape: their organization-only permissions are simply not effective below that level)
+        if (c.orgUnitId() != null && !role.system() && organizationOnly(role.permissions())) {
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "organization_only_role",
+                    "This role contains organization-wide permissions and can only be assigned for the whole organization.");
+        }
         requireCanGrant(role, c.orgUnitId(), "role.assignment_denied", userId);
         Instant from = c.validFrom() == null ? Instant.now() : c.validFrom();
         if (c.validTo() != null && !c.validTo().isAfter(from)) {
@@ -241,13 +315,16 @@ public class AssignmentService {
         UserService.Row user = users.requireVisible(userId);
         List<RoleAssignmentView> active = listRoleAssignments(userId, false);
         Map<String, String> descriptions = new TreeMap<>();
-        for (Permission p : Permission.values()) descriptions.put(p.key(), p.description());
+        for (Permission p : Permission.values()) descriptions.put(p.key(), p.displayName());
         // permission → scope key → scope
         Map<String, Map<String, PermissionScope>> byPermission = new TreeMap<>();
         for (RoleAssignmentView ra : active) {
             if (ra.validFrom() != null && ra.validFrom().isAfter(Instant.now())) continue;
+            if (!"ACTIVE".equals(ra.roleStatus())) continue;                       // a deactivated role grants nothing
             List<String> perms = jdbc.sql("SELECT unnest(permissions) FROM role WHERE id = ?").param(ra.roleId()).query(String.class).list();
             for (String p : perms) {
+                boolean orgOnly = Permission.fromKey(p).map(x -> x.scope() == Permission.ScopeRule.ORGANIZATION).orElse(false);
+                if (orgOnly && !"TENANT".equals(ra.scopeType())) continue;          // not effective below the organization
                 Map<String, PermissionScope> scopes = byPermission.computeIfAbsent(p, k -> new LinkedHashMap<>());
                 String key = ra.scopeType() + ":" + ra.orgUnitId();
                 PermissionScope existing = scopes.get(key);
@@ -264,12 +341,16 @@ public class AssignmentService {
 
     // ------------------------------------------------------------------------------------------------ helpers
 
-    private record Role(UUID id, String code, String name, List<String> permissions, boolean system) {}
+    private record Role(UUID id, String code, String name, List<String> permissions, boolean system, String status,
+                        UUID scopeOrgUnitId, String scopeName) {}
 
     private Role role(UUID roleId) {
-        Role r = jdbc.sql("SELECT id, code, name, permissions, system_role FROM role WHERE id = ?").param(roleId)
+        Role r = jdbc.sql("""
+                SELECT r.id, r.code, r.name, r.permissions, r.system_role, r.status, r.scope_org_unit_id, ou.name
+                FROM role r LEFT JOIN org_unit ou ON ou.id = r.scope_org_unit_id WHERE r.id = ? AND r.archived_at IS NULL""").param(roleId)
                 .query((rs, n) -> new Role(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3),
-                        Arrays.asList((String[]) rs.getArray(4).getArray()), rs.getBoolean(5)))
+                        Arrays.asList((String[]) rs.getArray(4).getArray()), rs.getBoolean(5), rs.getString(6),
+                        rs.getObject(7, UUID.class), rs.getString(8)))
                 .optional().orElseThrow(() -> new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "invalid_role", "Choose an existing role."));
         if (RoleRules.NOT_ASSIGNABLE.contains(r.code())) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "role_not_assignable", "This role cannot be assigned here.");
@@ -317,7 +398,8 @@ public class AssignmentService {
         return jdbc.sql("""
                 SELECT ra.id, r.id, r.code, r.name, ra.scope_type, ra.scope_id, ou.name AS unit_name, ra.valid_from, ra.valid_to,
                        ra.created_at, g.display_name AS granted_by, ra.revoked_at, rv.display_name AS revoked_by, ra.revocation_reason,
-                       (ra.revoked_at IS NULL AND (ra.valid_to IS NULL OR ra.valid_to > now())) AS active
+                       (ra.revoked_at IS NULL AND (ra.valid_to IS NULL OR ra.valid_to > now())) AS active,
+                       r.status AS role_status, r.system_role
                 FROM role_assignment ra JOIN role r ON r.id = ra.role_id
                 LEFT JOIN org_unit ou ON ra.scope_type = 'ORG_UNIT' AND ou.id = ra.scope_id
                 LEFT JOIN user_account g ON g.id = ra.created_by
@@ -330,7 +412,7 @@ public class AssignmentService {
                         "TENANT".equals(rs.getString(5)) ? "Whole organization" : rs.getString(7),
                         UserService.instant(rs, "valid_from"), UserService.instant(rs, "valid_to"), UserService.instant(rs, "created_at"),
                         rs.getString("granted_by"), UserService.instant(rs, "revoked_at"), rs.getString("revoked_by"),
-                        rs.getString("revocation_reason"), rs.getBoolean("active")))
+                        rs.getString("revocation_reason"), rs.getBoolean("active"), rs.getString("role_status"), rs.getBoolean("system_role")))
                 .list();
     }
 

@@ -397,7 +397,7 @@ class UserManagementIT extends IntegrationTest {
                     .andExpect(jsonPath("$.code").value("privilege_escalation"));
             assignRole(scoped, target, FACULTY, collegeB).andExpect(status().isForbidden());           // outside scope
             assignRole(scoped, scopedId, INSTITUTION_ADMIN, university).andExpect(status().isForbidden()); // self
-            as(scoped, get("/api/v1/roles")).andExpect(status().isOk())
+            as(scoped, get("/api/v1/roles/assignable")).andExpect(status().isOk())
                     .andExpect(jsonPath("$[*].code", Matchers.not(Matchers.hasItem("PLATFORM_SUPER_ADMIN"))));
             UUID superAdmin = ownerJdbc().sql("SELECT id FROM role WHERE code = 'PLATFORM_SUPER_ADMIN'").query(UUID.class).single();
             assignRole(admin, target, superAdmin, null).andExpect(status().isUnprocessableContent());
@@ -447,5 +447,179 @@ class UserManagementIT extends IntegrationTest {
                 .isEqualTo(UUID.fromString("0192a000-0000-7000-8000-00000000a101"));
         assertThat(ownerJdbc().sql("SELECT count(*) FROM role_assignment WHERE revoked_at IS NOT NULL AND tenant_id IN (?, ?)")
                 .params(TENANT_A, TENANT_B).query(Long.class).single()).isZero();
+    }
+
+    /** Increment 1.2 acceptance review (2026-11-03): security verification items 1–6. */
+    @Nested
+    @org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
+    class SecurityVerification {
+
+        private long activeOrgAdmins() {
+            return ownerJdbc().sql("""
+                    SELECT count(DISTINCT ra.user_account_id) FROM role_assignment ra JOIN user_account u ON u.id = ra.user_account_id
+                    WHERE ra.tenant_id = ? AND ra.role_id = ? AND ra.scope_type = 'TENANT' AND ra.revoked_at IS NULL AND u.status = 'ACTIVE'""")
+                    .params(tenant, ORG_ADMIN).query(Long.class).single();
+        }
+
+        private int[] concurrently(java.util.concurrent.Callable<Integer> a, java.util.concurrent.Callable<Integer> b) throws Exception {
+            var start = new java.util.concurrent.CountDownLatch(1);
+            var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+            try {
+                var fa = pool.submit(() -> { start.await(); return a.call(); });
+                var fb = pool.submit(() -> { start.await(); return b.call(); });
+                start.countDown();
+                return new int[] {fa.get(30, java.util.concurrent.TimeUnit.SECONDS), fb.get(30, java.util.concurrent.TimeUnit.SECONDS)};
+            } finally {
+                pool.shutdownNow();
+            }
+        }
+
+        @Test
+        void item1_concurrentRemovalsCannotLeaveTheOrganizationWithoutAnAdministrator() throws Exception {
+            for (int round = 0; round < 5; round++) {
+                // start every round with exactly one administrator (the fixture admin, active)
+                ownerJdbc().sql("UPDATE role_assignment SET revoked_at = now(), revoked_by = ? WHERE tenant_id = ? AND role_id = ? AND user_account_id <> ? AND revoked_at IS NULL")
+                        .params(adminId, tenant, ORG_ADMIN, adminId).update();
+                assertThat(activeOrgAdmins()).isEqualTo(1);
+                UUID other = activeUser("co-admin-" + round + "@people.test", null);
+                assignRole(admin, other, ORG_ADMIN, null).andExpect(status().isCreated());
+                Fixture.Caller second = callerFor(other);
+                Fixture.Caller first = admin;
+                UUID firstId = adminId;
+                long v1 = version(firstId), v2 = version(other);
+                // the two administrators try to deactivate each other at the same moment
+                int[] codes = concurrently(
+                        () -> as(first, json(post("/api/v1/users/" + other + "/status"),
+                                "{\"action\":\"DEACTIVATE\",\"version\":" + v2 + ",\"reason\":\"race\"}")).andReturn().getResponse().getStatus(),
+                        () -> as(second, json(post("/api/v1/users/" + firstId + "/status"),
+                                "{\"action\":\"DEACTIVATE\",\"version\":" + v1 + ",\"reason\":\"race\"}")).andReturn().getResponse().getStatus());
+                assertThat(java.util.Arrays.stream(codes).filter(c -> c == 200).count()).as("exactly one succeeds: %s", java.util.Arrays.toString(codes)).isEqualTo(1);
+                assertThat(activeOrgAdmins()).isEqualTo(1);
+                // restore: whoever was deactivated is reactivated by the survivor
+                Fixture.Caller survivor = codes[0] == 200 ? first : second;
+                UUID loser = codes[0] == 200 ? other : firstId;
+                changeStatus(survivor, loser, "ACTIVATE", null).andExpect(status().isOk());
+            }
+            // concurrent revocation of each other's ORG_ADMIN role
+            UUID other = activeUser("co-admin-revoke@people.test", null);
+            assignRole(admin, other, ORG_ADMIN, null).andExpect(status().isCreated());
+            ownerJdbc().sql("UPDATE role_assignment SET revoked_at = now(), revoked_by = ? WHERE tenant_id = ? AND role_id = ? AND user_account_id <> ? AND user_account_id <> ?")
+                    .params(adminId, tenant, ORG_ADMIN, adminId, other).update();       // leave exactly two administrators
+            String raAdmin = ownerJdbc().sql("SELECT id::text FROM role_assignment WHERE user_account_id = ? AND role_id = ? AND revoked_at IS NULL")
+                    .params(adminId, ORG_ADMIN).query(String.class).single();
+            String raOther = ownerJdbc().sql("SELECT id::text FROM role_assignment WHERE user_account_id = ? AND role_id = ? AND revoked_at IS NULL")
+                    .params(other, ORG_ADMIN).query(String.class).single();
+            Fixture.Caller second = callerFor(other);
+            int[] codes = concurrently(
+                    () -> as(admin, json(post("/api/v1/users/" + other + "/role-assignments/" + raOther + "/revoke"), "{\"reason\":\"race\"}"))
+                            .andReturn().getResponse().getStatus(),
+                    () -> as(second, json(post("/api/v1/users/" + adminId + "/role-assignments/" + raAdmin + "/revoke"), "{\"reason\":\"race\"}"))
+                            .andReturn().getResponse().getStatus());
+            assertThat(java.util.Arrays.stream(codes).filter(c -> c == 204).count()).as(java.util.Arrays.toString(codes)).isEqualTo(1);
+            assertThat(activeOrgAdmins()).isEqualTo(1);
+        }
+
+        @Test
+        void item2_administratorsCannotManagePeopleWhoseAssignmentsLeaveTheirScope() throws Exception {
+            UUID user = activeUser("wide@people.test", collegeA);
+            Fixture.Caller adminA = account(UUID.randomUUID(), "scope-a@people.test", INSTITUTION_ADMIN, collegeA);
+            changeStatus(adminA, user, "SUSPEND", "in scope").andExpect(status().isOk());
+            changeStatus(admin, user, "REACTIVATE", null).andExpect(status().isOk());
+            // an assignment to college B, or a role there, takes the person outside A's sole authority
+            as(admin, json(post("/api/v1/users/" + user + "/org-assignments"), "{\"orgUnitId\":\"" + collegeB + "\"}")).andExpect(status().isOk());
+            for (var r : java.util.List.of(
+                    json(post("/api/v1/users/" + user + "/status"), "{\"action\":\"SUSPEND\",\"version\":" + version(user) + ",\"reason\":\"x\"}"),
+                    json(patch("/api/v1/users/" + user), "{\"version\":" + version(user) + ",\"givenName\":\"X\"}"),
+                    json(post("/api/v1/users/" + user + "/org-assignments"), "{\"orgUnitId\":\"" + collegeA + "\",\"title\":\"x\"}"),
+                    post("/api/v1/users/" + user + "/invitation"))) {
+                as(adminA, r).andExpect(status().isForbidden());
+            }
+            UUID other = activeUser("role-elsewhere@people.test", collegeA);
+            assignRole(admin, other, FACULTY, collegeB).andExpect(status().isCreated());
+            changeStatus(adminA, other, "SUSPEND", "x").andExpect(status().isForbidden());
+        }
+
+        @Test
+        void item3_tokensAndPasswordsNeverReachTheLogs(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+            UUID id = createUser(admin, "logs@people.test", collegeA);
+            String first = mail.lastTokenFor("logs@people.test");
+            as(admin, post("/api/v1/users/" + id + "/invitation")).andExpect(status().isOk());
+            String second = mail.lastTokenFor("logs@people.test");
+            accept(first, "first-secret-password").andExpect(status().isNotFound());         // replaced
+            accept(second, "the-chosen-secret-password").andExpect(status().isNoContent());
+            accept(second, "the-chosen-secret-password").andExpect(status().isNotFound());   // single use
+            ownerJdbc().sql("UPDATE user_invitation SET status = 'PENDING', expires_at = now() - interval '1 second' WHERE user_account_id = ?").param(id).update();
+            anonymous(json(post("/api/v1/public/invitations/lookup"), "{\"token\":\"" + second + "\"}")).andExpect(status().isNotFound()); // expired
+            assertThat(output.getAll()).doesNotContain(first).doesNotContain(second)
+                    .doesNotContain("first-secret-password").doesNotContain("the-chosen-secret-password");
+            assertThat(ownerJdbc().sql("SELECT count(*) FROM user_invitation WHERE token_hash IN (?, ?)").params(first, second).query(Long.class).single()).isZero();
+        }
+
+        @Test
+        void item4_provisioningServiceAccountIsLeastPrivilege() throws Exception {
+            JsonNode realm = JSON.readTree(java.nio.file.Files.readString(java.nio.file.Path.of("../../deploy/compose/keycloak/realm-ivorovi.json")));
+            JsonNode client = null;
+            for (JsonNode c : realm.path("clients")) if (c.path("clientId").asString().equals("ivorovi-provisioner")) client = c;
+            assertThat(client).isNotNull();
+            assertThat(client.path("publicClient").asBoolean()).isFalse();
+            assertThat(client.path("serviceAccountsEnabled").asBoolean()).isTrue();
+            assertThat(client.path("standardFlowEnabled").asBoolean()).isFalse();
+            assertThat(client.path("directAccessGrantsEnabled").asBoolean()).isFalse();
+            assertThat(client.path("secret").asString()).isEqualTo("${KEYCLOAK_PROVISIONER_SECRET}");       // never a literal
+            JsonNode sa = null;
+            for (JsonNode u : realm.path("users")) if ("ivorovi-provisioner".equals(u.path("serviceAccountClientId").asString())) sa = u;
+            assertThat(sa).isNotNull();
+            java.util.List<String> roles = new java.util.ArrayList<>();
+            sa.path("clientRoles").path("realm-management").forEach(r -> roles.add(r.asString()));
+            assertThat(roles).containsExactlyInAnyOrder("manage-users", "view-users", "query-users");
+            assertThat(sa.path("clientRoles").size()).isEqualTo(1);
+            assertThat(sa.path("realmRoles").isMissingNode() || sa.path("realmRoles").isEmpty()).isTrue();
+        }
+
+        @Test
+        void item5_revokedExpiredAndNotYetValidRolesGrantNothing() throws Exception {
+            UUID user = activeUser("dated@people.test", collegeA);
+            Fixture.Caller u = callerFor(user);
+            // ends in 3 seconds: works now (principal cached), stops at the end time, not a cache lifetime later
+            as(admin, json(post("/api/v1/users/" + user + "/role-assignments"), "{\"roleId\":\"" + INSTITUTION_ADMIN + "\",\"orgUnitId\":\""
+                    + collegeA + "\",\"validTo\":\"" + java.time.Instant.now().plusSeconds(3) + "\"}")).andExpect(status().isCreated());
+            as(u, get("/api/v1/users")).andExpect(status().isOk());
+            Thread.sleep(3500);
+            as(u, get("/api/v1/users")).andExpect(status().isForbidden());
+            // starts in 3 seconds: denied now (cached), granted once it starts
+            as(admin, json(post("/api/v1/users/" + user + "/role-assignments"), "{\"roleId\":\"" + INSTITUTION_ADMIN + "\",\"orgUnitId\":\""
+                    + collegeA + "\",\"validFrom\":\"" + java.time.Instant.now().plusSeconds(3) + "\"}")).andExpect(status().isCreated());
+            as(u, get("/api/v1/users")).andExpect(status().isForbidden());
+            Thread.sleep(3500);
+            as(u, get("/api/v1/users")).andExpect(status().isOk());
+            // revoked: immediately
+            String ra = ownerJdbc().sql("SELECT id::text FROM role_assignment WHERE user_account_id = ? AND revoked_at IS NULL AND valid_to IS NULL")
+                    .param(user).query(String.class).single();
+            as(admin, json(post("/api/v1/users/" + user + "/role-assignments/" + ra + "/revoke"), "{\"reason\":\"done\"}")).andExpect(status().isNoContent());
+            as(u, get("/api/v1/users")).andExpect(status().isForbidden());
+        }
+
+        @Test
+        void item6_lifecycleAndPermissionChangesAreAuditedWithActorAndTarget() throws Exception {
+            UUID user = activeUser("audited@people.test", collegeA);
+            assignRole(admin, user, FACULTY, collegeA).andExpect(status().isCreated());
+            String ra = ownerJdbc().sql("SELECT id::text FROM role_assignment WHERE user_account_id = ?").param(user).query(String.class).single();
+            as(admin, json(post("/api/v1/users/" + user + "/role-assignments/" + ra + "/revoke"), "{\"reason\":\"r\"}")).andExpect(status().isNoContent());
+            changeStatus(admin, user, "SUSPEND", "s").andExpect(status().isOk());
+            changeStatus(admin, user, "REACTIVATE", null).andExpect(status().isOk());
+            changeStatus(admin, user, "DEACTIVATE", "d").andExpect(status().isOk());
+            var rows = ownerJdbc().sql("SELECT action, actor_id, details::text FROM audit_event WHERE tenant_id = ? ORDER BY seq").param(tenant)
+                    .query((rs, n) -> new String[] {rs.getString(1), rs.getString(2), rs.getString(3)}).list();
+            java.util.List<String> actions = rows.stream().map(r -> r[0]).toList();
+            assertThat(actions).contains("user.created", "user.invitation.sent", "user.invitation.accepted", "role.assigned", "role.revoked",
+                    "user.suspended", "user.reactivated", "user.deactivated");
+            for (String[] r : rows) {
+                if (r[0].startsWith("role.") || r[0].startsWith("user.suspended") || r[0].startsWith("user.deactivated")) {
+                    assertThat(r[1]).as(r[0] + " actor").isEqualTo(adminId.toString());
+                }
+            }
+            assertThat(rows.stream().filter(r -> r[0].equals("role.revoked")).findFirst().orElseThrow()[2]).contains("\"reason\": \"r\"").contains("FACULTY");
+            as(admin, get("/api/v1/audit-events/verification")).andExpect(jsonPath("$.valid").value(true));
+        }
     }
 }

@@ -92,6 +92,19 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$KEYCLOAK_URL/realms/ivor
   -d client_id=ivorovi-dev-cli --data-urlencode "username=$NEW_EMAIL" --data-urlencode "password=$NEW_PASSWORD")
 [[ $code == 400 || $code == 401 ]] && { pass=$((pass+1)); echo "  PASS  deactivated user can no longer sign in to Keycloak ($code)"; } || { fail=$((fail+1)); echo "  FAIL  Keycloak still issues tokens ($code)"; }
 
+echo "Provisioning service account is least-privilege (real Keycloak) ..."
+PROV=$(curl -s -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=client_credentials \
+  -d client_id=ivorovi-provisioner --data-urlencode "client_secret=$KEYCLOAK_PROVISIONER_SECRET" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("access_token",""))')
+probe() {
+  local desc=$1 expected=$2 path=$3 got
+  got=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $PROV" "$KEYCLOAK_URL$path")
+  if [[ $got == "$expected" ]]; then pass=$((pass+1)); echo "  PASS  $desc ($got)"; else fail=$((fail+1)); echo "  FAIL  $desc: expected $expected, got $got"; fi
+}
+probe "provisioner can query users"                    200 "/admin/realms/ivorovi/users?max=1"
+probe "provisioner cannot read clients"                 403 "/admin/realms/ivorovi/clients"
+probe "provisioner cannot read realm roles"             403 "/admin/realms/ivorovi/roles"
+probe "provisioner cannot read the master realm"        403 "/admin/realms/master/users"
+
 check "audit trail readable by org admin"               200 "$ALICE" GET "/api/v1/audit-events?size=5"
 check "audit chain verification"                        200 "$ALICE" GET /api/v1/audit-events/verification
 grep -q '"valid":true' /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  audit hash chain is valid"; } || { fail=$((fail+1)); echo "  FAIL  audit chain invalid: $(cat /tmp/smoke-body)"; }
