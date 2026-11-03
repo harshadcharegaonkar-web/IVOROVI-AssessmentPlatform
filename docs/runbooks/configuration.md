@@ -28,6 +28,11 @@ Vault, or a cloud secret manager) and never commit them.
 | `IVOROVI_RATE_LIMIT_USER_READ` / `_USER_WRITE` | no | 300 / 60 | Requests per minute per user for GET/HEAD and other methods |
 | `IVOROVI_RATE_LIMIT_TENANT` | no | 3000 | Requests per minute per tenant |
 | `IVOROVI_RATE_LIMIT_FAILED_AUTH_IP` | no | 30 | Failed authentications per minute per client IP before 429 (behind a proxy, configure forwarded headers so the client IP is correct) |
+| `IVOROVI_RATE_LIMIT_PUBLIC_IP` | no | 20 | Requests per minute per client IP to the public invitation endpoints |
+| `IVOROVI_APP_BASE_URL` | yes for invitations | http://localhost:5173 | Public URL of the web app; invitation links point to `{url}/invitation#token=…` |
+| `IVOROVI_INVITATION_TTL` | no | P7D | Invitation validity (ISO-8601 duration) |
+| `IVOROVI_IDP_ADMIN_URL` / `IVOROVI_IDP_REALM` | yes for provisioning | http://localhost:8180 / ivorovi | Keycloak base URL reachable from the API, and realm |
+| `IVOROVI_IDP_PROVISIONER_CLIENT_ID` / `IVOROVI_IDP_PROVISIONER_SECRET` | yes for provisioning | ivorovi-provisioner / — | Confidential client whose service account holds only realm-management `manage-users`, `view-users`, `query-users` (D-P1-04) |
 | `IVOROVI_OPENAPI_ENABLED` | no | true (false with `prod` profile) | Exposes `/v3/api-docs` and Swagger UI |
 | `SPRING_PROFILES_ACTIVE` | no | — | `prod` enables JSON (ECS) logs. Never use `dev` or `seed` outside development |
 

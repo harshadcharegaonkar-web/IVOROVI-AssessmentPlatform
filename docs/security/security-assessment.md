@@ -38,6 +38,10 @@
 | C17 | Containers run as non-root (API) | 🟨 | API Dockerfile `USER ivorovi`. The nginx master process runs as root (worker processes do not) |
 | C18 | Rate limiting | ✅ | Increment 1.0: per user/tenant buckets, failed-auth limit per IP; `RateLimitIT` |
 | C19 | Idempotency keys for create/submit | ✅ | Increment 1.0: tenant/user-scoped, RLS; `IdempotencyIT` |
+| C23 | Invitations: 256-bit single-use expiring tokens, SHA-256 at rest, link in URL fragment, never logged/audited, public endpoints rate limited per IP, unknown/used/expired/revoked tokens indistinguishable | ✅ | `UserManagementIT.Invitations` (incl. `tokensAreStoredOnlyAsHashesAndNeverAudited`), smoke test, E2E |
+| C24 | Least-privilege identity provisioning (`ivorovi-provisioner`: manage/view/query-users only) | ✅ | Probe: clients, roles and master realm return 403; secret generated per environment (`KEYCLOAK_PROVISIONER_SECRET`) |
+| C25 | Anti-escalation for role assignment, no self-assignment, last-organization-admin protection, scoped people management (all units) | ✅ | `UserManagementIT.Assignments`, `Lifecycle`, E2E scoped administrator |
+| C26 | Suspension/deactivation take effect on the next request (principal cache eviction) and in Keycloak (disabled, sessions ended) | ✅ | `Lifecycle.suspendReactivateDeactivateActivate`, smoke test, E2E (Keycloak refuses sign-in) |
 | C20 | DAST (OWASP ZAP), external penetration test | ⬜ | Phase 8, plus before first production tenant |
 | C21 | Field-level encryption of sensitive PII | ⬜ | When such fields are introduced (Phase 1 does not store government IDs) |
 | C22 | Production IdP hardening (TLS, MFA policies, brute-force settings beyond dev realm) | ⬜ | Phase 8 deployment work |

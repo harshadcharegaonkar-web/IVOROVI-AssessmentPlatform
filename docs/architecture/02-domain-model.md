@@ -45,6 +45,12 @@ erDiagram
     ORG_UNIT ||--o{ ACADEMIC_TERM : defines
 
     TENANT ||--o{ USER_ACCOUNT : contains
+    USER_ACCOUNT ||--o{ USER_INVITATION : "invited by"
+    TENANT ||--o{ STAFF_PROFILE : employs
+    STAFF_PROFILE |o--o| USER_ACCOUNT : "linked login"
+    USER_ACCOUNT ||--o{ ORG_ASSIGNMENT : "belongs to"
+    STAFF_PROFILE ||--o{ ORG_ASSIGNMENT : "belongs to"
+    ORG_UNIT |o--o{ ORG_ASSIGNMENT : "unit (null = organization)"
     USER_ACCOUNT ||--o{ ROLE_ASSIGNMENT : holds
     ROLE ||--o{ ROLE_ASSIGNMENT : granted_by
     ROLE }o--o{ PERMISSION : bundles
@@ -99,6 +105,16 @@ erDiagram
 * **TenantSettings**: per-type display labels and the organization time zone (optimistic `version`).
 * **UserAccount**: `external_subject` (IdP `sub`, unique per tenant), `email`, `status`, `person_id?`.
   One human can be a student in one tenant and an evaluator in another as separate accounts.
+* **UserAccount (1.2 fields)**: given/family name, phone, normalised email (unique per organization),
+  status `INVITED → ACTIVE ⇄ SUSPENDED`, any → `DEACTIVATED` (→ `ACTIVE`, or `INVITED` if never signed in),
+  status reason/time/actor, last sign-in; `external_subject` set when the invitation is accepted.
+* **UserInvitation**: token SHA-256 hash, `PENDING | ACCEPTED | REVOKED | EXPIRED`, expiry, send count, delivery
+  status; at most one open invitation per account.
+* **StaffProfile**: staff ID (unique, case-insensitive), names, contact, category (faculty, department/academic
+  administrator, evaluator, exam controller, proctor, admissions/placement officer, administrative staff),
+  designation, employment status/type, joining date, optional one-to-one link to a user account.
+* **OrgAssignment**: user *or* staff profile × unit (null = organization), primary flag, title, optional dates.
+  Membership only; permissions come from role assignments.
 * **RoleAssignment**: `(user_id, role_id, scope_type, scope_id, valid_from, valid_to)`. Time-bound
   assignments support external evaluators and invigilators.
 

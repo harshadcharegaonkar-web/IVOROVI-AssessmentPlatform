@@ -131,3 +131,23 @@ This deletes all local data. Keycloak re-imports the realm on the next start.
 * **Keycloak realm changes not visible:** realm import only happens when the realm does not exist. Reset (above) or remove the realm in the admin console.
 * **`no_active_account` after login:** the Keycloak user has no matching `user_account` row in the token's tenant. This is expected for `ghost.user`.
 * **Ports in use:** all ports bind to 127.0.0.1. Stop the conflicting local service or change the mapping in `compose.yaml`.
+
+## Upgrading an existing local environment to increment 1.2
+
+Increment 1.2 adds the Keycloak client `ivorovi-provisioner` (creates logins when invitations are accepted).
+
+1. `./scripts/dev-setup.sh` — adds the new `KEYCLOAK_PROVISIONER_SECRET` to `deploy/compose/.env` and keeps
+   every existing secret.
+2. Keycloak imports the realm only on first start (KI-11). Either reset the Keycloak database, or create the
+   client in the running realm:
+
+   ```bash
+   set -a; . deploy/compose/.env; set +a
+   docker exec ivorovi-keycloak-1 bash -c "
+     /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master --user admin --password '$KEYCLOAK_ADMIN_PASSWORD' &&
+     /opt/keycloak/bin/kcadm.sh create clients -r ivorovi -s clientId=ivorovi-provisioner -s enabled=true -s publicClient=false \
+       -s serviceAccountsEnabled=true -s standardFlowEnabled=false -s directAccessGrantsEnabled=false -s secret='$KEYCLOAK_PROVISIONER_SECRET' &&
+     /opt/keycloak/bin/kcadm.sh add-roles -r ivorovi --uusername service-account-ivorovi-provisioner --cclientid realm-management \
+       --rolename manage-users --rolename view-users --rolename query-users"
+   ```
+3. Invitation emails arrive in Mailpit (http://localhost:8025); links point to `IVOROVI_APP_BASE_URL`.

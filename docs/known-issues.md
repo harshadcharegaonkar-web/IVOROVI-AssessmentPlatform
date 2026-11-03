@@ -35,4 +35,9 @@ Only items verified as fixed by a test or a reproducible check are marked Fixed.
 | KI-29 | Frontend | Create form reused its `Idempotency-Key` after a 4xx answer, so a corrected resubmission was rejected | Medium | Fixed | 1.1: key rotated once the server has answered; covered by the E2E lifecycle test |
 | KI-30 | Accessibility | Breadcrumb links and selected-tree type labels below 4.5:1 on tinted backgrounds | Medium | Fixed | 1.1: `muted-strong` token; axe checks on hierarchy, listing, detail and settings |
 | KI-31 | Visual QA | Full-page screenshots show the fixed sidebar only for the first viewport height (capture artifact, not a layout defect) | Info | Accepted | Evidence capture only |
+| KI-32 | Identity | Invited users without a login could not be deactivated (check constraint) | Medium | Fixed | 1.2, `deactivatingAnInvitedUserRevokesTheInvitation` |
+| KI-33 | Identity | One Keycloak login serves one organization: the same email cannot be invited by two organizations (refused at acceptance with `email_registered_elsewhere`) | Low | Accepted | Multi-organization logins need organization selection at sign-in; revisit with institution SSO (Phase 2) |
+| KI-34 | Identity | Email of a user who has signed in cannot be changed in Ivorovi (identity provider owns it) | Low | Accepted | Change in Keycloak; self-service email change later |
+| KI-35 | Notifications | Invitation emails are plain text; a failed send is shown and can be re-sent but is not retried automatically | Low | Planned | Templates, retries and preferences in Phase 2 (module 17) |
+| KI-36 | Security | Provisioner service account can read the realm summary (`GET /admin/realms/ivorovi` → 200); clients, roles and other realms are denied | Info | Accepted | Keycloak behaviour for any realm-management role; no secrets exposed |
 | KI-19 | Security scanning | Java dependencies were invisible to Trivy (no lockfile) | Medium | Fixed | Gradle dependency locking (`a239681`) |

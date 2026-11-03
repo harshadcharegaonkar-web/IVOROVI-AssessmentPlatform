@@ -58,13 +58,14 @@ export function UserListPage() {
         <span className="min-w-0">
           <Link to={`/people/users/${u.id}`} className="block truncate font-medium text-primary underline-offset-2 hover:underline">{u.displayName}</Link>
           <span className="block truncate text-xs text-muted">{u.email}</span>
+          <span className="mt-1 block md:hidden"><Badge tone={ACCOUNT_STATUS[u.status as AccountStatus].tone}>{ACCOUNT_STATUS[u.status as AccountStatus].label}</Badge></span>
         </span>
       </span>
     ) },
     { key: "units", header: "Assignments", hideOnMobile: true, cell: (u) => <span className="line-clamp-2 text-sm">{(u.units ?? []).join(", ") || "—"}</span> },
     { key: "roles", header: "Roles", hideOnMobile: true, cell: (u) => (u.roles ?? []).length === 0 ? <span className="text-muted">None</span>
       : <span className="flex flex-wrap gap-1">{u.roles!.slice(0, 2).map((r) => <Badge key={r}>{roleName(roles.data, r)}</Badge>)}{u.roles!.length > 2 && <Badge>+{u.roles!.length - 2}</Badge>}</span> },
-    { key: "status", header: "Status", sortable: true, cell: (u) => (
+    { key: "status", header: "Status", sortable: true, hideOnMobile: true, cell: (u) => (
       <span className="flex flex-col items-start gap-1">
         <Badge tone={ACCOUNT_STATUS[u.status as AccountStatus].tone}>{ACCOUNT_STATUS[u.status as AccountStatus].label}</Badge>
         {u.status === "INVITED" && u.invitationStatus !== "PENDING" && <Badge tone={INVITATION_STATE[u.invitationStatus as InvitationState].tone}>Invitation {INVITATION_STATE[u.invitationStatus as InvitationState].label.toLowerCase()}</Badge>}

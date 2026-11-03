@@ -244,7 +244,7 @@ function AccessOverview({ userId }: { userId: string }) {
             <Row label="Permissions">{(a.permissions ?? []).length}</Row>
           </dl>
           <p className="mt-4 text-xs font-medium uppercase tracking-wider text-muted">Assignments</p>
-          <ul className="mt-2 space-y-1 text-sm">{(a.assignments ?? []).map((x) => <li key={x.id}>{x.orgUnitName}{x.primary ? " (primary)" : ""}</li>)}</ul>
+          <ul className="mt-2 space-y-1 text-sm">{(a.assignments ?? []).map((x) => <li key={`${x.source}:${x.id}`}>{x.orgUnitName}{x.primary ? " (primary)" : ""}{x.source === "STAFF" && <span className="text-muted"> · via staff profile</span>}</li>)}</ul>
           {a.status !== "ACTIVE" && <Alert tone="warning" className="mt-4">The account is not active, so none of these permissions can be used right now.</Alert>}
         </CardBody>
       </Card>

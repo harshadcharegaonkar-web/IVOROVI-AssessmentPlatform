@@ -51,17 +51,18 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 8 | Course management | 1.5 | ☐ | ☐ | ☐ |
 | 9 | Subject management | 1.5 | ☐ | ☐ | ☐ |
 | 10 | Batch management | 1.5 | ☐ | ☐ | ☐ |
-| 11 | User management | 1.3 | ☐ | ☐ | ☐ |
-| 12 | Faculty management | 1.3 | ☐ | ☐ | ☐ |
+| 11 | User management (list, details, create/invite, edit, status, access overview) | 1.2 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 12 | Staff management (list, details, form, link to user; faculty teaching attributes later) | 1.2 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 13 | Student management | 1.6 | ☐ | ☐ | ☐ |
 | 14 | Student profile | 1.6 | ☐ | ☐ | ☐ |
 | 15 | Bulk student import | 1.6 | ☐ | ☐ | ☐ |
-| 16 | Role management | 1.4 | ☐ | ☐ | ☐ |
-| 17 | Permission matrix | 1.4 | ☐ | ☐ | ☐ |
-| 18 | Access management | 1.4 | ☐ | ☐ | ☐ |
+| 16 | Role management (custom roles) | 1.3 | ☐ | ☐ | ☐ |
+| 17 | Permission matrix | 1.3 | ☐ | ☐ | ☐ |
+| 18 | Access management (role assignment view, organizational assignments, effective access) | 1.2 (assignment of system roles) / 1.3 (custom roles) | ✅ 1.2 part | ✅ | ☐ |
 | 19 | Feature settings | 1.0 (restyle) / 1.1 (history, institution inheritance) | ✅ 1.0 restyle | ✅ | ✅ 1.0 approved 2026-11-02 |
 | 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ✅ approved 2026-11-02 |
 | 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ✅ approved 2026-11-02 |
+| + | Invitation management; public invitation acceptance | 1.2 | ✅ (axe) | ✅ 3 viewports | ☐ |
 | + | System settings | 1.1 | ✅ (axe) | ✅ 3 viewports | ☐ |
 
 ## D. Results: increment 1.0 (2026-11-02), approved by the product owner as the visual baseline
@@ -78,6 +79,14 @@ Shell checks A1–A7 pass on all new screens at 1440, 1024 and 390 px. Evidence:
 runs axe (WCAG 2.1 AA, no serious/critical violations) on the hierarchy, a listing, a unit detail and System
 Settings. Defects found and fixed: KI-29, KI-30. Pixel-diff automation (below) was **not** delivered (KI-26).
 
-Automation (re-planned for 1.2): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
+## F. Results: increment 1.2 (2026-11-03), awaiting review
+
+All new screens follow the approved baseline at 1440×900, 1024×768 and 390×844 (`docs/design/evidence/1.2/`,
+41 screenshots). Playwright asserts no horizontal scrolling on every new screen at tablet and mobile widths and
+runs axe on the users list, access overview, invitations, staff details and the public invitation page. Found
+and fixed during review: clipped status column on phones (moved under the name), duplicate assignment line in
+the access summary (now labelled "via staff profile"), contrast of a label on the invitation page.
+
+Automation (re-planned): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are
 updated only through a reviewed PR.

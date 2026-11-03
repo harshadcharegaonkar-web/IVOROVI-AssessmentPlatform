@@ -98,11 +98,22 @@ from day one, but is not implemented until needed (ADR-0003).
 * **Authentication:** OIDC. Keycloak is the bundled IdP (works in all three topologies, brokers SAML/OIDC/LDAP
   for university SSO, provides MFA). The API is a pure **OAuth2 resource server**, so a customer may swap the IdP.
   Candidates for admission (external users) self-register through a tenant-branded Keycloak realm flow.
+* **Account provisioning (1.2):** Ivorovi invites people by email (single-use, hashed, expiring tokens; link
+  in the URL fragment). On acceptance it creates the Keycloak login through the confidential client
+  `ivorovi-provisioner` (realm-management `manage-users`/`view-users`/`query-users` only) behind the published
+  `IdentityProvisioner` port, and disables it (ending sessions) on suspension or deactivation. Staff profiles
+  exist independently of logins.
 * **Authorization lives in Ivorovi, not in the IdP.** Model:
   * `Permission`: fixed catalog defined in code, e.g. `assessment.publish`, `result.approve`, `proctor.review`.
   * `Role`: a named bundle of permissions. The 15 system roles are seeded and immutable. Tenants create custom roles.
   * `RoleAssignment`: (user, role, **scope**) where scope is `TENANT` or `ORG_UNIT` (implemented), later a
     specific resource (e.g. one assessment for an external evaluator).
+  * Role assignments are soft-revoked (history kept) and may end on a date. Granting follows the
+    anti-escalation rule (increment 1.2): `role.assign` at the scope plus every permission of the role there;
+    no self-assignment; the last organization administrator is protected.
+  * **People scope:** users and staff belong to units through organizational assignments (membership, no
+    permissions). An administrator sees a person with read permission on any of the person's units and manages
+    them only with manage permission on all of them.
   * Effective permission = any assignment whose scope contains the target resource's scope. An `ORG_UNIT`
     assignment covers the unit and its whole subtree (ltree prefix check via `Authz.hasInOrgUnit`; unit paths
     cached in Valkey with after-commit eviction).
