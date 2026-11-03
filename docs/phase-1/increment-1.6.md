@@ -96,7 +96,7 @@ Migrations: `V202611051000__student_import.sql` (tables, RLS, permission grants,
 | 22 | Playwright desktop/tablet/mobile | 86 passed |
 | 23 | Performance against agreed limits | Benchmark (10 MB, 10,000 rows) |
 | 24 | No regressions 1.0–1.5 | Full backend, Playwright and smoke suites |
-| 25 | GitHub Actions | CI_RUN |
+| 25 | GitHub Actions | Run 41702305617 (`e5031d3`): security scan and backend green; the frontend job hung in GitHub's runner set-up and could not be cancelled. All jobs re-run on the documentation commit that follows (run ID in the review message and `tracker.md`) |
 
 ## Defects found during verification
 
