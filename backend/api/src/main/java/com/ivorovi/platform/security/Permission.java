@@ -77,6 +77,8 @@ public enum Permission {
             Domain.STUDENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
     STUDENT_DOCUMENT_MANAGE("student.document.manage", "Manage student documents", "Upload, verify, reject and remove student documents",
             Domain.STUDENTS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    STUDENT_IMPORT("student.import", "Import students in bulk", "Upload CSV/XLSX files, map columns, resolve duplicates and run student imports (also needs student management at the institution)",
+            Domain.STUDENTS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     STUDENT_ACCOUNT_MANAGE("student.account.manage", "Create student sign-in accounts", "Create a sign-in account for a student on demand (student role only)",
             Domain.STUDENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
     ADMISSION_READ("admission.read", "View admissions", "View admission cycles, applicants and screening results",

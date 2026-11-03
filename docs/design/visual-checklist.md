@@ -103,13 +103,24 @@ screenshots including the term, offering and faculty dialogs). Overflow checks a
 list and editor; axe on overview, every list, program/subject editors, course curriculum, year detail, faculty assignment
 and the structure tree. Configured terminology is used in navigation, headings, filters and empty states.
 
-## I. Results: increment 1.5 (2026-11-03), awaiting review
+## I. Results: increment 1.5 (2026-11-03), accepted
 
 The 12 student screens follow the baseline at 1440×900, 1024×768 and 390×844 (`docs/design/evidence/1.5/`). The profile
 is split into Overview, Personal information, Academic, Guardians, Documents and History tabs; tabs the viewer may not
 see (guardians, documents) are not shown at all. Quarantined documents show a warning and a disabled download with an
 accessible explanation. Overflow checks at tablet and mobile on every student screen and tab; axe on dashboard, list,
 editor, every profile tab, dialogs and settings.
+
+## J. Results: increment 1.6 (2026-11-03), awaiting review
+
+The 12 import screens (dashboard, upload, column mapping, validation, duplicate resolution, preview, confirmation,
+progress, result, error report, history, templates and rules) follow the baseline at 1440×900, 1024×768 and 390×844
+(`docs/design/evidence/1.6/`, Meridian demonstration organization, synthetic data). A step indicator shows where an
+import stands; the current step uses the primary colour with its contrast colour, inactive steps use the strong muted
+text (contrast ≥ 4.5:1). Wide tables (mapped-value preview) scroll inside a keyboard-focusable region; row tables keep
+the row identity column on mobile and hide secondary columns. Import mode is a radio group; confirmation needs an
+explicit checkbox. axe (WCAG 2.1 AA): no serious or critical violation on every step; no horizontal scrolling at tablet
+and mobile (Playwright `imports.spec.ts`).
 
 Automation (re-planned): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are

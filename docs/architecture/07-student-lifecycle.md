@@ -80,6 +80,21 @@ account, assigns the system STUDENT role at the student's institution and sends 
 invitation and Keycloak flow). Accounts linked to a student can never receive another role
 (`student_account_role_restricted`). Account creation, role assignment and the invitation are audited.
 
+### Student accounts and lifecycle (KI-46, defined at the 1.5 acceptance; not yet automated)
+
+| Lifecycle change | Required account behaviour | Rationale |
+|---|---|---|
+| ACTIVE/ENROLLED → SUSPENDED | Account **suspended** (sign-in refused, role assignment kept) | Suspension is temporary; reinstatement restores access without a new invitation |
+| SUSPENDED → ACTIVE (reinstated) | Account **reactivated** | Mirrors the suspension |
+| → WITHDRAWN or → CANCELLED | Account **deactivated** and the STUDENT role assignment ended on the effective date | The person is no longer a student; records stay, access ends |
+| ACTIVE → GRADUATED → ALUMNI | Account **kept active** with the STUDENT role until an alumni policy (later module) defines alumni access; results and certificates remain accessible | Graduates commonly need transcripts and certificates |
+| Account deactivated by an administrator | Lifecycle unchanged | Sign-in access and academic status are separate concerns |
+
+Implementation (planned with the student self-service module): the lifecycle transition publishes
+`student.status_changed`; the identity module applies the table above through its published port, in the same
+transaction, with an audit record per account change. Until then, administrators align accounts manually in People, and
+the profile's account panel shows the account status next to the lifecycle status.
+
 ## Dashboard
 
 `GET /students/overview`: total (excluding cancelled), active (enrolled or active), prospective, newly admitted

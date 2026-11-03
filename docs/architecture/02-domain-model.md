@@ -136,6 +136,13 @@ erDiagram
 * **AdmissionRecord** (separate from the profile), **Enrolment** (one current row; history preserved), **Guardian**,
   **StudentDocument** (quarantine and scan state), **StudentNumberRule**, **StudentOption**.
 
+### Student import (increment 1.6; details in `08-student-import.md`)
+* **StudentImportJob**: one uploaded CSV/XLSX file for one university or college; mapping, validation and progress
+  counts, mode (all-or-nothing / valid rows only), lease for background processing, retention marker.
+* **StudentImportRow**: one source row with encrypted raw values, issues, duplicate classification, decision and final
+  outcome (linked to the created or updated Student).
+* **StudentImportMapping** (saved column mappings) and **StudentImportSettings** (matching rules per institution).
+
 ### People and admissions
 * **Person**: shared identity for student, candidate, alumni. PII fields are encrypted where configured.
 * **CandidateProfile** becomes a **StudentProfile** on admission conversion (same Person, history kept).

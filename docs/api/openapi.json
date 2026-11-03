@@ -93,6 +93,139 @@
         }
       }
     },
+    "/api/v1/student-imports/{id}/mapping" : {
+      "put" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Save the column mapping (optionally as a reusable template) and queue validation",
+        "operationId" : "mapping",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentImportMappingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/settings/{institutionId}" : {
+      "put" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Change the matching rules of an institution",
+        "operationId" : "saveSettings",
+        "parameters" : [ {
+          "name" : "institutionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SettingsCommand"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportSettings"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/mappings/{mappingId}" : {
+      "put" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Rename or change a saved mapping",
+        "operationId" : "updateMapping",
+        "parameters" : [ {
+          "name" : "mappingId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentImportSavedMappingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportSavedMapping"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Delete a saved mapping",
+        "operationId" : "deleteMapping",
+        "parameters" : [ {
+          "name" : "mappingId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
     "/api/v1/staff/{id}" : {
       "get" : {
         "tags" : [ "Staff" ],
@@ -1492,6 +1625,321 @@
                   "items" : {
                     "$ref" : "#/components/schemas/StudentOption"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Import history (only institutions the caller may import into)",
+        "operationId" : "history",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "UPLOADED", "QUEUED", "VALIDATING", "READY", "PROCESSING", "COMPLETED", "PARTIALLY_COMPLETED", "FAILED", "CANCELLED" ]
+          }
+        }, {
+          "name" : "institutionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 25,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseStudentImportSummary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Upload a CSV or XLSX file (scanned, checked and stored); returns the job with a suggested column mapping. Reusing importKey with the same file returns the existing job; with another file it is rejected (409)",
+        "operationId" : "upload_1",
+        "parameters" : [ {
+          "name" : "institutionId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "importKey",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "mappingTemplateId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/retry" : {
+      "post" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Retry an import that failed because of a system error (completed rows are kept)",
+        "operationId" : "retry",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/decisions" : {
+      "post" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Record decisions for possible duplicates (rows or a whole category): create new, add to existing, or skip. Never merges",
+        "operationId" : "decide",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentImportDecisionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/confirm" : {
+      "post" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Confirm the previewed import and queue processing (expectedRows must equal the rows the preview showed)",
+        "operationId" : "confirm",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentImportConfirmRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/cancel" : {
+      "post" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Cancel an import (running all-or-nothing imports are rolled back; valid-rows-only imports keep imported rows)",
+        "operationId" : "cancel",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/mappings" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Saved column mappings (organization-wide and of the institution when given)",
+        "operationId" : "mappings",
+        "parameters" : [ {
+          "name" : "institutionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentImportSavedMapping"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Save a reusable column mapping",
+        "operationId" : "createMapping",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentImportSavedMappingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportSavedMapping"
                 }
               }
             }
@@ -4468,7 +4916,7 @@
       "get" : {
         "tags" : [ "Students" ],
         "summary" : "Lifecycle status history and change log (no personal values)",
-        "operationId" : "history",
+        "operationId" : "history_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4528,6 +4976,324 @@
                   "type" : "array",
                   "items" : {
                     "$ref" : "#/components/schemas/StudentNumberRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Import job with mapping, validation counts, progress and allowed actions",
+        "operationId" : "job",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportJob"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/source" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Download the original file (clean malware scan, within the retention period, student.personal.read; audited)",
+        "operationId" : "source",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/sample" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "First rows of the file for the mapping preview (personal values masked without student.personal.read; audited)",
+        "operationId" : "sample",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "rows",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 5,
+            "maximum" : 20,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportPreviewRows"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/rows" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Validated rows with issues, duplicate classification, decisions and outcomes (filters: ALL, ISSUES, ERRORS, INVALID, WARNINGS, DUPLICATES, DECISIONS, UNRESOLVED, CONFLICTS, VALID, FAILED, IMPORTED, SKIPPED)",
+        "operationId" : "rows",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "filter",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "ALL",
+            "maxLength" : 20,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 25,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseStudentImportRow"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/{id}/reports/{kind}" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Download a report: VALIDATION, ERRORS, RESULT or CORRECTIONS (rows to fix with their original values; needs student.personal.read)",
+        "operationId" : "report",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "kind",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "format",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "CSV"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/template" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Download a standard import template (XLSX with instructions and reference values, or CSV headings)",
+        "operationId" : "template",
+        "parameters" : [ {
+          "name" : "institutionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "sections",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }, {
+          "name" : "format",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "XLSX"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/settings" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Duplicate-matching rules and required-field policy per university/college",
+        "operationId" : "settings",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentImportSettings"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/overview" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Import dashboard: jobs in progress, awaiting action, recent results and limits",
+        "operationId" : "overview",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentImportOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-imports/fields" : {
+      "get" : {
+        "tags" : [ "Student imports" ],
+        "summary" : "Importable fields with sections, formats and requirements (for an institution when given)",
+        "operationId" : "fields",
+        "parameters" : [ {
+          "name" : "institutionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentImportField"
                   }
                 }
               }
@@ -4617,7 +5383,7 @@
       "get" : {
         "tags" : [ "Roles" ],
         "summary" : "Current role assignments of visible users (filter by role, unit subtree or search)",
-        "operationId" : "overview",
+        "operationId" : "overview_1",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -4703,7 +5469,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Change history of a unit (newest first)",
-        "operationId" : "history_1",
+        "operationId" : "history_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -5585,6 +6351,456 @@
           },
           "canManage" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "StudentImportColumn" : {
+        "type" : "object",
+        "properties" : {
+          "column" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 99,
+            "minimum" : 0
+          },
+          "field" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }
+      },
+      "StudentImportMappingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportColumn"
+            },
+            "maxItems" : 100,
+            "minItems" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "saveAsName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "saveAsDescription" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          },
+          "saveForOrganization" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "columns", "version" ]
+      },
+      "StudentImportAbilities" : {
+        "type" : "object",
+        "properties" : {
+          "map" : {
+            "type" : "boolean"
+          },
+          "decide" : {
+            "type" : "boolean"
+          },
+          "confirm" : {
+            "type" : "boolean"
+          },
+          "cancel" : {
+            "type" : "boolean"
+          },
+          "retry" : {
+            "type" : "boolean"
+          },
+          "downloadSource" : {
+            "type" : "boolean"
+          },
+          "viewValues" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StudentImportCounts" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "valid" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "warnings" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "invalid" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "duplicates" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "potentialDuplicates" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "conflicts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unresolved" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "toCreate" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "toUpdate" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudentImportJob" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "fileFormat" : {
+            "type" : "string"
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "fileSha256" : {
+            "type" : "string"
+          },
+          "encoding" : {
+            "type" : "string"
+          },
+          "delimiter" : {
+            "type" : "string"
+          },
+          "sheetName" : {
+            "type" : "string"
+          },
+          "scanStatus" : {
+            "type" : "string"
+          },
+          "headers" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "mapping" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportMappingEntry"
+            }
+          },
+          "unmappedColumns" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "UPLOADED", "QUEUED", "VALIDATING", "READY", "PROCESSING", "COMPLETED", "PARTIALLY_COMPLETED", "FAILED", "CANCELLED" ]
+          },
+          "phase" : {
+            "type" : "string",
+            "enum" : [ "VALIDATE", "IMPORT" ]
+          },
+          "mode" : {
+            "type" : "string",
+            "enum" : [ "ALL_OR_NOTHING", "VALID_ROWS_ONLY" ]
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/StudentImportCounts"
+          },
+          "progress" : {
+            "$ref" : "#/components/schemas/StudentImportProgress"
+          },
+          "cancelRequested" : {
+            "type" : "boolean"
+          },
+          "failureKind" : {
+            "type" : "string"
+          },
+          "failureMessage" : {
+            "type" : "string"
+          },
+          "rolledBack" : {
+            "type" : "boolean"
+          },
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "previousJobId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdByName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "confirmedByName" : {
+            "type" : "string"
+          },
+          "confirmedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "sourceAvailable" : {
+            "type" : "boolean"
+          },
+          "purgeAfter" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "can" : {
+            "$ref" : "#/components/schemas/StudentImportAbilities"
+          }
+        }
+      },
+      "StudentImportMappingEntry" : {
+        "type" : "object",
+        "properties" : {
+          "column" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "header" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string",
+            "enum" : [ "SAVED", "AUTO", "MANUAL", "NONE" ]
+          },
+          "note" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentImportProgress" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "processed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imported" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updated" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "percent" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "SettingsCommand" : {
+        "type" : "object",
+        "properties" : {
+          "matchPersonalEmail" : {
+            "type" : "boolean"
+          },
+          "matchInstitutionalEmail" : {
+            "type" : "boolean"
+          },
+          "matchNameDob" : {
+            "type" : "boolean"
+          },
+          "matchNameMobile" : {
+            "type" : "boolean"
+          },
+          "requireDateOfBirth" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudentImportSettings" : {
+        "type" : "object",
+        "properties" : {
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "matchPersonalEmail" : {
+            "type" : "boolean"
+          },
+          "matchInstitutionalEmail" : {
+            "type" : "boolean"
+          },
+          "matchNameDob" : {
+            "type" : "boolean"
+          },
+          "matchNameMobile" : {
+            "type" : "boolean"
+          },
+          "requireDateOfBirth" : {
+            "type" : "boolean"
+          },
+          "configured" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudentImportSavedColumn" : {
+        "type" : "object",
+        "properties" : {
+          "header" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentImportSavedMappingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 1
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportSavedColumn"
+            },
+            "maxItems" : 100,
+            "minItems" : 1
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "columns", "name" ]
+      },
+      "StudentImportSavedMapping" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportSavedColumn"
+            }
+          },
+          "updatedByName" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -7075,6 +8291,55 @@
           }
         },
         "required" : [ "active" ]
+      },
+      "StudentImportDecisionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int32"
+            },
+            "maxItems" : 10000,
+            "minItems" : 0
+          },
+          "category" : {
+            "type" : "string",
+            "enum" : [ "EXACT_DUPLICATE", "POTENTIAL_DUPLICATE", "CONFLICTING_IDENTITY", "EXISTING_NEW_ENROLMENT", "CONFLICTING_ACADEMIC", "IN_FILE_DUPLICATE", "IN_FILE_POTENTIAL" ]
+          },
+          "decision" : {
+            "type" : "string",
+            "enum" : [ "CREATE_NEW", "ADD_TO_EXISTING", "SKIP" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "decision", "version" ]
+      },
+      "StudentImportConfirmRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string",
+            "enum" : [ "ALL_OR_NOTHING", "VALID_ROWS_ONLY" ]
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "expectedRows" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 0
+          },
+          "acknowledged" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "mode", "version" ]
       },
       "StaffLinkRequest" : {
         "type" : "object",
@@ -8908,6 +10173,394 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/StudentGroupCount"
+            }
+          }
+        }
+      },
+      "PageResponseStudentImportSummary" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportSummary"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudentImportSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "createdByName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "mode" : {
+            "type" : "string",
+            "enum" : [ "ALL_OR_NOTHING", "VALID_ROWS_ONLY" ]
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "UPLOADED", "QUEUED", "VALIDATING", "READY", "PROCESSING", "COMPLETED", "PARTIALLY_COMPLETED", "FAILED", "CANCELLED" ]
+          },
+          "totalRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "succeededRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "failedRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skippedRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "processedRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "progressTotal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "StudentImportPreviewRows" : {
+        "type" : "object",
+        "properties" : {
+          "headers" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportSampleRow"
+            }
+          },
+          "masked" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StudentImportSampleRow" : {
+        "type" : "object",
+        "properties" : {
+          "rowNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "cells" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "PageResponseStudentImportRow" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportRow"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudentImportIssue" : {
+        "type" : "object",
+        "properties" : {
+          "severity" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "column" : {
+            "type" : "string"
+          },
+          "columnNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "hint" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentImportPlan" : {
+        "type" : "object",
+        "properties" : {
+          "student" : {
+            "type" : "boolean"
+          },
+          "admission" : {
+            "type" : "boolean"
+          },
+          "enrolment" : {
+            "type" : "boolean"
+          },
+          "guardians" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "activate" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StudentImportRow" : {
+        "type" : "object",
+        "properties" : {
+          "rowNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "studentNo" : {
+            "type" : "string"
+          },
+          "registrationNo" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "VALID", "WARNING", "INVALID", "DUPLICATE", "NEEDS_DECISION", "CONFLICT" ]
+          },
+          "issues" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportIssue"
+            }
+          },
+          "matchCategory" : {
+            "type" : "string",
+            "enum" : [ "EXACT_DUPLICATE", "POTENTIAL_DUPLICATE", "CONFLICTING_IDENTITY", "EXISTING_NEW_ENROLMENT", "CONFLICTING_ACADEMIC", "IN_FILE_DUPLICATE", "IN_FILE_POTENTIAL" ]
+          },
+          "matchStudentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "matchStudentNo" : {
+            "type" : "string"
+          },
+          "matchRowNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "matchReason" : {
+            "type" : "string"
+          },
+          "plan" : {
+            "$ref" : "#/components/schemas/StudentImportPlan"
+          },
+          "decision" : {
+            "type" : "string",
+            "enum" : [ "CREATE_NEW", "ADD_TO_EXISTING", "SKIP" ]
+          },
+          "decidedByName" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "allowedDecisions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "CREATE_NEW", "ADD_TO_EXISTING", "SKIP" ]
+            }
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "outcomeCode" : {
+            "type" : "string"
+          },
+          "outcomeMessage" : {
+            "type" : "string"
+          },
+          "studentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "values" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "StudentImportLimits" : {
+        "type" : "object",
+        "properties" : {
+          "maxFileBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "maxRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxColumns" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "retentionDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudentImportOverview" : {
+        "type" : "object",
+        "properties" : {
+          "jobsInProgress" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "awaitingAction" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "completedLast30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "failedLast30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "studentsImportedLast30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "rowsFailedLast30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recent" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentImportSummary"
+            }
+          },
+          "limits" : {
+            "$ref" : "#/components/schemas/StudentImportLimits"
+          }
+        }
+      },
+      "StudentImportField" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "section" : {
+            "type" : "string"
+          },
+          "sectionLabel" : {
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "personal" : {
+            "type" : "boolean"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "requiredWhen" : {
+            "type" : "string"
+          },
+          "hint" : {
+            "type" : "string"
+          },
+          "example" : {
+            "type" : "string"
+          },
+          "aliases" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
             }
           }
         }

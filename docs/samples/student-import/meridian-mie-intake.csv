@@ -1,0 +1,17 @@
+Student ID,Registration number,First name,Last name,Date of birth,Gender,Personal email,Mobile,Admission number,Admission date,Admission type,Batch,Semester,Student status,Guardian 1 name,Guardian 1 relationship,Guardian 1 mobile
+,MIE/2026/301,Aanya,Bhosale,2007-01-01,Female,aanya.bhosale@mail.example.test,+91 98000 10000,MIE-ADM-26-301,2026-07-01,Regular,CSE-2026-A,1,Active,Sunita Bhosale,Mother,+91 97000 20000
+,MIE/2026/302,Advik,Chopra,2007-02-04,Male,advik.chopra@mail.example.test,+91 98010 10001,MIE-ADM-26-302,2026-07-01,Regular,CSE-2026-A,1,Active,Rakesh Chopra,Father,+91 97010 20001
+,MIE/2026/303,Anika,Dutta,2007-03-07,Female,anika.dutta@mail.example.test,+91 98020 10002,MIE-ADM-26-303,2026-07-01,Regular,CSE-2026-A,1,Active,Moumita Dutta,Mother,+91 97020 20002
+,MIE/2026/304,Atharv,Ghosh,2007-04-10,Male,atharv.ghosh@mail.example.test,+91 98030 10003,MIE-ADM-26-304,2026-07-01,Regular,CSE-2026-A,1,Enrolled,Partha Ghosh,Father,+91 97030 20003
+,MIE/2026/305,Bhavya,Hegde,2007-05-13,Female,bhavya.hegde@mail.example.test,+91 98040 10004,MIE-ADM-26-305,2026-07-01,Regular,CSE-2026-A,1,Active,Shobha Hegde,Mother,+91 97040 20004
+,MIE/2026/306,Darsh,Jain,2007-06-16,Male,darsh.jain@mail.example.test,+91 98050 10005,MIE-ADM-26-306,2026-07-01,Regular,CSE-2026-A,1,Active,Manoj Jain,Father,+91 97050 20005
+,MIE/2026/307,Eshaan,Kamath,2007-07-19,Male,eshaan.kamath@mail.example.test,+91 98060 10006,MIE-ADM-26-307,2026-07-01,Regular,CSE-2026-B,1,Active,Vidya Kamath,Mother,+91 97060 20006
+,MIE/2026/308,Gauri,Lal,2007-08-22,Female,gauri.lal@mail.example.test,+91 98070 10007,MIE-ADM-26-308,2026-07-01,Regular,CSE-2026-B,1,Active,Harish Lal,Father,+91 97070 20007
+,MIE/2026/309,Hridaan,Mehta,2007-09-25,Male,hridaan.mehta@mail.example.test,+91 98080 10008,MIE-ADM-26-309,2026-07-01,Regular,CSE-2026-B,1,Enrolled,Pooja Mehta,Mother,+91 97080 20008
+,MIE/2026/310,Ira,Naidu,2007-10-01,Female,ira.naidu@mail.example.test,+91 98090 10009,MIE-ADM-26-310,2026-07-01,Regular,CSE-2026-B,1,Active,Srinivas Naidu,Father,+91 97090 20009
+,MIE/2026/311,Jivika,Oberoi,2007-11-04,Female,jivika.oberoi@mail.example.test,+91 98100 10010,MIE-ADM-26-311,2026-07-01,Regular,CSE-2026-B,1,Active,Kavita Oberoi,Mother,+91 97100 20010
+,MIE/2026/312,Krish,Pandey,2007-12-07,Male,krish.pandey@mail.example.test,+91 98110 10011,MIE-ADM-26-312,2026-07-01,Regular,CSE-2026-B,1,Active,Alok Pandey,Father,+91 97110 20011
+,MIE/2026/313,Lavanya,Qadri,2007-01-10,Female,lavanya.qadri@mail.example.test,+91 98120 10012,MIE-ADM-26-313,2026-07-01,Regular,ECE-2026,1,Active,Nasreen Qadri,Mother,+91 97120 20012
+,MIE/2026/314,Madhav,Raghavan,2007-02-13,Male,madhav.raghavan@mail.example.test,+91 98130 10013,MIE-ADM-26-314,2026-07-01,Regular,ECE-2026,1,Active,Sridhar Raghavan,Father,+91 97130 20013
+,MIE/2026/315,Naira,Saxena,2007-03-16,Female,naira.saxena@mail.example.test,+91 98140 10014,MIE-ADM-26-315,2026-07-01,Regular,ECE-2026,1,Enrolled,Ritu Saxena,Mother,+91 97140 20014
+,MIE/2026/316,Parth,Thakur,2007-04-19,Male,parth.thakur@mail.example.test,+91 98150 10015,MIE-ADM-26-316,2026-07-01,Regular,ECE-2026,1,Active,Vikram Thakur,Father,+91 97150 20015

@@ -37,6 +37,11 @@ Vault, or a cloud secret manager) and never commit them.
 | `IVOROVI_SCANNING_CLAMD_HOST` / `IVOROVI_SCANNING_CLAMD_PORT` | **yes in STAGING/PRODUCTION** before documents are accepted | — / 3310 | clamd (ClamAV) used to scan student documents (ADR-0006). Without it, uploads stay quarantined (DEVELOPMENT/TEST) or are refused with 503 (STAGING/PRODUCTION) |
 | `IVOROVI_SCANNING_TIMEOUT` | no | PT30S | Scan timeout; a timeout is an ERROR verdict, never clean |
 | `IVOROVI_DOCUMENT_RETENTION_DAYS` | no | 30 | Days before files of removed or infected documents are purged from object storage |
+| `IVOROVI_IMPORT_MAX_FILE_BYTES` | no | 10485760 | Largest student import file (the multipart envelope allows 11 MB) |
+| `IVOROVI_IMPORT_MAX_ROWS` | no | 10000 | Most data rows per import file |
+| `IVOROVI_IMPORT_RETENTION_DAYS` | no | 30 | Days after an import finishes (or is abandoned) before its source file and raw row values are purged; outcomes and audit stay |
+| `IVOROVI_IMPORT_WORKER_ENABLED` | no | true | Run import jobs on this instance (RabbitMQ listener and sweeper); disable on instances that should only serve requests |
+| `IVOROVI_IMPORT_CONCURRENCY` | no | 2 | Import jobs processed at the same time per instance |
 | `IVOROVI_OPENAPI_ENABLED` | no | true (false with `prod` profile) | Exposes `/v3/api-docs` and Swagger UI |
 | `SPRING_PROFILES_ACTIVE` | no | — | `prod` enables JSON (ECS) logs. Never use `dev` or `seed` outside development |
 

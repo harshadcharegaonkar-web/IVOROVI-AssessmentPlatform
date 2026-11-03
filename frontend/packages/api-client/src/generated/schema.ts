@@ -39,6 +39,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student-imports/{id}/mapping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Save the column mapping (optionally as a reusable template) and queue validation */
+        put: operations["mapping"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/settings/{institutionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change the matching rules of an institution */
+        put: operations["saveSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/mappings/{mappingId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Rename or change a saved mapping */
+        put: operations["updateMapping"];
+        post?: never;
+        /** Delete a saved mapping */
+        delete: operations["deleteMapping"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/{id}": {
         parameters: {
             query?: never;
@@ -431,6 +483,110 @@ export interface paths {
         put?: never;
         /** Activate or deactivate an organization-defined option (never deleted) */
         post: operations["optionStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import history (only institutions the caller may import into) */
+        get: operations["history"];
+        put?: never;
+        /** Upload a CSV or XLSX file (scanned, checked and stored); returns the job with a suggested column mapping. Reusing importKey with the same file returns the existing job; with another file it is rejected (409) */
+        post: operations["upload_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry an import that failed because of a system error (completed rows are kept) */
+        post: operations["retry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record decisions for possible duplicates (rows or a whole category): create new, add to existing, or skip. Never merges */
+        post: operations["decide"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm the previewed import and queue processing (expectedRows must equal the rows the preview showed) */
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an import (running all-or-nothing imports are rolled back; valid-rows-only imports keep imported rows) */
+        post: operations["cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved column mappings (organization-wide and of the institution when given) */
+        get: operations["mappings"];
+        put?: never;
+        /** Save a reusable column mapping */
+        post: operations["createMapping"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1279,7 +1435,7 @@ export interface paths {
             cookie?: never;
         };
         /** Lifecycle status history and change log (no personal values) */
-        get: operations["history"];
+        get: operations["history_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1314,6 +1470,159 @@ export interface paths {
         };
         /** Student ID rules in force for each visible university and college (own or inherited) */
         get: operations["rules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import job with mapping, validation counts, progress and allowed actions */
+        get: operations["job"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the original file (clean malware scan, within the retention period, student.personal.read; audited) */
+        get: operations["source"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/sample": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** First rows of the file for the mapping preview (personal values masked without student.personal.read; audited) */
+        get: operations["sample"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Validated rows with issues, duplicate classification, decisions and outcomes (filters: ALL, ISSUES, ERRORS, INVALID, WARNINGS, DUPLICATES, DECISIONS, UNRESOLVED, CONFLICTS, VALID, FAILED, IMPORTED, SKIPPED) */
+        get: operations["rows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/{id}/reports/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a report: VALIDATION, ERRORS, RESULT or CORRECTIONS (rows to fix with their original values; needs student.personal.read) */
+        get: operations["report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a standard import template (XLSX with instructions and reference values, or CSV headings) */
+        get: operations["template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Duplicate-matching rules and required-field policy per university/college */
+        get: operations["settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import dashboard: jobs in progress, awaiting action, recent results and limits */
+        get: operations["overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-imports/fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Importable fields with sections, formats and requirements (for an institution when given) */
+        get: operations["fields"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1364,7 +1673,7 @@ export interface paths {
             cookie?: never;
         };
         /** Current role assignments of visible users (filter by role, unit subtree or search) */
-        get: operations["overview"];
+        get: operations["overview_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1398,7 +1707,7 @@ export interface paths {
             cookie?: never;
         };
         /** Change history of a unit (newest first) */
-        get: operations["history_1"];
+        get: operations["history_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1795,6 +2104,178 @@ export interface components {
             /** Format: int64 */
             version?: number;
             canManage?: boolean;
+        };
+        StudentImportColumn: {
+            /** Format: int32 */
+            column?: number;
+            field?: string;
+        };
+        StudentImportMappingRequest: {
+            columns: components["schemas"]["StudentImportColumn"][];
+            /** Format: int64 */
+            version: number;
+            saveAsName?: string;
+            saveAsDescription?: string;
+            saveForOrganization?: boolean;
+        };
+        StudentImportAbilities: {
+            map?: boolean;
+            decide?: boolean;
+            confirm?: boolean;
+            cancel?: boolean;
+            retry?: boolean;
+            downloadSource?: boolean;
+            viewValues?: boolean;
+        };
+        StudentImportCounts: {
+            /** Format: int32 */
+            total?: number;
+            /** Format: int32 */
+            valid?: number;
+            /** Format: int32 */
+            warnings?: number;
+            /** Format: int32 */
+            invalid?: number;
+            /** Format: int32 */
+            duplicates?: number;
+            /** Format: int32 */
+            potentialDuplicates?: number;
+            /** Format: int32 */
+            conflicts?: number;
+            /** Format: int32 */
+            unresolved?: number;
+            /** Format: int32 */
+            toCreate?: number;
+            /** Format: int32 */
+            toUpdate?: number;
+        };
+        StudentImportJob: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
+            fileName?: string;
+            fileFormat?: string;
+            /** Format: int64 */
+            fileSize?: number;
+            fileSha256?: string;
+            encoding?: string;
+            delimiter?: string;
+            sheetName?: string;
+            scanStatus?: string;
+            headers?: string[];
+            mapping?: components["schemas"]["StudentImportMappingEntry"][];
+            unmappedColumns?: string[];
+            /** @enum {string} */
+            status?: "UPLOADED" | "QUEUED" | "VALIDATING" | "READY" | "PROCESSING" | "COMPLETED" | "PARTIALLY_COMPLETED" | "FAILED" | "CANCELLED";
+            /** @enum {string} */
+            phase?: "VALIDATE" | "IMPORT";
+            /** @enum {string} */
+            mode?: "ALL_OR_NOTHING" | "VALID_ROWS_ONLY";
+            counts?: components["schemas"]["StudentImportCounts"];
+            progress?: components["schemas"]["StudentImportProgress"];
+            cancelRequested?: boolean;
+            failureKind?: string;
+            failureMessage?: string;
+            rolledBack?: boolean;
+            /** Format: int32 */
+            attempts?: number;
+            /** Format: uuid */
+            previousJobId?: string;
+            createdByName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            validatedAt?: string;
+            confirmedByName?: string;
+            /** Format: date-time */
+            confirmedAt?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            sourceAvailable?: boolean;
+            /** Format: date-time */
+            purgeAfter?: string;
+            /** Format: int64 */
+            version?: number;
+            can?: components["schemas"]["StudentImportAbilities"];
+        };
+        StudentImportMappingEntry: {
+            /** Format: int32 */
+            column?: number;
+            header?: string;
+            field?: string;
+            /** @enum {string} */
+            source?: "SAVED" | "AUTO" | "MANUAL" | "NONE";
+            note?: string;
+        };
+        StudentImportProgress: {
+            /** Format: int32 */
+            total?: number;
+            /** Format: int32 */
+            processed?: number;
+            /** Format: int32 */
+            imported?: number;
+            /** Format: int32 */
+            updated?: number;
+            /** Format: int32 */
+            skipped?: number;
+            /** Format: int32 */
+            failed?: number;
+            /** Format: int32 */
+            percent?: number;
+        };
+        SettingsCommand: {
+            matchPersonalEmail?: boolean;
+            matchInstitutionalEmail?: boolean;
+            matchNameDob?: boolean;
+            matchNameMobile?: boolean;
+            requireDateOfBirth?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        StudentImportSettings: {
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
+            matchPersonalEmail?: boolean;
+            matchInstitutionalEmail?: boolean;
+            matchNameDob?: boolean;
+            matchNameMobile?: boolean;
+            requireDateOfBirth?: boolean;
+            configured?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        StudentImportSavedColumn: {
+            header?: string;
+            field?: string;
+        };
+        StudentImportSavedMappingRequest: {
+            /** Format: uuid */
+            institutionId?: string;
+            name: string;
+            description?: string;
+            columns: components["schemas"]["StudentImportSavedColumn"][];
+            /** Format: int64 */
+            version?: number;
+        };
+        StudentImportSavedMapping: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
+            name?: string;
+            description?: string;
+            columns?: components["schemas"]["StudentImportSavedColumn"][];
+            updatedByName?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
         };
         StaffRequest: {
             staffNo: string;
@@ -2351,6 +2832,24 @@ export interface components {
         };
         StudentOptionStatusRequest: {
             active: boolean;
+        };
+        StudentImportDecisionRequest: {
+            rows?: number[];
+            /** @enum {string} */
+            category?: "EXACT_DUPLICATE" | "POTENTIAL_DUPLICATE" | "CONFLICTING_IDENTITY" | "EXISTING_NEW_ENROLMENT" | "CONFLICTING_ACADEMIC" | "IN_FILE_DUPLICATE" | "IN_FILE_POTENTIAL";
+            /** @enum {string} */
+            decision: "CREATE_NEW" | "ADD_TO_EXISTING" | "SKIP";
+            /** Format: int64 */
+            version: number;
+        };
+        StudentImportConfirmRequest: {
+            /** @enum {string} */
+            mode: "ALL_OR_NOTHING" | "VALID_ROWS_ONLY";
+            /** Format: int64 */
+            version: number;
+            /** Format: int32 */
+            expectedRows?: number;
+            acknowledged?: boolean;
         };
         StaffLinkRequest: {
             /** Format: uuid */
@@ -3061,6 +3560,158 @@ export interface components {
             byBatch?: components["schemas"]["StudentGroupCount"][];
             byAcademicYear?: components["schemas"]["StudentGroupCount"][];
         };
+        PageResponseStudentImportSummary: {
+            items?: components["schemas"]["StudentImportSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        StudentImportSummary: {
+            /** Format: uuid */
+            id?: string;
+            fileName?: string;
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
+            createdByName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            mode?: "ALL_OR_NOTHING" | "VALID_ROWS_ONLY";
+            /** @enum {string} */
+            status?: "UPLOADED" | "QUEUED" | "VALIDATING" | "READY" | "PROCESSING" | "COMPLETED" | "PARTIALLY_COMPLETED" | "FAILED" | "CANCELLED";
+            /** Format: int32 */
+            totalRows?: number;
+            /** Format: int32 */
+            succeededRows?: number;
+            /** Format: int32 */
+            failedRows?: number;
+            /** Format: int32 */
+            skippedRows?: number;
+            /** Format: int32 */
+            processedRows?: number;
+            /** Format: int32 */
+            progressTotal?: number;
+            /** Format: date-time */
+            finishedAt?: string;
+        };
+        StudentImportPreviewRows: {
+            headers?: string[];
+            rows?: components["schemas"]["StudentImportSampleRow"][];
+            masked?: boolean;
+        };
+        StudentImportSampleRow: {
+            /** Format: int32 */
+            rowNo?: number;
+            cells?: string[];
+        };
+        PageResponseStudentImportRow: {
+            items?: components["schemas"]["StudentImportRow"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        StudentImportIssue: {
+            severity?: string;
+            category?: string;
+            code?: string;
+            field?: string;
+            column?: string;
+            /** Format: int32 */
+            columnNo?: number;
+            message?: string;
+            hint?: string;
+        };
+        StudentImportPlan: {
+            student?: boolean;
+            admission?: boolean;
+            enrolment?: boolean;
+            /** Format: int32 */
+            guardians?: number;
+            activate?: boolean;
+        };
+        StudentImportRow: {
+            /** Format: int32 */
+            rowNo?: number;
+            displayName?: string;
+            studentNo?: string;
+            registrationNo?: string;
+            /** @enum {string} */
+            status?: "VALID" | "WARNING" | "INVALID" | "DUPLICATE" | "NEEDS_DECISION" | "CONFLICT";
+            issues?: components["schemas"]["StudentImportIssue"][];
+            /** @enum {string} */
+            matchCategory?: "EXACT_DUPLICATE" | "POTENTIAL_DUPLICATE" | "CONFLICTING_IDENTITY" | "EXISTING_NEW_ENROLMENT" | "CONFLICTING_ACADEMIC" | "IN_FILE_DUPLICATE" | "IN_FILE_POTENTIAL";
+            /** Format: uuid */
+            matchStudentId?: string;
+            matchStudentNo?: string;
+            /** Format: int32 */
+            matchRowNo?: number;
+            matchReason?: string;
+            plan?: components["schemas"]["StudentImportPlan"];
+            /** @enum {string} */
+            decision?: "CREATE_NEW" | "ADD_TO_EXISTING" | "SKIP";
+            decidedByName?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            allowedDecisions?: ("CREATE_NEW" | "ADD_TO_EXISTING" | "SKIP")[];
+            outcome?: string;
+            outcomeCode?: string;
+            outcomeMessage?: string;
+            /** Format: uuid */
+            studentId?: string;
+            values?: {
+                [key: string]: string;
+            };
+        };
+        StudentImportLimits: {
+            /** Format: int64 */
+            maxFileBytes?: number;
+            /** Format: int32 */
+            maxRows?: number;
+            /** Format: int32 */
+            maxColumns?: number;
+            /** Format: int32 */
+            retentionDays?: number;
+        };
+        StudentImportOverview: {
+            /** Format: int64 */
+            jobsInProgress?: number;
+            /** Format: int64 */
+            awaitingAction?: number;
+            /** Format: int64 */
+            completedLast30Days?: number;
+            /** Format: int64 */
+            failedLast30Days?: number;
+            /** Format: int64 */
+            studentsImportedLast30Days?: number;
+            /** Format: int64 */
+            rowsFailedLast30Days?: number;
+            recent?: components["schemas"]["StudentImportSummary"][];
+            limits?: components["schemas"]["StudentImportLimits"];
+        };
+        StudentImportField: {
+            key?: string;
+            label?: string;
+            section?: string;
+            sectionLabel?: string;
+            kind?: string;
+            personal?: boolean;
+            required?: boolean;
+            requiredWhen?: string;
+            hint?: string;
+            example?: string;
+            aliases?: string[];
+        };
         PageResponseStaffProfile: {
             items?: components["schemas"]["StaffProfile"][];
             /** Format: int32 */
@@ -3603,6 +4254,104 @@ export interface operations {
                 content: {
                     "*/*": components["schemas"]["StudentNumberRule"];
                 };
+            };
+        };
+    };
+    mapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentImportMappingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    saveSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                institutionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportSettings"];
+                };
+            };
+        };
+    };
+    updateMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentImportSavedMappingRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportSavedMapping"];
+                };
+            };
+        };
+    };
+    deleteMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mappingId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4457,6 +5206,205 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["StudentOption"][];
+                };
+            };
+        };
+    };
+    history: {
+        parameters: {
+            query?: {
+                status?: "UPLOADED" | "QUEUED" | "VALIDATING" | "READY" | "PROCESSING" | "COMPLETED" | "PARTIALLY_COMPLETED" | "FAILED" | "CANCELLED";
+                institutionId?: string;
+                q?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseStudentImportSummary"];
+                };
+            };
+        };
+    };
+    upload_1: {
+        parameters: {
+            query: {
+                institutionId: string;
+                importKey?: string;
+                mappingTemplateId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    retry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    decide: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentImportDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentImportConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    mappings: {
+        parameters: {
+            query?: {
+                institutionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportSavedMapping"][];
+                };
+            };
+        };
+    };
+    createMapping: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentImportSavedMappingRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportSavedMapping"];
                 };
             };
         };
@@ -6299,7 +7247,7 @@ export interface operations {
             };
         };
     };
-    history: {
+    history_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -6361,6 +7309,211 @@ export interface operations {
             };
         };
     };
+    job: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportJob"];
+                };
+            };
+        };
+    };
+    source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    sample: {
+        parameters: {
+            query?: {
+                rows?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportPreviewRows"];
+                };
+            };
+        };
+    };
+    rows: {
+        parameters: {
+            query?: {
+                filter?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseStudentImportRow"];
+                };
+            };
+        };
+    };
+    report: {
+        parameters: {
+            query?: {
+                format?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    template: {
+        parameters: {
+            query?: {
+                institutionId?: string;
+                sections?: string[];
+                format?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportSettings"][];
+                };
+            };
+        };
+    };
+    overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportOverview"];
+                };
+            };
+        };
+    };
+    fields: {
+        parameters: {
+            query?: {
+                institutionId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentImportField"][];
+                };
+            };
+        };
+    };
     holders: {
         parameters: {
             query?: {
@@ -6407,7 +7560,7 @@ export interface operations {
             };
         };
     };
-    overview: {
+    overview_1: {
         parameters: {
             query?: {
                 q?: string;
@@ -6453,7 +7606,7 @@ export interface operations {
             };
         };
     };
-    history_1: {
+    history_2: {
         parameters: {
             query?: {
                 page?: number;

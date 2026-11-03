@@ -137,6 +137,32 @@ SMOKE_DOC=$(json 'd[0]["id"]')
 check "quarantined document cannot be downloaded"        409 "$INES"  GET "/api/v1/students/$SMOKE_STUDENT/documents/$SMOKE_DOC/content"
 check "cancel the smoke student"                         200 "$INES"  POST "/api/v1/students/$SMOKE_STUDENT/status" '{"status":"CANCELLED","reason":"smoke test","version":0}'
 
+echo "Student bulk import (1.6): upload, background validation and processing through RabbitMQ ..."
+check "import template download"                         200 "$ALICE" GET "/api/v1/student-imports/template?format=XLSX&institutionId=$TENANT_A_INST"
+check "faculty cannot use student imports"               403 "$ARUN"  GET /api/v1/student-imports
+SMK_ID="SMK-$(date +%s)"
+printf 'Student ID,First name,Last name,Personal email\n%s,Smoke,Import,%s@example.test\n%s-2,Broken,Row,not-an-email\n' "$SMK_ID" "$(echo "$SMK_ID" | tr A-Z a-z)" "$SMK_ID" > /tmp/smoke-import.csv
+got=$(curl -s -o /tmp/smoke-body -w '%{http_code}' -X POST -H "Authorization: Bearer $INES" -F "file=@/tmp/smoke-import.csv;type=text/csv" \
+  "$API_URL/api/v1/student-imports?institutionId=$TENANT_A_INST&importKey=smoke-$SMK_ID")
+if [[ $got == 201 ]] && grep -q '"status":"UPLOADED"' /tmp/smoke-body; then pass=$((pass+1)); echo "  PASS  CSV upload creates an import job (201)"; else fail=$((fail+1)); echo "  FAIL  import upload: $got $(head -c 200 /tmp/smoke-body)"; fi
+IMP=$(json 'd["id"]'); IMP_V=$(json 'd["version"]')
+again=$(curl -s -X POST -H "Authorization: Bearer $INES" -F "file=@/tmp/smoke-import.csv;type=text/csv" \
+  "$API_URL/api/v1/student-imports?institutionId=$TENANT_A_INST&importKey=smoke-$SMK_ID" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("id",""))')
+[[ $again == "$IMP" ]] && { pass=$((pass+1)); echo "  PASS  repeated upload with the same import key returns the same job"; } || { fail=$((fail+1)); echo "  FAIL  import key idempotency"; }
+check "other tenant cannot see the import"               404 "$BELA"  GET "/api/v1/student-imports/$IMP"
+check "save mapping and queue validation"                200 "$INES"  PUT "/api/v1/student-imports/$IMP/mapping" "{\"columns\":[{\"column\":0,\"field\":\"student_no\"},{\"column\":1,\"field\":\"first_name\"},{\"column\":2,\"field\":\"last_name\"},{\"column\":3,\"field\":\"personal_email\"}],\"version\":$IMP_V}"
+wait_status() { for _ in $(seq 1 90); do curl -s -o /tmp/smoke-body -H "Authorization: Bearer $INES" "$API_URL/api/v1/student-imports/$IMP"; grep -qE "\"status\":\"($1)\"" /tmp/smoke-body && return 0; sleep 1; done; return 1; }
+if wait_status READY && [[ $(json 'd["counts"]["valid"]') == 1 && $(json 'd["counts"]["invalid"]') == 1 ]]; then pass=$((pass+1)); echo "  PASS  background validation: 1 valid, 1 invalid"; else fail=$((fail+1)); echo "  FAIL  validation: $(head -c 300 /tmp/smoke-body)"; fi
+check "error report download"                            200 "$INES"  GET "/api/v1/student-imports/$IMP/reports/errors?format=CSV"
+grep -q "Not a valid email address" /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  error report names the row, column and correction"; } || { fail=$((fail+1)); echo "  FAIL  error report content"; }
+IMP_V=$(curl -s -H "Authorization: Bearer $INES" "$API_URL/api/v1/student-imports/$IMP" | python3 -c 'import sys,json; print(json.load(sys.stdin)["version"])')
+check "all-or-nothing refused with invalid rows"         409 "$INES"  POST "/api/v1/student-imports/$IMP/confirm" "{\"mode\":\"ALL_OR_NOTHING\",\"version\":$IMP_V,\"expectedRows\":1,\"acknowledged\":true}"
+check "confirm valid rows only"                          200 "$INES"  POST "/api/v1/student-imports/$IMP/confirm" "{\"mode\":\"VALID_ROWS_ONLY\",\"version\":$IMP_V,\"expectedRows\":1,\"acknowledged\":true}"
+if wait_status "COMPLETED|PARTIALLY_COMPLETED|FAILED" && [[ $(json 'd["progress"]["imported"]') == 1 ]]; then pass=$((pass+1)); echo "  PASS  background import created 1 student"; else fail=$((fail+1)); echo "  FAIL  import processing: $(head -c 300 /tmp/smoke-body)"; fi
+check "imported student is searchable"                   200 "$INES"  GET "/api/v1/students?q=$SMK_ID"
+IMP_STUDENT=$(json 'd["items"][0]["id"]')
+check "cancel the imported smoke student"                200 "$INES"  POST "/api/v1/students/$IMP_STUDENT/status" '{"status":"CANCELLED","reason":"smoke test","version":0}'
+
 
 echo "Provisioning service account is least-privilege (real Keycloak) ..."
 PROV=$(curl -s -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=client_credentials \

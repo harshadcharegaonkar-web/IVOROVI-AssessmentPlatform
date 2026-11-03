@@ -80,6 +80,7 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 | `student.document.read` | View student documents | READ | UNIT | AVAILABLE | View and download scanned, clean student documents |
 | `student.document.manage` | Manage student documents | MANAGE | UNIT | AVAILABLE | Upload, verify, reject and remove student documents |
 | `student.account.manage` | Create student sign-in accounts | WRITE | UNIT | AVAILABLE | Create a sign-in account for a student on demand (student role only) |
+| `student.import` | Import students in bulk | MANAGE | UNIT | AVAILABLE | Upload CSV/XLSX files, map columns, resolve duplicates and run student imports (also needs `student.manage` at the institution; personal and guardian columns need `student.personal.read`). Granted to ORG_ADMIN, INSTITUTION_ADMIN, ADMISSION_OFFICER (1.6) |
 
 ## Admissions
 
@@ -141,7 +142,7 @@ MANAGEMENT, EVALUATOR, PLACEMENT_OFFICER and ASSESSMENT_DESIGNER hold `academics
 Since increment 1.5 (migration `V202611041000`): ORG_ADMIN and INSTITUTION_ADMIN hold all six student permissions;
 ADMISSION_OFFICER holds read, personal, manage and both document permissions (not account creation) plus `academics.read`;
 DEPARTMENT_HEAD holds read, personal and document read; CAMPUS_ADMIN, FACULTY, EXAM_CONTROLLER and MANAGEMENT hold
-`student.read`. The STUDENT role holds none. The catalogue now has 40 permissions: 25 available, 14 planned, 1 platform-only.
+`student.read`. The STUDENT role holds none. The catalogue now has 41 permissions: 26 available, 14 planned, 1 platform-only.
 
 Adding a permission: add the enum entry with its metadata, grant it to system roles in a Flyway migration, and keep
 `PermissionCatalogConsistencyIT` and `RoleManagementIT.Catalogue` green.

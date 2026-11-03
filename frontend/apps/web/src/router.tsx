@@ -59,6 +59,7 @@ const loadBatchEditorPage = () => import("./routes/academics/BatchEditorPage");
 const READ_ACADEMICS = (a: Access) => a.hasAnywhere("academics.read");
 const loadStudentEditorPage = () => import("./routes/students/StudentEditorPage");
 const READ_STUDENTS = (a: Access) => a.hasAnywhere("student.read");
+const IMPORT_STUDENTS = (a: Access) => a.hasAnywhere("student.import");
 
 export const routes: RouteObject[] = [
   { path: CALLBACK_PATH, element: <AuthCallback /> },
@@ -140,6 +141,21 @@ export const routes: RouteObject[] = [
           { path: "list", handle: { crumb: "Student List" }, ...page(() => import("./routes/students/StudentListPage"), READ_STUDENTS) },
           { path: "new", handle: { crumb: "New" }, ...page(loadStudentEditorPage, (a) => a.hasAnywhere("student.manage")) },
           { path: "settings", handle: { crumb: "Student Settings" }, ...page(() => import("./routes/students/StudentSettingsPage"), READ_STUDENTS) },
+          { path: "imports", handle: { crumb: "Imports" }, children: [
+            { index: true, ...page(() => import("./routes/students/imports/ImportDashboardPage"), IMPORT_STUDENTS) },
+            { path: "new", handle: { crumb: "New import" }, ...page(() => import("./routes/students/imports/ImportUploadPage"), IMPORT_STUDENTS) },
+            { path: "history", handle: { crumb: "History" }, ...page(() => import("./routes/students/imports/ImportHistoryPage"), IMPORT_STUDENTS) },
+            { path: "templates", handle: { crumb: "Templates and rules" }, ...page(() => import("./routes/students/imports/ImportTemplatesPage"), IMPORT_STUDENTS) },
+            { path: ":id", ...page(() => import("./routes/students/imports/ImportJobPage"), IMPORT_STUDENTS) },
+            { path: ":id/mapping", ...page(() => import("./routes/students/imports/ImportMappingPage"), IMPORT_STUDENTS) },
+            { path: ":id/validation", ...page(() => import("./routes/students/imports/ImportValidationPage"), IMPORT_STUDENTS) },
+            { path: ":id/duplicates", ...page(() => import("./routes/students/imports/ImportDuplicatesPage"), IMPORT_STUDENTS) },
+            { path: ":id/preview", ...page(() => import("./routes/students/imports/ImportPreviewPage"), IMPORT_STUDENTS) },
+            { path: ":id/confirm", ...page(() => import("./routes/students/imports/ImportConfirmPage"), IMPORT_STUDENTS) },
+            { path: ":id/progress", ...page(() => import("./routes/students/imports/ImportProgressPage"), IMPORT_STUDENTS) },
+            { path: ":id/result", ...page(() => import("./routes/students/imports/ImportResultPage"), IMPORT_STUDENTS) },
+            { path: ":id/errors", ...page(() => import("./routes/students/imports/ImportErrorsPage"), IMPORT_STUDENTS) },
+          ] },
           { path: ":id", handle: { crumb: "Profile" }, ...page(() => import("./routes/students/StudentProfilePage"), READ_STUDENTS) },
           { path: ":id/edit", handle: { crumb: "Edit" }, ...page(loadStudentEditorPage, (a) => a.hasAnywhere("student.manage")) },
         ] },

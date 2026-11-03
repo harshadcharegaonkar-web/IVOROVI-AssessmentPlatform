@@ -1,6 +1,6 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
 import type { TerminologyKey } from "../session/useOrgLabels";
-import { BadgeCheck, BookKey, Contact, Gauge, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { BadgeCheck, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -58,6 +58,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/students", label: "Student Dashboard", icon: Gauge, visible: (a) => a.hasAnywhere("student.read") },
       { to: "/students/list", label: "Students", icon: Contact, visible: (a) => a.hasAnywhere("student.read") },
+      { to: "/students/imports", label: "Student Imports", icon: FileUp, visible: (a) => a.hasAnywhere("student.import") },
       { to: "/students/settings", label: "Student Settings", icon: IdCard, visible: (a) => a.hasAnywhere("student.read") },
     ],
   },

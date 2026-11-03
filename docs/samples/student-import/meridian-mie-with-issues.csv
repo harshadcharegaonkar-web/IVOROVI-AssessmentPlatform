@@ -1,0 +1,9 @@
+Student ID,Registration number,First name,Last name,Date of birth,Gender,Personal email,Mobile,Admission number,Admission date,Admission type,Batch,Semester,Student status,Guardian 1 name,Guardian 1 relationship,Guardian 1 mobile
+,MIE/2026/401,Ritika,Arora,2007-02-10,Female,ritika.arora@example.test,+91 96000 30000,MIE-ADM-26-401,2026-07-01,Regular,CSE-2026-A,1,,Parent of Ritika,Guardian,+91 95000 40000
+,MIE/2026/402,Samar,Bakshi,11/03/2007,Male,samar.bakshi@example,+91 96010 30001,MIE-ADM-26-402,2026-07-01,Regular,CSE-2026-A,1,,Parent of Samar,Guardian,+91 95010 40001
+,MIE/2026/403,Tanvi,Chandra,2007-04-12,Female,tanvi.chandra@example.test,+91 96020 30002,MIE-ADM-26-403,2026-07-01,Regular,CSE-2030-Z,1,,Parent of Tanvi,Guardian,+91 95020 40002
+,MIE/2026/404,,Dhillon,13/05/2007,Male,dhillon@example.test,+91 96030 30003,MIE-ADM-26-404,2026-07-01,Regular,CSE-2026-B,1,,Parent of Dhillon,Guardian,+91 95030 40003
+,MIE/2026/405,Uday,Edwards,2021-06-14,Female,uday.edwards@example.test,+91 96040 30004,MIE-ADM-26-405,2026-07-01,Regular,CSE-2026-B,1,,Parent of Uday,Guardian,+91 95040 40004
+,MIE/2026/406,Vanya,Fadnavis,15/07/2007,Male,vanya.fadnavis@example.test,+91 96050 30005,MIE-ADM-26-406,2026-07-01,Transfer,ECE-2026,1,,Parent of Vanya,Guardian,+91 95050 40005
+,MIE/2026/407,Aanya,Bhosale,2007-01-01,Female,aanya.second@example.test,+91 96060 30006,MIE-ADM-26-407,2026-07-01,Regular,ECE-2026,1,,Parent of Aanya,Guardian,+91 95060 40006
+,MIE/2026/401,Ritika,Arora,2007-02-10,Female,ritika.arora@example.test,+91 96000 30000,MIE-ADM-26-401,2026-07-01,Regular,CSE-2026-A,1,,Parent of Ritika,Guardian,+91 95000 40000

@@ -1,7 +1,6 @@
 # Increment 1.5: student lifecycle management
 
-* Status: **Implemented and verified; awaiting product-owner review** (authorized 2026-11-03 with the 1.4 acceptance).
-  Increment 1.6 not started.
+* Status: **Accepted** (product-owner approval 2026-11-03; implementation and evidence retained). Increment 1.6 authorized.
 * Depends on: 1.4 (accepted; follow-ups completed — see `increment-1.4.md`).
 * Design: `docs/architecture/07-student-lifecycle.md`; privacy: `docs/security/student-data-privacy.md`.
 
@@ -81,3 +80,13 @@ Playwright, axe, regressions, CI.
 
 Evidence: `docs/design/evidence/1.5/` (screenshots at 1440×900, 1024×768, 390×844 from the Meridian demonstration
 organization; synthetic data only).
+
+## Acceptance follow-ups (recorded at approval)
+
+| # | Follow-up | Where | Status |
+|---|---|---|---|
+| 1 | ClamAV (or equivalent) malware scanning is a **production release blocker** before real student documents are accepted | KI-23, ADR-0006 | Open, release blocker |
+| 2 | `IVOROVI_DATA_KEY` managed in a production secret store with backup, recovery and rotation procedures | `runbooks/data-encryption-key.md`, KI-51 (release blocker), KI-49 (rotation tooling) | Procedures documented; not yet executed |
+| 3 | Student account behaviour on suspension, withdrawal and graduation | `architecture/07-student-lifecycle.md` § Student accounts and lifecycle, KI-46 | Defined; implementation planned |
+| 4 | DPDP legal review and data-principal request workflow | KI-48, `security/student-data-privacy.md` | Outstanding |
+| 5 | Cross-institution transfers deferred until a controlled transfer workflow is designed | KI-47 | Deferred |

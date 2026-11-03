@@ -151,15 +151,18 @@ PROGRAM_OF_COURSE = {c[1]: c[0] for c in COURSES}
 
 
 def expected_student_kpis():
-    statuses = [st[5] for st in STUDENTS]
-    current = [st for st in STUDENTS if st[5] in ("ENROLLED", "ACTIVE", "SUSPENDED")]
+    import import_samples as samples
+    imported = [(first, last, U(0xd101), None, batch, status.upper(), 2026, True, g) for first, last, _, batch, status, g in samples.MIE_INTAKE]
+    everyone = STUDENTS + imported
+    statuses = [st[5] for st in everyone]
+    current = [st for st in everyone if st[5] in ("ENROLLED", "ACTIVE", "SUSPENDED")]
     by_batch = {}
     for st in current:
         by_batch[st[4]] = by_batch.get(st[4], 0) + 1
     return {
-        "total": len(STUDENTS), "active": sum(1 for x in statuses if x in ("ENROLLED", "ACTIVE")),
+        "total": len(everyone), "active": sum(1 for x in statuses if x in ("ENROLLED", "ACTIVE")),
         "prospective": statuses.count("PROSPECTIVE"), "suspended": statuses.count("SUSPENDED"), "withdrawn": statuses.count("WITHDRAWN"),
-        "graduated": statuses.count("GRADUATED"), "newlyAdmitted": sum(1 for st in STUDENTS if st[7] and st[5] != "PROSPECTIVE"),
+        "graduated": statuses.count("GRADUATED"), "newlyAdmitted": sum(1 for st in everyone if st[7] and st[5] != "PROSPECTIVE"),
         "byBatch": dict(sorted(by_batch.items())),
     }
 
@@ -343,6 +346,7 @@ def seed():
     global prog_of
     prog_of = {c: prog[PROGRAM_OF_COURSE[c]] for c in course}
     seed_students(t, key, course, batch, year)
+    seed_imports(t)
     print("Demonstration data created.")
 
 
@@ -381,6 +385,51 @@ def seed_students(t, key, course, batch, year):
         for target in walk:
             v = ok(http("GET", f"{API}/api/v1/students/{sid}", token=t), 200)["version"]
             ok(http("POST", f"{API}/api/v1/students/{sid}/status", {"status": target, "reason": reasons[target], "version": v}, token=t), 200)
+
+
+def import_upload(t, name, content):
+    boundary = uuid.uuid4().hex
+    body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\nContent-Type: text/csv\r\n\r\n").encode() + content \
+        + f"\r\n--{boundary}--\r\n".encode()
+    req = urllib.request.Request(f"{API}/api/v1/student-imports?institutionId={U(0xd101)}&importKey=demo-{name.replace('.', '-')}-{uuid.uuid4().hex[:8]}",
+                                 data=body, method="POST", headers={"Authorization": f"Bearer {t}", "Content-Type": f"multipart/form-data; boundary={boundary}"})
+    for _ in range(30):
+        try:
+            with urllib.request.urlopen(req) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code != 429:
+                sys.exit(f"import upload failed: {e.code} {e.read()[:300]!r}")
+            time.sleep(2)
+    sys.exit("import upload rate limited too long")
+
+
+def import_wait(t, job_id, statuses):
+    for _ in range(300):
+        j = ok(http("GET", f"{API}/api/v1/student-imports/{job_id}", token=t), 200)
+        if j["status"] in statuses:
+            return j
+        time.sleep(1)
+    sys.exit(f"import {job_id} did not reach {statuses}")
+
+
+def seed_imports(t):
+    """1.6: one completed import (the MIE intake) and one validated file with problems awaiting decisions, through the real API."""
+    import datetime
+    import import_samples as samples
+    adm = str(datetime.date.today() - datetime.timedelta(days=12))
+    for name, rows, confirm in [("mie-2026-intake.csv", samples.mie_rows(adm), True), ("mie-late-applications.csv", samples.issue_rows(adm), False)]:
+        job = import_upload(t, name, samples.to_csv(rows))
+        cols = [{"column": m["column"], "field": m["field"]} for m in job["mapping"] if m.get("field")]
+        ok(http("PUT", f"{API}/api/v1/student-imports/{job['id']}/mapping", {"columns": cols, "version": job["version"]}, token=t), 200)
+        job = import_wait(t, job["id"], {"READY"})
+        if confirm:
+            c = job["counts"]
+            ok(http("POST", f"{API}/api/v1/student-imports/{job['id']}/confirm", {"mode": "ALL_OR_NOTHING", "version": job["version"],
+                    "expectedRows": c["toCreate"] + c["toUpdate"], "acknowledged": True}, token=t), 200)
+            job = import_wait(t, job["id"], {"COMPLETED", "PARTIALLY_COMPLETED", "FAILED"})
+            if job["status"] != "COMPLETED":
+                sys.exit(f"demonstration import ended {job['status']}: {job.get('failureMessage')}")
 
 
 def verify():

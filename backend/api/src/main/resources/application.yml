@@ -3,9 +3,9 @@
 spring:
   servlet:
     multipart:
-      # student documents are limited to 5 MB by the service; the container allows a small envelope
-      max-file-size: 6MB
-      max-request-size: 7MB
+      # student documents (5 MB) and student import files (10 MB) are limited by their services; the container allows a small envelope
+      max-file-size: 11MB
+      max-request-size: 12MB
   application:
     name: ivorovi-api
   threads:
@@ -110,6 +110,16 @@ ivorovi:
     outbox-days: 7
     # Removed and infected student documents are purged from object storage after this many days.
     document-days: ${IVOROVI_DOCUMENT_RETENTION_DAYS:30}
+  # Student bulk import (increment 1.6): file limits, retention of source files/raw row values, background worker.
+  imports:
+    max-file-bytes: ${IVOROVI_IMPORT_MAX_FILE_BYTES:10485760}
+    max-rows: ${IVOROVI_IMPORT_MAX_ROWS:10000}
+    retention-days: ${IVOROVI_IMPORT_RETENTION_DAYS:30}
+    batch-size: 100
+    lease: PT2M
+    max-attempts: 3
+    worker-enabled: ${IVOROVI_IMPORT_WORKER_ENABLED:true}
+    concurrency: ${IVOROVI_IMPORT_CONCURRENCY:2}
   # Malware scanning (ADR-0006): set IVOROVI_SCANNING_CLAMD_HOST (and _PORT) to enable the ClamAV adapter. Without a
   # scanner, documents stay quarantined; in STAGING/PRODUCTION uploads are refused (fail closed).
   outbox:

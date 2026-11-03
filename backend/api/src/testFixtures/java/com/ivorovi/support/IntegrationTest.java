@@ -28,7 +28,9 @@ import org.springframework.test.web.servlet.MockMvc;
         // test-only probe endpoints never appear in the exported API contract
         "springdoc.paths-to-exclude=/api/v1/test-probe/**",
         // scans run when a test calls the scan worker, so quarantine states can be asserted deterministically
-        "ivorovi.scanning.scan-on-upload=false"})
+        "ivorovi.scanning.scan-on-upload=false",
+        // import jobs run when a test calls StudentImportWorker.runPending (no listener, no sweeper)
+        "ivorovi.imports.worker-enabled=false"})
 public abstract class IntegrationTest {
 
     /** Per-run random field-encryption key (test databases are throw-away). */
