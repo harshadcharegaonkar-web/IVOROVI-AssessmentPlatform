@@ -57,6 +57,8 @@ const loadSubjectEditorPage = () => import("./routes/academics/SubjectEditorPage
 const loadBatchEditorPage = () => import("./routes/academics/BatchEditorPage");
 /** Academic routes are readable with academics.read anywhere; editors need the matching manage permission. */
 const READ_ACADEMICS = (a: Access) => a.hasAnywhere("academics.read");
+const loadStudentEditorPage = () => import("./routes/students/StudentEditorPage");
+const READ_STUDENTS = (a: Access) => a.hasAnywhere("student.read");
 
 export const routes: RouteObject[] = [
   { path: CALLBACK_PATH, element: <AuthCallback /> },
@@ -132,6 +134,14 @@ export const routes: RouteObject[] = [
             { index: true, ...page(() => import("./routes/academics/OfferingListPage"), READ_ACADEMICS) },
             { path: ":id", handle: { crumb: "Faculty" }, ...page(() => import("./routes/academics/OfferingDetailPage"), READ_ACADEMICS) },
           ] },
+        ] },
+        { path: "students", handle: { crumb: "Students" }, children: [
+          { index: true, ...page(() => import("./routes/students/StudentDashboardPage"), READ_STUDENTS) },
+          { path: "list", handle: { crumb: "Student List" }, ...page(() => import("./routes/students/StudentListPage"), READ_STUDENTS) },
+          { path: "new", handle: { crumb: "New" }, ...page(loadStudentEditorPage, (a) => a.hasAnywhere("student.manage")) },
+          { path: "settings", handle: { crumb: "Student Settings" }, ...page(() => import("./routes/students/StudentSettingsPage"), READ_STUDENTS) },
+          { path: ":id", handle: { crumb: "Profile" }, ...page(() => import("./routes/students/StudentProfilePage"), READ_STUDENTS) },
+          { path: ":id/edit", handle: { crumb: "Edit" }, ...page(loadStudentEditorPage, (a) => a.hasAnywhere("student.manage")) },
         ] },
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
         { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },

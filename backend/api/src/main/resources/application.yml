@@ -1,6 +1,11 @@
 # Base configuration. Every environment-specific value comes from environment variables (IVOROVI_*);
 # secrets have no defaults here. See docs/runbooks/configuration.md.
 spring:
+  servlet:
+    multipart:
+      # student documents are limited to 5 MB by the service; the container allows a small envelope
+      max-file-size: 6MB
+      max-request-size: 7MB
   application:
     name: ivorovi-api
   threads:
@@ -85,6 +90,8 @@ ivorovi:
     mode: ${IVOROVI_DEPLOYMENT_MODE:SAAS}
     environment: ${IVOROVI_ENVIRONMENT:PRODUCTION}
   security:
+    # Key for application-level encryption of sensitive personal fields (required; from the secret store).
+    data-key: ${IVOROVI_DATA_KEY:}
     oidc:
       issuer: ${IVOROVI_OIDC_ISSUER}
       jwk-set-uri: ${IVOROVI_OIDC_JWKS}
@@ -101,6 +108,10 @@ ivorovi:
     public-per-ip-per-minute: ${IVOROVI_RATE_LIMIT_PUBLIC_IP:20}
   retention:
     outbox-days: 7
+    # Removed and infected student documents are purged from object storage after this many days.
+    document-days: ${IVOROVI_DOCUMENT_RETENTION_DAYS:30}
+  # Malware scanning (ADR-0006): set IVOROVI_SCANNING_CLAMD_HOST (and _PORT) to enable the ClamAV adapter. Without a
+  # scanner, documents stay quarantined; in STAGING/PRODUCTION uploads are refused (fail closed).
   outbox:
     exchange: ivorovi.events
     batch-size: 100

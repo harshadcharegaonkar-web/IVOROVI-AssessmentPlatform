@@ -124,6 +124,7 @@ services:
       IVOROVI_SMTP_HOST: mailpit
       IVOROVI_IDP_ADMIN_URL: http://keycloak:8080
       IVOROVI_IDP_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      IVOROVI_DATA_KEY: ${DATA_ENCRYPTION_KEY:?run scripts/dev-setup.sh}
       IVOROVI_APP_BASE_URL: http://localhost:8081
       IVOROVI_OIDC_ISSUER: http://localhost:8180/realms/ivorovi
       IVOROVI_OIDC_JWKS: http://keycloak:8080/realms/ivorovi/protocol/openid-connect/certs

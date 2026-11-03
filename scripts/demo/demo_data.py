@@ -120,6 +120,50 @@ def expected_academic_kpis():
     }
 
 
+# ------------------------------------------------------------------------------------------- student specification
+# Entirely fictitious people. Final status drives the lifecycle walk: PROSPECTIVE (profile only), ADMITTED (admission
+# confirmed), ENROLLED, ACTIVE, SUSPENDED, WITHDRAWN, GRADUATED. "recent" admissions are dated within the last 30 days.
+NUMBERING = [(U(0xd101), {"mode": "GENERATED", "template": "{INST}{YYYY}{SEQ:4}", "registrationPattern": "AAA/9999/*"}),
+             (U(0xd102), {"mode": "MANUAL", "manualPattern": "MCC-9999"})]
+STUDENTS = [  # first, last, college, course, batch, status, admission year, recent admission, guardian
+    ("Aarav", "Kapoor", U(0xd101), "CSE", "CSE-2025-A", "ACTIVE", 2025, False, ("Neha Kapoor", "MOTHER")),
+    ("Ishita", "Menon", U(0xd101), "CSE", "CSE-2025-A", "ACTIVE", 2025, False, ("Vinod Menon", "FATHER")),
+    ("Kabir", "Sethi", U(0xd101), "CSE", "CSE-2025-A", "ACTIVE", 2025, False, None),
+    ("Diya", "Bhatt", U(0xd101), "CSE", "CSE-2025-A", "SUSPENDED", 2025, False, ("Rekha Bhatt", "MOTHER")),
+    ("Vihaan", "Joshi", U(0xd101), "CSE", "CSE-2025-A", "WITHDRAWN", 2025, False, None),
+    ("Ananya", "Iyer", U(0xd101), "CSE", "CSE-2026-A", "ACTIVE", 2026, True, ("Suresh Iyer", "FATHER")),
+    ("Reyansh", "Gupta", U(0xd101), "CSE", "CSE-2026-A", "ACTIVE", 2026, True, None),
+    ("Saanvi", "Nair", U(0xd101), "CSE", "CSE-2026-A", "ENROLLED", 2026, True, ("Lakshmi Nair", "MOTHER")),
+    ("Arjun", "Patil", U(0xd101), "CSE", "CSE-2026-B", "ACTIVE", 2026, True, None),
+    ("Myra", "Desai", U(0xd101), "CSE", "CSE-2026-B", "ACTIVE", 2026, True, None),
+    ("Vivaan", "Rao", U(0xd101), "CSE", "CSE-2026-B", "ENROLLED", 2026, True, None),
+    ("Aditi", "Kulkarni", U(0xd101), "ECE", "ECE-2026", "ACTIVE", 2026, True, ("Mohan Kulkarni", "FATHER")),
+    ("Rohan", "Shetty", U(0xd101), "ECE", "ECE-2026", "ACTIVE", 2026, True, None),
+    ("Tara", "Mishra", U(0xd101), "ECE", "ECE-2026", "ADMITTED", 2026, True, None),
+    ("Kiara", "Fernandes", U(0xd102), "GEN", "BCOM-2026", "ACTIVE", 2026, True, ("Joanna Fernandes", "MOTHER")),
+    ("Yash", "Agarwal", U(0xd102), "GEN", "BCOM-2026", "ACTIVE", 2026, True, None),
+    ("Meher", "Chawla", U(0xd102), "GEN", "BCOM-2026", "ACTIVE", 2026, True, None),
+    ("Dev", "Malhotra", U(0xd102), "GEN", "BCOM-2026", "ENROLLED", 2026, True, None),
+    ("Nisha", "Pillai", U(0xd101), "CSE", None, "PROSPECTIVE", 2026, True, None),
+    ("Omkar", "Jadhav", U(0xd101), "ECE", None, "PROSPECTIVE", 2026, True, None),
+]
+PROGRAM_OF_COURSE = {c[1]: c[0] for c in COURSES}
+
+
+def expected_student_kpis():
+    statuses = [st[5] for st in STUDENTS]
+    current = [st for st in STUDENTS if st[5] in ("ENROLLED", "ACTIVE", "SUSPENDED")]
+    by_batch = {}
+    for st in current:
+        by_batch[st[4]] = by_batch.get(st[4], 0) + 1
+    return {
+        "total": len(STUDENTS), "active": sum(1 for x in statuses if x in ("ENROLLED", "ACTIVE")),
+        "prospective": statuses.count("PROSPECTIVE"), "suspended": statuses.count("SUSPENDED"), "withdrawn": statuses.count("WITHDRAWN"),
+        "graduated": statuses.count("GRADUATED"), "newlyAdmitted": sum(1 for st in STUDENTS if st[7] and st[5] != "PROSPECTIVE"),
+        "byBatch": dict(sorted(by_batch.items())),
+    }
+
+
 # --------------------------------------------------------------------------------------------------------- plumbing
 def psql(sql):
     r = subprocess.run(["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "postgres", "-d", "ivorovi", "-v", "ON_ERROR_STOP=1",
@@ -296,7 +340,47 @@ def seed():
     for o, no, primary in FACULTY:
         ok(http("POST", f"{API}/api/v1/academics/subject-offerings/{offering[o]}/faculty", {"staffProfileId": staff[no], "primary": primary},
                 token=t, headers=key()), 200)
+    global prog_of
+    prog_of = {c: prog[PROGRAM_OF_COURSE[c]] for c in course}
+    seed_students(t, key, course, batch, year)
     print("Demonstration data created.")
+
+
+def seed_students(t, key, course, batch, year):
+    import datetime
+    for unit, rule in NUMBERING:
+        ok(http("PUT", f"{API}/api/v1/student-settings/numbering-rules/{unit}", {**rule, "version": -1}, token=t), 200)
+    today = datetime.date.today()
+    mcc_no = 0
+    for i, (first, last, college, c, b, status, adm_year, recent, guardian) in enumerate(STUDENTS):
+        body = {"institutionId": college, "firstName": first, "lastName": last, "admissionYear": adm_year,
+                "institutionalEmail": f"{first.lower()}.{last.lower()}@students.meridian.test",
+                "personal": {"dateOfBirth": f"{adm_year - 18}-{(i % 12) + 1:02d}-{(i % 27) + 1:02d}", "gender": "UNDISCLOSED", "nationality": "Indian",
+                             "mobile": f"+91 90000 {10000 + i:05d}", "currentAddress": f"{10 + i} Demo Street, Meridian City"}}
+        if college == U(0xd102):
+            mcc_no += 1
+            body["studentNo"] = f"MCC-{1000 + mcc_no}"
+        d = ok(http("POST", f"{API}/api/v1/students", body, token=t, headers=key()), 201)
+        sid = d["student"]["id"]
+        if guardian:
+            ok(http("POST", f"{API}/api/v1/students/{sid}/guardians", {"name": guardian[0], "relationship": guardian[1], "mobile": f"+91 90001 {10000 + i:05d}",
+                    "emergency": True}, token=t, headers=key()), 200)
+        if status == "PROSPECTIVE":
+            continue
+        adm_date = str(today - datetime.timedelta(days=5 + i % 20)) if recent else f"{adm_year}-07-01"
+        ok(http("POST", f"{API}/api/v1/students/{sid}/admissions", {"admissionNo": f"ADM-{adm_year}-{i + 1:03d}", "admissionDate": adm_date, "admissionType": "REGULAR",
+                "entryAcademicYearId": year["AY2026-27"], "programId": prog_of[c], "courseId": course[c], "entryTermNumber": 1, "status": "CONFIRMED"},
+                token=t, headers=key()), 200)
+        if status == "ADMITTED":
+            continue
+        term = 3 if adm_year == 2025 else 1
+        ok(http("POST", f"{API}/api/v1/students/{sid}/enrolments", {"type": "INITIAL", "batchId": batch[b], "termNumber": term}, token=t, headers=key()), 200)
+        walk = {"ENROLLED": [], "ACTIVE": ["ACTIVE"], "SUSPENDED": ["ACTIVE", "SUSPENDED"], "WITHDRAWN": ["ACTIVE", "WITHDRAWN"], "GRADUATED": ["ACTIVE", "GRADUATED"]}[status]
+        reasons = {"ACTIVE": "Classes started", "SUSPENDED": "Fee hold (demonstration)", "WITHDRAWN": "Left for another institution (demonstration)",
+                   "GRADUATED": "Completed the program"}
+        for target in walk:
+            v = ok(http("GET", f"{API}/api/v1/students/{sid}", token=t), 200)["version"]
+            ok(http("POST", f"{API}/api/v1/students/{sid}/status", {"status": target, "reason": reasons[target], "version": v}, token=t), 200)
 
 
 def verify():
@@ -307,6 +391,15 @@ def verify():
     bad = {k: (v, actual.get(k)) for k, v in expected.items() if actual.get(k) != v}
     for k, v in expected.items():
         print(f"  {'OK  ' if k not in bad else 'DIFF'} {k:24} expected {v:4}  actual {actual.get(k)}")
+    students = ok(http("GET", f"{API}/api/v1/students/overview", token=t), 200)
+    exp = expected_student_kpis()
+    actual_batches = dict(sorted((g["label"], g["count"]) for g in students["byBatch"]))
+    for k, v in exp.items():
+        got = actual_batches if k == "byBatch" else students.get(k)
+        same = got == v
+        if not same:
+            bad[k] = (v, got)
+        print(f"  {'OK  ' if same else 'DIFF'} students.{k:16} expected {v}  actual {got}")
     if bad:
         sys.exit("Dashboard figures differ from the demonstration specification.")
     print("Demonstration figures match the specification.")

@@ -117,6 +117,27 @@ check "faculty cannot create programs"                  403 "$ARUN"  POST /api/v
 check "cross-tenant program read → 404"                 404 "$BELA"  GET "/api/v1/academics/programs/$SMOKE_PROGRAM"
 check "deactivate the smoke program"                    200 "$INES"  POST "/api/v1/academics/programs/$SMOKE_PROGRAM/status" '{"status":"INACTIVE","version":0,"reason":"smoke test"}'
 
+echo "Students (increment 1.5) ..."
+SN=$RANDOM$RANDOM
+check "student list (org admin)"                         200 "$ALICE" GET "/api/v1/students?size=5"
+check "student dashboard"                                200 "$ALICE" GET /api/v1/students/overview
+check "students hidden from the student role"            403 "$ASHA"  GET /api/v1/students
+check "faculty cannot create students"                   403 "$ARUN"  POST /api/v1/students "{\"institutionId\":\"$TENANT_A_INST\",\"studentNo\":\"SMK-$SN\",\"firstName\":\"Smoke\"}" "Idempotency-Key: smoke-stu-deny-$SN"
+check "college admin creates a student"                  201 "$INES"  POST /api/v1/students \
+  "{\"institutionId\":\"$TENANT_A_INST\",\"studentNo\":\"SMK-$SN\",\"firstName\":\"Smoke\",\"lastName\":\"Student\",\"personal\":{\"mobile\":\"+91 90000 00000\"}}" "Idempotency-Key: smoke-stu-$SN"
+SMOKE_STUDENT=$(json 'd["student"]["id"]')
+check "faculty sees no personal details"                 200 "$ARUN"  GET "/api/v1/students/$SMOKE_STUDENT"
+grep -q '"personalVisible":false' /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  personal details hidden from faculty"; } || { fail=$((fail+1)); echo "  FAIL  personal details visible to faculty"; }
+check "cross-tenant student read → 404"                  404 "$BELA"  GET "/api/v1/students/$SMOKE_STUDENT"
+printf '%%PDF-1.4\n%%%%EOF\n' > /tmp/smoke-doc.pdf
+got=$(curl -s -o /tmp/smoke-body -w '%{http_code}' -X POST -H "Authorization: Bearer $INES" -F "file=@/tmp/smoke-doc.pdf;type=application/pdf" \
+  "$API_URL/api/v1/students/$SMOKE_STUDENT/documents?category=IDENTITY_PROOF")
+if [[ $got == 201 ]] && grep -q '"scanStatus":"PENDING"' /tmp/smoke-body; then pass=$((pass+1)); echo "  PASS  document upload lands in quarantine (201, PENDING)"; else fail=$((fail+1)); echo "  FAIL  document upload: $got $(head -c 200 /tmp/smoke-body)"; fi
+SMOKE_DOC=$(json 'd[0]["id"]')
+check "quarantined document cannot be downloaded"        409 "$INES"  GET "/api/v1/students/$SMOKE_STUDENT/documents/$SMOKE_DOC/content"
+check "cancel the smoke student"                         200 "$INES"  POST "/api/v1/students/$SMOKE_STUDENT/status" '{"status":"CANCELLED","reason":"smoke test","version":0}'
+
+
 echo "Provisioning service account is least-privilege (real Keycloak) ..."
 PROV=$(curl -s -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=client_credentials \
   -d client_id=ivorovi-provisioner --data-urlencode "client_secret=$KEYCLOAK_PROVISIONER_SECRET" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("access_token",""))')

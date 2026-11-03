@@ -16,7 +16,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
     const nav = page.getByRole("navigation", { name: "Main" });
     for (const item of ["Dashboard", "Organization Hierarchy", "Universities", "Colleges", "Campuses", "Departments",
       "Feature Settings", "Audit Logs", "System Settings"]) {
-      await expect(nav.getByRole("link", { name: item })).toBeVisible();
+      await expect(nav.getByRole("link", { name: item, exact: true })).toBeVisible();
     }
   });
 
@@ -74,7 +74,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
   test("student sees only permitted navigation and is denied admin pages", async ({ page }) => {
     await signIn(page, USERS.student);
     const nav = page.getByRole("navigation", { name: "Main" });
-    await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "Dashboard", exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "Audit Logs" })).toHaveCount(0);
     await expect(nav.getByRole("link", { name: "Organization Hierarchy" })).toHaveCount(0);
     await expect(page.getByText("Organization", { exact: true })).toHaveCount(0); // empty groups are hidden

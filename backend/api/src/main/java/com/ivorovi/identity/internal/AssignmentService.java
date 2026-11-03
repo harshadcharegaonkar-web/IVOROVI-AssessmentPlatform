@@ -234,6 +234,13 @@ public class AssignmentService {
         // serialise with archive/deactivation of the same custom role (system roles are immutable)
         jdbc.sql("SELECT id FROM role WHERE id = ? AND NOT system_role FOR SHARE").param(c.roleId()).query(UUID.class).list();
         Role role = role(c.roleId());
+        // accounts created for student profiles hold the STUDENT role only (increment 1.5)
+        if (!StudentAccountService.STUDENT_ROLE.equals(role.id())
+                && jdbc.sql("SELECT count(*) FROM student WHERE user_account_id = ?").param(userId).query(Long.class).single() > 0) {
+            audit.recordDenied("role.assignment_denied", Map.of("reason", "student_account", "userId", userId.toString(), "roleId", role.id().toString()));
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "student_account_role_restricted",
+                    "This account belongs to a student and can only hold the Student role.");
+        }
         if (!"ACTIVE".equals(role.status())) {
             throw ApiException.conflict("role_inactive", "This role is deactivated. Reactivate it before assigning it.");
         }

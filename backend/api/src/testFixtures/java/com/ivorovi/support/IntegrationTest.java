@@ -26,8 +26,13 @@ import org.springframework.test.web.servlet.MockMvc;
         "ivorovi.rate-limit.failed-auth-per-ip-per-minute=100000",
         "ivorovi.rate-limit.public-per-ip-per-minute=100000",
         // test-only probe endpoints never appear in the exported API contract
-        "springdoc.paths-to-exclude=/api/v1/test-probe/**"})
+        "springdoc.paths-to-exclude=/api/v1/test-probe/**",
+        // scans run when a test calls the scan worker, so quarantine states can be asserted deterministically
+        "ivorovi.scanning.scan-on-upload=false"})
 public abstract class IntegrationTest {
+
+    /** Per-run random field-encryption key (test databases are throw-away). */
+    private static final String TEST_DATA_KEY = java.util.UUID.randomUUID() + "-" + java.util.UUID.randomUUID();
 
     @Autowired
     protected MockMvc mvc;
@@ -48,6 +53,7 @@ public abstract class IntegrationTest {
         r.add("IVOROVI_S3_ENDPOINT", Containers::s3Endpoint);
         r.add("ivorovi.storage.access-key", () -> "test-access");
         r.add("ivorovi.storage.secret-key", () -> "test-secret");
+        r.add("ivorovi.security.data-key", () -> TEST_DATA_KEY);
         r.add("ivorovi.storage.create-bucket", () -> "true");
         r.add("ivorovi.storage.bucket", () -> "ivorovi-test");
         r.add("IVOROVI_OIDC_ISSUER", () -> TestTokens.ISSUER);

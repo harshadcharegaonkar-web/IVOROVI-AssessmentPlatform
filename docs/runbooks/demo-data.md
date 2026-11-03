@@ -31,7 +31,8 @@ Defined as data at the top of `scripts/demo/demo_data.py`:
   College of Commerce (Commerce).
 * Academic structure: 3 programs, 4 courses, 9 subjects with prerequisites and curricula, academic years 2025–26
   (completed) and 2026–27 (active, odd semester active), 5 batches, 9 offerings, 6 faculty staff, 8 faculty assignments.
-* Student data is added with increment 1.5 in the same file.
+* Students (1.5): numbering rules (Meridian Institute of Engineering generates `{INST}{YYYY}{SEQ:4}`; the College of
+  Commerce enters `MCC-9999`), 20 synthetic students (prospective, admitted, enrolled, active, suspended and withdrawn), admissions, enrolments and guardians.
 
 ## Predictable figures
 
@@ -45,6 +46,9 @@ Defined as data at the top of `scripts/demo/demo_data.py`:
 | Active batches | 5 |
 | Subject offerings (without faculty) | 9 (2) |
 | Faculty assignments (staff teaching) | 8 (6) |
+| Students total / active / prospective | 20 / 15 / 2 |
+| Newly admitted (30 days) / suspended / withdrawn | 13 / 1 / 1 |
+| Current enrolments by batch | BCOM-2026 4, CSE-2025-A 4, CSE-2026-A 3, CSE-2026-B 3, ECE-2026 2 |
 
 ## Safety
 

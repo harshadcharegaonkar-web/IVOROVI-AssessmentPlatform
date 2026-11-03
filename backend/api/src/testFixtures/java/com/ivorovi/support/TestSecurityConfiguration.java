@@ -11,6 +11,11 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 public class TestSecurityConfiguration {
 
     @Bean
+    FakeMalwareScanner fakeMalwareScanner() {
+        return new FakeMalwareScanner();
+    }
+
+    @Bean
     @org.springframework.context.annotation.Primary
     FakeIdentityProvisioner fakeIdentityProvisioner() {
         return new FakeIdentityProvisioner();

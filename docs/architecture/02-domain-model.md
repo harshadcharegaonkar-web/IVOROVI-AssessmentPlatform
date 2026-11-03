@@ -129,6 +129,13 @@ erDiagram
 * **Batch** (course × year, section, capacity) → **SubjectOffering** (subject × batch × term, only if in the curriculum) →
   **FacultyAssignment** (existing staff profiles; one primary; dated; ended assignments kept as history).
 
+### Students (increment 1.5; details in `07-student-lifecycle.md`)
+* **Student**: profile independent of sign-in accounts; home institution and scope unit; institution-numbered student
+  ID; encrypted personal fields; lifecycle status (PROSPECTIVE → ADMITTED → ENROLLED → ACTIVE, SUSPENDED, WITHDRAWN,
+  GRADUATED → ALUMNI, CANCELLED) with a status history; optional linked account (STUDENT role only).
+* **AdmissionRecord** (separate from the profile), **Enrolment** (one current row; history preserved), **Guardian**,
+  **StudentDocument** (quarantine and scan state), **StudentNumberRule**, **StudentOption**.
+
 ### People and admissions
 * **Person**: shared identity for student, candidate, alumni. PII fields are encrypted where configured.
 * **CandidateProfile** becomes a **StudentProfile** on admission conversion (same Person, history kept).

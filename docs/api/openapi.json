@@ -55,6 +55,44 @@
         }
       }
     },
+    "/api/v1/student-settings/numbering-rules/{orgUnitId}" : {
+      "put" : {
+        "tags" : [ "Students" ],
+        "summary" : "Set the numbering rule of a university or college (generated template or manual format mask)",
+        "operationId" : "saveRule",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentNumberRuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentNumberRule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/staff/{id}" : {
       "get" : {
         "tags" : [ "Staff" ],
@@ -579,11 +617,893 @@
         }
       }
     },
+    "/api/v1/students" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Search students (name, student ID, registration or roll number) with structure and status filters",
+        "operationId" : "search",
+        "parameters" : [ {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "institutionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "campusId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "departmentId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "programId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "courseId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "batchId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "academicYearId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "termNumber",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "PROSPECTIVE", "ADMITTED", "ENROLLED", "ACTIVE", "SUSPENDED", "WITHDRAWN", "GRADUATED", "ALUMNI", "CANCELLED" ]
+          }
+        }, {
+          "name" : "active",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "name",
+            "pattern" : "name|studentNo|status|updatedAt|batch"
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc",
+            "pattern" : "asc|desc"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseStudentSummary"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Create a student profile (prospective); the student ID is generated or validated by the institution's rule",
+        "operationId" : "create_1",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/guardians" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Guardians (personal information; access is audited)",
+        "operationId" : "guardians",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Guardian"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Students" ],
+        "operationId" : "addGuardian",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GuardianRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Guardian"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/enrolments" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Academic history: every enrolment, current first",
+        "operationId" : "enrolments",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentEnrolment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Initial enrolment, progression, promotion, batch or course transfer (closes the current enrolment, keeps history)",
+        "operationId" : "changeEnrolment",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnrolmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentEnrolment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/documents" : {
+      "get" : {
+        "tags" : [ "Student documents" ],
+        "summary" : "Documents of the student with scan and verification state",
+        "operationId" : "list_1",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "includeRemoved",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Student documents" ],
+        "summary" : "Upload a PDF, JPEG or PNG (max 5 MB) into quarantine; it becomes downloadable only after a clean malware scan",
+        "operationId" : "upload",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "title",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/documents/{documentId}/verification" : {
+      "post" : {
+        "tags" : [ "Student documents" ],
+        "summary" : "Verify or reject a clean document",
+        "operationId" : "verify",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "documentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentVerificationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/documents/{documentId}/rescan" : {
+      "post" : {
+        "tags" : [ "Student documents" ],
+        "summary" : "Queue a document whose scan failed for another scan",
+        "operationId" : "rescan",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "documentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/documents/{documentId}/remove" : {
+      "post" : {
+        "tags" : [ "Student documents" ],
+        "summary" : "Remove a document (kept as a record; the file is purged after the retention period)",
+        "operationId" : "remove",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "documentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DocumentRemovalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentDocument"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/admissions" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Admission records of the student (categories only with student.personal.read)",
+        "operationId" : "admissions",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentAdmission"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Record the admission (regular, lateral entry, transfer or a configured type); confirming admits the student",
+        "operationId" : "createAdmission",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdmissionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentAdmission"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/admissions/{admissionId}/status" : {
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Confirm or cancel an admission",
+        "operationId" : "admissionStatus",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "admissionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdmissionStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentAdmission"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{id}/status" : {
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Change the lifecycle status (only valid transitions; reason required; history kept)",
+        "operationId" : "status_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{id}/active" : {
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Activate or deactivate the profile (deactivated profiles cannot be changed)",
+        "operationId" : "active",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentActiveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{id}/account" : {
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Create a sign-in account on demand (student role only) and send the invitation",
+        "operationId" : "createAccount",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentAccountRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-settings/options" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Admission types, admission categories and document categories (built-in and configured)",
+        "operationId" : "options",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Add an organization-defined option",
+        "operationId" : "addOption",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentOptionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentOption"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-settings/options/{kind}/{code}/status" : {
+      "post" : {
+        "tags" : [ "Students" ],
+        "summary" : "Activate or deactivate an organization-defined option (never deleted)",
+        "operationId" : "optionStatus",
+        "parameters" : [ {
+          "name" : "kind",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "enum" : [ "ADMISSION_TYPE", "ADMISSION_CATEGORY", "DOCUMENT_CATEGORY" ]
+          }
+        }, {
+          "name" : "code",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentOptionStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentOption"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/staff" : {
       "get" : {
         "tags" : [ "Staff" ],
         "summary" : "List staff profiles visible to the caller",
-        "operationId" : "list_1",
+        "operationId" : "list_2",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -678,7 +1598,7 @@
       "post" : {
         "tags" : [ "Staff" ],
         "summary" : "Create a staff profile (no login account required)",
-        "operationId" : "create_1",
+        "operationId" : "create_2",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -837,7 +1757,7 @@
       "get" : {
         "tags" : [ "Roles" ],
         "summary" : "System and custom roles (search, type and status filters, sort, pagination)",
-        "operationId" : "list_2",
+        "operationId" : "list_3",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -917,7 +1837,7 @@
       "post" : {
         "tags" : [ "Roles" ],
         "summary" : "Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope",
-        "operationId" : "create_2",
+        "operationId" : "create_3",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -946,7 +1866,7 @@
       "post" : {
         "tags" : [ "Roles" ],
         "summary" : "Activate or deactivate a custom role; deactivation suspends all of its assignments at once",
-        "operationId" : "status_1",
+        "operationId" : "status_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1035,7 +1955,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "List organization units visible to the caller (search, filters, sort, pagination)",
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "name" : "type",
           "in" : "query",
@@ -1123,7 +2043,7 @@
       "post" : {
         "tags" : [ "Organization" ],
         "summary" : "Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units)",
-        "operationId" : "create_3",
+        "operationId" : "create_4",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2711,10 +3631,223 @@
         }
       }
     },
+    "/api/v1/students/{studentId}/guardians/{guardianId}" : {
+      "delete" : {
+        "tags" : [ "Students" ],
+        "operationId" : "removeGuardian",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "guardianId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Students" ],
+        "operationId" : "updateGuardian",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "guardianId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GuardianRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Guardian"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{studentId}/admissions/{admissionId}" : {
+      "patch" : {
+        "tags" : [ "Students" ],
+        "operationId" : "updateAdmission",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "admissionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AdmissionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentAdmission"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{id}" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Student profile; personal details only with student.personal.read",
+        "operationId" : "detail_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Students" ],
+        "summary" : "Delete a profile created in error (prospective or cancelled, without academic records)",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "version",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      },
+      "patch" : {
+        "tags" : [ "Students" ],
+        "summary" : "Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged)",
+        "operationId" : "update_3",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StudentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles/{id}" : {
       "get" : {
         "tags" : [ "Roles" ],
-        "operationId" : "detail_2",
+        "operationId" : "detail_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -2767,7 +3900,7 @@
       "patch" : {
         "tags" : [ "Roles" ],
         "summary" : "Edit a custom role (system roles are protected); changes apply to every holder immediately",
-        "operationId" : "update_3",
+        "operationId" : "update_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -2831,7 +3964,7 @@
       "delete" : {
         "tags" : [ "Organization" ],
         "summary" : "Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead)",
-        "operationId" : "delete",
+        "operationId" : "delete_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -2858,7 +3991,7 @@
       "patch" : {
         "tags" : [ "Organization" ],
         "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
-        "operationId" : "update_4",
+        "operationId" : "update_5",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -3294,6 +4427,115 @@
         }
       }
     },
+    "/api/v1/students/{studentId}/documents/{documentId}/content" : {
+      "get" : {
+        "tags" : [ "Student documents" ],
+        "summary" : "Download a clean document (quarantined, infected or failed scans are refused; audited)",
+        "operationId" : "download",
+        "parameters" : [ {
+          "name" : "studentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "documentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/{id}/history" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Lifecycle status history and change log (no personal values)",
+        "operationId" : "history",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentHistoryEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/students/overview" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Student KPIs from the caller's authorized students (cached; invalidated by every student change)",
+        "operationId" : "kpis",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentKpis"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/student-settings/numbering-rules" : {
+      "get" : {
+        "tags" : [ "Students" ],
+        "summary" : "Student ID rules in force for each visible university and college (own or inherited)",
+        "operationId" : "rules",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/StudentNumberRule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles/{id}/holders" : {
       "get" : {
         "tags" : [ "Roles" ],
@@ -3461,7 +4703,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Change history of a unit (newest first)",
-        "operationId" : "history",
+        "operationId" : "history_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -3549,7 +4791,7 @@
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first)",
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -3638,7 +4880,7 @@
       "get" : {
         "tags" : [ "Invitations" ],
         "summary" : "Invitations of users visible to the caller",
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "parameters" : [ {
           "name" : "status",
           "in" : "query",
@@ -3756,7 +4998,7 @@
       "get" : {
         "tags" : [ "Audit" ],
         "summary" : "Search the tenant audit trail (newest first)",
-        "operationId" : "search",
+        "operationId" : "search_1",
         "parameters" : [ {
           "name" : "action",
           "in" : "query",
@@ -3835,7 +5077,7 @@
       "get" : {
         "tags" : [ "Audit" ],
         "summary" : "Verify the integrity of the tenant's hash-chained audit trail",
-        "operationId" : "verify",
+        "operationId" : "verify_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -3996,7 +5238,7 @@
       "get" : {
         "tags" : [ "Academic structure" ],
         "summary" : "Academic KPIs from the caller's authorized data (cached; invalidated by every academic change)",
-        "operationId" : "kpis",
+        "operationId" : "kpis_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -4269,6 +5511,80 @@
           "version" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "StudentNumberRuleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string",
+            "enum" : [ "GENERATED", "MANUAL" ]
+          },
+          "template" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "manualPattern" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "registrationPattern" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "mode" ]
+      },
+      "StudentNumberRule" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "orgUnitType" : {
+            "type" : "string"
+          },
+          "configured" : {
+            "type" : "boolean"
+          },
+          "inheritedFrom" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mode" : {
+            "type" : "string",
+            "enum" : [ "GENERATED", "MANUAL" ]
+          },
+          "template" : {
+            "type" : "string"
+          },
+          "manualPattern" : {
+            "type" : "string"
+          },
+          "registrationPattern" : {
+            "type" : "string"
+          },
+          "example" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
           }
         }
       },
@@ -4870,6 +6186,895 @@
             "format" : "date"
           }
         }
+      },
+      "StudentPersonalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "gender" : {
+            "type" : "string",
+            "enum" : [ "FEMALE", "MALE", "OTHER", "UNDISCLOSED" ]
+          },
+          "nationality" : {
+            "type" : "string",
+            "maxLength" : 60,
+            "minLength" : 0
+          },
+          "personalEmail" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "mobile" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "alternatePhone" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "currentAddress" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "permanentAddress" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        }
+      },
+      "StudentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "studentNo" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "admissionYear" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 2200,
+            "minimum" : 1990
+          },
+          "registrationNo" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "rollNo" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "previousInstitutionRef" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "firstName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "middleName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "lastName" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "institutionalEmail" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "personal" : {
+            "$ref" : "#/components/schemas/StudentPersonalRequest"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudentAccount" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "invitationStatus" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentAdmission" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "admissionNo" : {
+            "type" : "string"
+          },
+          "admissionDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "admissionType" : {
+            "type" : "string"
+          },
+          "admissionTypeLabel" : {
+            "type" : "string"
+          },
+          "admissionCategory" : {
+            "type" : "string"
+          },
+          "admissionCategoryLabel" : {
+            "type" : "string"
+          },
+          "entryAcademicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "entryAcademicYearName" : {
+            "type" : "string"
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "programName" : {
+            "type" : "string"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseName" : {
+            "type" : "string"
+          },
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "departmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "departmentName" : {
+            "type" : "string"
+          },
+          "entryTermNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROVISIONAL", "CONFIRMED", "CANCELLED" ]
+          },
+          "previousInstitutionName" : {
+            "type" : "string"
+          },
+          "previousInstitutionDetails" : {
+            "type" : "string"
+          },
+          "statusReason" : {
+            "type" : "string"
+          },
+          "enrolled" : {
+            "type" : "boolean"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudentDetail" : {
+        "type" : "object",
+        "properties" : {
+          "student" : {
+            "$ref" : "#/components/schemas/StudentSummary"
+          },
+          "previousInstitutionRef" : {
+            "type" : "string"
+          },
+          "institutionalEmail" : {
+            "type" : "string"
+          },
+          "personal" : {
+            "$ref" : "#/components/schemas/StudentPersonal"
+          },
+          "personalVisible" : {
+            "type" : "boolean"
+          },
+          "statusEffectiveOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "allowedTransitions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "PROSPECTIVE", "ADMITTED", "ENROLLED", "ACTIVE", "SUSPENDED", "WITHDRAWN", "GRADUATED", "ALUMNI", "CANCELLED" ]
+            }
+          },
+          "admission" : {
+            "$ref" : "#/components/schemas/StudentAdmission"
+          },
+          "currentEnrolment" : {
+            "$ref" : "#/components/schemas/StudentEnrolment"
+          },
+          "account" : {
+            "$ref" : "#/components/schemas/StudentAccount"
+          },
+          "guardianCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "documentCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "pendingScanCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "can" : {
+            "$ref" : "#/components/schemas/StudentPermissions"
+          }
+        }
+      },
+      "StudentEnrolment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "campusName" : {
+            "type" : "string"
+          },
+          "departmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "departmentName" : {
+            "type" : "string"
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "programName" : {
+            "type" : "string"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseName" : {
+            "type" : "string"
+          },
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "batchCode" : {
+            "type" : "string"
+          },
+          "batchName" : {
+            "type" : "string"
+          },
+          "academicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearName" : {
+            "type" : "string"
+          },
+          "termId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termName" : {
+            "type" : "string"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "enrolledOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "endedOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "changeType" : {
+            "type" : "string",
+            "enum" : [ "INITIAL", "PROGRESSION", "PROMOTION", "BATCH_TRANSFER", "COURSE_TRANSFER" ]
+          },
+          "current" : {
+            "type" : "boolean"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "previousEnrolmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "actorName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentPermissions" : {
+        "type" : "object",
+        "properties" : {
+          "manage" : {
+            "type" : "boolean"
+          },
+          "readPersonal" : {
+            "type" : "boolean"
+          },
+          "readDocuments" : {
+            "type" : "boolean"
+          },
+          "manageDocuments" : {
+            "type" : "boolean"
+          },
+          "manageAccount" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StudentPersonal" : {
+        "type" : "object",
+        "properties" : {
+          "dateOfBirth" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "gender" : {
+            "type" : "string",
+            "enum" : [ "FEMALE", "MALE", "OTHER", "UNDISCLOSED" ]
+          },
+          "nationality" : {
+            "type" : "string"
+          },
+          "personalEmail" : {
+            "type" : "string"
+          },
+          "mobile" : {
+            "type" : "string"
+          },
+          "alternatePhone" : {
+            "type" : "string"
+          },
+          "currentAddress" : {
+            "type" : "string"
+          },
+          "permanentAddress" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "studentNo" : {
+            "type" : "string"
+          },
+          "registrationNo" : {
+            "type" : "string"
+          },
+          "rollNo" : {
+            "type" : "string"
+          },
+          "firstName" : {
+            "type" : "string"
+          },
+          "middleName" : {
+            "type" : "string"
+          },
+          "lastName" : {
+            "type" : "string"
+          },
+          "fullName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROSPECTIVE", "ADMITTED", "ENROLLED", "ACTIVE", "SUSPENDED", "WITHDRAWN", "GRADUATED", "ALUMNI", "CANCELLED" ]
+          },
+          "active" : {
+            "type" : "boolean"
+          },
+          "institutionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "departmentName" : {
+            "type" : "string"
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "programName" : {
+            "type" : "string"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseName" : {
+            "type" : "string"
+          },
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "batchCode" : {
+            "type" : "string"
+          },
+          "academicYearName" : {
+            "type" : "string"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "GuardianRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "relationship" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "mobile" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "email" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          },
+          "address" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "emergency" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Guardian" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "relationship" : {
+            "type" : "string"
+          },
+          "mobile" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "address" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "emergency" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "EnrolmentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "enum" : [ "INITIAL", "PROGRESSION", "PROMOTION", "BATCH_TRANSFER", "COURSE_TRANSFER" ]
+          },
+          "batchId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "academicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "termNumber" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          },
+          "effectiveOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "batchId", "type" ]
+      },
+      "StudentDocument" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "categoryLabel" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "contentType" : {
+            "type" : "string"
+          },
+          "sizeBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "scanStatus" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "CLEAN", "INFECTED", "ERROR" ]
+          },
+          "scanDetail" : {
+            "type" : "string"
+          },
+          "scannedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "verificationStatus" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "VERIFIED", "REJECTED" ]
+          },
+          "verificationNote" : {
+            "type" : "string"
+          },
+          "verifiedByName" : {
+            "type" : "string"
+          },
+          "verifiedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "removedReason" : {
+            "type" : "string"
+          },
+          "uploadedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "uploadedByName" : {
+            "type" : "string"
+          },
+          "downloadable" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "DocumentVerificationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PENDING", "VERIFIED", "REJECTED" ]
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "status" ]
+      },
+      "DocumentRemovalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "AdmissionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "admissionNo" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "admissionDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "admissionType" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "admissionCategory" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "entryAcademicYearId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "programId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "courseId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "entryTermNumber" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 40,
+            "minimum" : 1
+          },
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROVISIONAL", "CONFIRMED", "CANCELLED" ]
+          },
+          "previousInstitutionName" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "previousInstitutionDetails" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AdmissionStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROVISIONAL", "CONFIRMED", "CANCELLED" ]
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "status", "version" ]
+      },
+      "StudentStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "enum" : [ "PROSPECTIVE", "ADMITTED", "ENROLLED", "ACTIVE", "SUSPENDED", "WITHDRAWN", "GRADUATED", "ALUMNI", "CANCELLED" ]
+          },
+          "effectiveOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "status", "version" ]
+      },
+      "StudentActiveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "active", "version" ]
+      },
+      "StudentAccountRequest" : {
+        "type" : "object",
+        "properties" : {
+          "email" : {
+            "type" : "string",
+            "maxLength" : 320,
+            "minLength" : 0
+          }
+        }
+      },
+      "StudentOptionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ADMISSION_TYPE", "ADMISSION_CATEGORY", "DOCUMENT_CATEGORY" ]
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 2
+          },
+          "label" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 1
+          }
+        },
+        "required" : [ "code", "kind", "label" ]
+      },
+      "StudentOption" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "ADMISSION_TYPE", "ADMISSION_CATEGORY", "DOCUMENT_CATEGORY" ]
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "builtIn" : {
+            "type" : "boolean"
+          },
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "StudentOptionStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "active" ]
       },
       "StaffLinkRequest" : {
         "type" : "object",
@@ -6565,6 +8770,144 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/EffectivePermission"
+            }
+          }
+        }
+      },
+      "PageResponseStudentSummary" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentSummary"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "StudentHistoryEntry" : {
+        "type" : "object",
+        "properties" : {
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "summary" : {
+            "type" : "string"
+          },
+          "fromStatus" : {
+            "type" : "string"
+          },
+          "toStatus" : {
+            "type" : "string"
+          },
+          "effectiveOn" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "StudentGroupCount" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudentKpis" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "active" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "newlyAdmitted" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "prospective" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "suspended" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "withdrawn" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "graduated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "documentsAwaitingScan" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "byProgram" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentGroupCount"
+            }
+          },
+          "byCourse" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentGroupCount"
+            }
+          },
+          "byBatch" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentGroupCount"
+            }
+          },
+          "byAcademicYear" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StudentGroupCount"
             }
           }
         }

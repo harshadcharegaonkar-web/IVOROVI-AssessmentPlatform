@@ -226,7 +226,7 @@ server-side. Candidate code never runs in the API process.
 ## 13. As built in Phase 0
 
 * Spring Boot 4.1 / Java 21 / Gradle 9.8. Spring Modulith verifies module boundaries (`platform` is the open
-  kernel. `tenancy`, `identity`, `features`, `audit`, `academics` (1.4) and `seed` are modules).
+  kernel. `tenancy`, `identity`, `features`, `audit`, `academics` (1.4), `students` (1.5) and `seed` are modules).
 * Tenant context: `IvoroviJwtAuthenticationConverter` → `TenantContext` (thread-bound, cleared by the outermost
   filter) → `TenantAwareDataSource` sets `app.tenant_id` and `app.platform_context` on **every** connection
   borrow → RLS policies on all tenant tables (a test fails the build if a `tenant_id` table lacks RLS).

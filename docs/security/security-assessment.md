@@ -45,6 +45,11 @@
 | C27 | Custom roles bounded by the editor's ceiling at the role scope; only catalogued, available permissions; reserved codes refused; platform permissions excluded (service + DB check) | ✅ | `RoleManagementIT.Catalogue`, `CeilingAndScope`, smoke |
 | C28 | System roles immutable through the API; denied attempts audited | ✅ | `systemRolesAreProtected`, smoke |
 | C29 | Role deactivation/edit/archive take effect on the next request (tenant-wide principal cache invalidation); concurrent archive/assign/edit serialised | ✅ | `deactivationSuspendsAssignments…`, `editingARole…`, `Concurrency` |
+| C30 | Student personal and guardian contact fields encrypted at the application layer (AES-256-GCM; column and tenant bound as associated data); API refuses to start without the key | ✅ | `personalDetailsAreEncryptedRestrictedAndNeverLogged` |
+| C31 | Personal student data behind a separate permission; faculty see profiles without it; guardian views audited; audit and event logs free of personal values | ✅ | same test, smoke, Playwright |
+| C32 | Student documents quarantined until a scanner reports CLEAN; PENDING/INFECTED/ERROR never served; uploads refused without a scanner in STAGING/PRODUCTION (fail closed); content type from magic bytes; downloads audited and streamed with `nosniff`/`no-store` | ✅ (ClamAV deployment pending: KI-23 release blocker) | `Documents` group, `ClamAvScannerTest`, smoke |
+| C33 | Student sign-in accounts only on demand, by a separate permission, with the STUDENT role only; linked accounts can never receive another role | ✅ | `accountsAreCreatedOnDemandWithTheStudentRoleOnly` |
+| C34 | Student lifecycle and enrolment changes validated server-side, serialised (row locks; batch lock for capacity) and recorded with reason, actor and effective date | ✅ | `Lifecycle`, `AdmissionAndEnrolment` |
 | C20 | DAST (OWASP ZAP), external penetration test | ⬜ | Phase 8, plus before first production tenant |
 | C21 | Field-level encryption of sensitive PII | ⬜ | When such fields are introduced (Phase 1 does not store government IDs) |
 | C22 | Production IdP hardening (TLS, MFA policies, brute-force settings beyond dev realm) | ⬜ | Phase 8 deployment work |
@@ -67,4 +72,6 @@
 
 The tenant-isolation and authorization model is verified by automated tests at both the API and the database
 layer. The main open risks before any production use are SA-01 (abuse and availability), the unexecuted CI
-security scans (SA-07), and the absence of DAST and penetration testing (C20).
+security scans (SA-07), and the absence of DAST and penetration testing (C20). For student data, the ClamAV deployment
+and release test (KI-23) and the legal review of DPDP obligations (KI-48) must be completed before real student records
+or documents are accepted.

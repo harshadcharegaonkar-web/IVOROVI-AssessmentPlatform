@@ -22,6 +22,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student-settings/numbering-rules/{orgUnitId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the numbering rule of a university or college (generated template or manual format mask) */
+        put: operations["saveRule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/{id}": {
         parameters: {
             query?: never;
@@ -177,6 +194,249 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search students (name, student ID, registration or roll number) with structure and status filters */
+        get: operations["search"];
+        put?: never;
+        /** Create a student profile (prospective); the student ID is generated or validated by the institution's rule */
+        post: operations["create_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/guardians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Guardians (personal information; access is audited) */
+        get: operations["guardians"];
+        put?: never;
+        post: operations["addGuardian"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Academic history: every enrolment, current first */
+        get: operations["enrolments"];
+        put?: never;
+        /** Initial enrolment, progression, promotion, batch or course transfer (closes the current enrolment, keeps history) */
+        post: operations["changeEnrolment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Documents of the student with scan and verification state */
+        get: operations["list_1"];
+        put?: never;
+        /** Upload a PDF, JPEG or PNG (max 5 MB) into quarantine; it becomes downloadable only after a clean malware scan */
+        post: operations["upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/documents/{documentId}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify or reject a clean document */
+        post: operations["verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/documents/{documentId}/rescan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue a document whose scan failed for another scan */
+        post: operations["rescan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/documents/{documentId}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a document (kept as a record; the file is purged after the retention period) */
+        post: operations["remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/admissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admission records of the student (categories only with student.personal.read) */
+        get: operations["admissions"];
+        put?: never;
+        /** Record the admission (regular, lateral entry, transfer or a configured type); confirming admits the student */
+        post: operations["createAdmission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/admissions/{admissionId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm or cancel an admission */
+        post: operations["admissionStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the lifecycle status (only valid transitions; reason required; history kept) */
+        post: operations["status_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{id}/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate or deactivate the profile (deactivated profiles cannot be changed) */
+        post: operations["active"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{id}/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a sign-in account on demand (student role only) and send the invitation */
+        post: operations["createAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-settings/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admission types, admission categories and document categories (built-in and configured) */
+        get: operations["options"];
+        put?: never;
+        /** Add an organization-defined option */
+        post: operations["addOption"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-settings/options/{kind}/{code}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Activate or deactivate an organization-defined option (never deleted) */
+        post: operations["optionStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff": {
         parameters: {
             query?: never;
@@ -185,10 +445,10 @@ export interface paths {
             cookie?: never;
         };
         /** List staff profiles visible to the caller */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         /** Create a staff profile (no login account required) */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -268,10 +528,10 @@ export interface paths {
             cookie?: never;
         };
         /** System and custom roles (search, type and status filters, sort, pagination) */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /** Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -288,7 +548,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Activate or deactivate a custom role; deactivation suspends all of its assignments at once */
-        post: operations["status_1"];
+        post: operations["status_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -337,10 +597,10 @@ export interface paths {
             cookie?: never;
         };
         /** List organization units visible to the caller (search, filters, sort, pagination) */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -791,6 +1051,57 @@ export interface paths {
         patch: operations["update_2"];
         trace?: never;
     };
+    "/api/v1/students/{studentId}/guardians/{guardianId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removeGuardian"];
+        options?: never;
+        head?: never;
+        patch: operations["updateGuardian"];
+        trace?: never;
+    };
+    "/api/v1/students/{studentId}/admissions/{admissionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateAdmission"];
+        trace?: never;
+    };
+    "/api/v1/students/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Student profile; personal details only with student.personal.read */
+        get: operations["detail_2"];
+        put?: never;
+        post?: never;
+        /** Delete a profile created in error (prospective or cancelled, without academic records) */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        /** Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged) */
+        patch: operations["update_3"];
+        trace?: never;
+    };
     "/api/v1/roles/{id}": {
         parameters: {
             query?: never;
@@ -798,7 +1109,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["detail_2"];
+        get: operations["detail_3"];
         put?: never;
         post?: never;
         /** Archive a custom role that has no active assignments (history is kept) */
@@ -806,7 +1117,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a custom role (system roles are protected); changes apply to every holder immediately */
-        patch: operations["update_3"];
+        patch: operations["update_4"];
         trace?: never;
     };
     "/api/v1/org-units/{id}": {
@@ -821,11 +1132,11 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead) */
-        delete: operations["delete"];
+        delete: operations["delete_1"];
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_4"];
+        patch: operations["update_5"];
         trace?: never;
     };
     "/api/v1/academics/subjects/{id}": {
@@ -943,6 +1254,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/students/{studentId}/documents/{documentId}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download a clean document (quarantined, infected or failed scans are refused; audited) */
+        get: operations["download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lifecycle status history and change log (no personal values) */
+        get: operations["history"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/students/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Student KPIs from the caller's authorized students (cached; invalidated by every student change) */
+        get: operations["kpis"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student-settings/numbering-rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Student ID rules in force for each visible university and college (own or inherited) */
+        get: operations["rules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles/{id}/holders": {
         parameters: {
             query?: never;
@@ -1019,7 +1398,7 @@ export interface paths {
             cookie?: never;
         };
         /** Change history of a unit (newest first) */
-        get: operations["history"];
+        get: operations["history_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1070,7 +1449,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first) */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1121,7 +1500,7 @@ export interface paths {
             cookie?: never;
         };
         /** Invitations of users visible to the caller */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1172,7 +1551,7 @@ export interface paths {
             cookie?: never;
         };
         /** Search the tenant audit trail (newest first) */
-        get: operations["search"];
+        get: operations["search_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1189,7 +1568,7 @@ export interface paths {
             cookie?: never;
         };
         /** Verify the integrity of the tenant's hash-chained audit trail */
-        get: operations["verify"];
+        get: operations["verify_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1273,7 +1652,7 @@ export interface paths {
             cookie?: never;
         };
         /** Academic KPIs from the caller's authorized data (cached; invalidated by every academic change) */
-        get: operations["kpis"];
+        get: operations["kpis_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1389,6 +1768,33 @@ export interface components {
             allowOverlappingAcademicYears?: boolean;
             /** Format: int64 */
             version?: number;
+        };
+        StudentNumberRuleRequest: {
+            /** @enum {string} */
+            mode: "GENERATED" | "MANUAL";
+            template?: string;
+            manualPattern?: string;
+            registrationPattern?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        StudentNumberRule: {
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            orgUnitType?: string;
+            configured?: boolean;
+            /** Format: uuid */
+            inheritedFrom?: string;
+            /** @enum {string} */
+            mode?: "GENERATED" | "MANUAL";
+            template?: string;
+            manualPattern?: string;
+            registrationPattern?: string;
+            example?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
         };
         StaffRequest: {
             staffNo: string;
@@ -1617,6 +2023,334 @@ export interface components {
             startsOn?: string;
             /** Format: date */
             endsOn?: string;
+        };
+        StudentPersonalRequest: {
+            /** Format: date */
+            dateOfBirth?: string;
+            /** @enum {string} */
+            gender?: "FEMALE" | "MALE" | "OTHER" | "UNDISCLOSED";
+            nationality?: string;
+            personalEmail?: string;
+            mobile?: string;
+            alternatePhone?: string;
+            currentAddress?: string;
+            permanentAddress?: string;
+        };
+        StudentRequest: {
+            /** Format: uuid */
+            institutionId?: string;
+            studentNo?: string;
+            /** Format: int32 */
+            admissionYear?: number;
+            registrationNo?: string;
+            rollNo?: string;
+            previousInstitutionRef?: string;
+            firstName?: string;
+            middleName?: string;
+            lastName?: string;
+            institutionalEmail?: string;
+            personal?: components["schemas"]["StudentPersonalRequest"];
+            /** Format: int64 */
+            version?: number;
+        };
+        StudentAccount: {
+            /** Format: uuid */
+            userId?: string;
+            email?: string;
+            status?: string;
+            invitationStatus?: string;
+        };
+        StudentAdmission: {
+            /** Format: uuid */
+            id?: string;
+            admissionNo?: string;
+            /** Format: date */
+            admissionDate?: string;
+            admissionType?: string;
+            admissionTypeLabel?: string;
+            admissionCategory?: string;
+            admissionCategoryLabel?: string;
+            /** Format: uuid */
+            entryAcademicYearId?: string;
+            entryAcademicYearName?: string;
+            /** Format: uuid */
+            programId?: string;
+            programName?: string;
+            /** Format: uuid */
+            courseId?: string;
+            courseName?: string;
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            departmentName?: string;
+            /** Format: int32 */
+            entryTermNumber?: number;
+            /** @enum {string} */
+            status?: "PROVISIONAL" | "CONFIRMED" | "CANCELLED";
+            previousInstitutionName?: string;
+            previousInstitutionDetails?: string;
+            statusReason?: string;
+            enrolled?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        StudentDetail: {
+            student?: components["schemas"]["StudentSummary"];
+            previousInstitutionRef?: string;
+            institutionalEmail?: string;
+            personal?: components["schemas"]["StudentPersonal"];
+            personalVisible?: boolean;
+            /** Format: date */
+            statusEffectiveOn?: string;
+            allowedTransitions?: ("PROSPECTIVE" | "ADMITTED" | "ENROLLED" | "ACTIVE" | "SUSPENDED" | "WITHDRAWN" | "GRADUATED" | "ALUMNI" | "CANCELLED")[];
+            admission?: components["schemas"]["StudentAdmission"];
+            currentEnrolment?: components["schemas"]["StudentEnrolment"];
+            account?: components["schemas"]["StudentAccount"];
+            /** Format: int64 */
+            guardianCount?: number;
+            /** Format: int64 */
+            documentCount?: number;
+            /** Format: int64 */
+            pendingScanCount?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+            can?: components["schemas"]["StudentPermissions"];
+        };
+        StudentEnrolment: {
+            /** Format: uuid */
+            id?: string;
+            institutionName?: string;
+            campusName?: string;
+            /** Format: uuid */
+            departmentId?: string;
+            departmentName?: string;
+            /** Format: uuid */
+            programId?: string;
+            programName?: string;
+            /** Format: uuid */
+            courseId?: string;
+            courseName?: string;
+            /** Format: uuid */
+            batchId?: string;
+            batchCode?: string;
+            batchName?: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            academicYearName?: string;
+            /** Format: uuid */
+            termId?: string;
+            termName?: string;
+            /** Format: int32 */
+            termNumber?: number;
+            /** Format: date */
+            enrolledOn?: string;
+            /** Format: date */
+            endedOn?: string;
+            status?: string;
+            /** @enum {string} */
+            changeType?: "INITIAL" | "PROGRESSION" | "PROMOTION" | "BATCH_TRANSFER" | "COURSE_TRANSFER";
+            current?: boolean;
+            reason?: string;
+            /** Format: uuid */
+            previousEnrolmentId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            actorName?: string;
+        };
+        StudentPermissions: {
+            manage?: boolean;
+            readPersonal?: boolean;
+            readDocuments?: boolean;
+            manageDocuments?: boolean;
+            manageAccount?: boolean;
+        };
+        StudentPersonal: {
+            /** Format: date */
+            dateOfBirth?: string;
+            /** @enum {string} */
+            gender?: "FEMALE" | "MALE" | "OTHER" | "UNDISCLOSED";
+            nationality?: string;
+            personalEmail?: string;
+            mobile?: string;
+            alternatePhone?: string;
+            currentAddress?: string;
+            permanentAddress?: string;
+        };
+        StudentSummary: {
+            /** Format: uuid */
+            id?: string;
+            studentNo?: string;
+            registrationNo?: string;
+            rollNo?: string;
+            firstName?: string;
+            middleName?: string;
+            lastName?: string;
+            fullName?: string;
+            /** @enum {string} */
+            status?: "PROSPECTIVE" | "ADMITTED" | "ENROLLED" | "ACTIVE" | "SUSPENDED" | "WITHDRAWN" | "GRADUATED" | "ALUMNI" | "CANCELLED";
+            active?: boolean;
+            /** Format: uuid */
+            institutionId?: string;
+            institutionName?: string;
+            departmentName?: string;
+            /** Format: uuid */
+            programId?: string;
+            programName?: string;
+            /** Format: uuid */
+            courseId?: string;
+            courseName?: string;
+            /** Format: uuid */
+            batchId?: string;
+            batchCode?: string;
+            academicYearName?: string;
+            /** Format: int32 */
+            termNumber?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        GuardianRequest: {
+            name?: string;
+            relationship?: string;
+            mobile?: string;
+            email?: string;
+            address?: string;
+            primary?: boolean;
+            emergency?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        Guardian: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            relationship?: string;
+            mobile?: string;
+            email?: string;
+            address?: string;
+            primary?: boolean;
+            emergency?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        EnrolmentRequest: {
+            /** @enum {string} */
+            type: "INITIAL" | "PROGRESSION" | "PROMOTION" | "BATCH_TRANSFER" | "COURSE_TRANSFER";
+            /** Format: uuid */
+            batchId: string;
+            /** Format: uuid */
+            academicYearId?: string;
+            /** Format: uuid */
+            termId?: string;
+            /** Format: int32 */
+            termNumber?: number;
+            /** Format: date */
+            effectiveOn?: string;
+            reason?: string;
+        };
+        StudentDocument: {
+            /** Format: uuid */
+            id?: string;
+            category?: string;
+            categoryLabel?: string;
+            title?: string;
+            fileName?: string;
+            contentType?: string;
+            /** Format: int64 */
+            sizeBytes?: number;
+            /** @enum {string} */
+            scanStatus?: "PENDING" | "CLEAN" | "INFECTED" | "ERROR";
+            scanDetail?: string;
+            /** Format: date-time */
+            scannedAt?: string;
+            /** @enum {string} */
+            verificationStatus?: "PENDING" | "VERIFIED" | "REJECTED";
+            verificationNote?: string;
+            verifiedByName?: string;
+            /** Format: date-time */
+            verifiedAt?: string;
+            status?: string;
+            removedReason?: string;
+            /** Format: date-time */
+            uploadedAt?: string;
+            uploadedByName?: string;
+            downloadable?: boolean;
+        };
+        DocumentVerificationRequest: {
+            /** @enum {string} */
+            status: "PENDING" | "VERIFIED" | "REJECTED";
+            note?: string;
+        };
+        DocumentRemovalRequest: {
+            reason: string;
+        };
+        AdmissionRequest: {
+            admissionNo?: string;
+            /** Format: date */
+            admissionDate?: string;
+            admissionType?: string;
+            admissionCategory?: string;
+            /** Format: uuid */
+            entryAcademicYearId?: string;
+            /** Format: uuid */
+            programId?: string;
+            /** Format: uuid */
+            courseId?: string;
+            /** Format: int32 */
+            entryTermNumber?: number;
+            /** @enum {string} */
+            status?: "PROVISIONAL" | "CONFIRMED" | "CANCELLED";
+            previousInstitutionName?: string;
+            previousInstitutionDetails?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        AdmissionStatusRequest: {
+            /** @enum {string} */
+            status: "PROVISIONAL" | "CONFIRMED" | "CANCELLED";
+            reason?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        StudentStatusRequest: {
+            /** @enum {string} */
+            status: "PROSPECTIVE" | "ADMITTED" | "ENROLLED" | "ACTIVE" | "SUSPENDED" | "WITHDRAWN" | "GRADUATED" | "ALUMNI" | "CANCELLED";
+            /** Format: date */
+            effectiveOn?: string;
+            reason?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        StudentActiveRequest: {
+            active: boolean;
+            reason?: string;
+            /** Format: int64 */
+            version: number;
+        };
+        StudentAccountRequest: {
+            email?: string;
+        };
+        StudentOptionRequest: {
+            /** @enum {string} */
+            kind: "ADMISSION_TYPE" | "ADMISSION_CATEGORY" | "DOCUMENT_CATEGORY";
+            code: string;
+            label: string;
+        };
+        StudentOption: {
+            /** @enum {string} */
+            kind?: "ADMISSION_TYPE" | "ADMISSION_CATEGORY" | "DOCUMENT_CATEGORY";
+            code?: string;
+            label?: string;
+            builtIn?: boolean;
+            active?: boolean;
+        };
+        StudentOptionStatusRequest: {
+            active: boolean;
         };
         StaffLinkRequest: {
             /** Format: uuid */
@@ -2274,6 +3008,59 @@ export interface components {
             roles?: components["schemas"]["RoleAssignment"][];
             permissions?: components["schemas"]["EffectivePermission"][];
         };
+        PageResponseStudentSummary: {
+            items?: components["schemas"]["StudentSummary"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        StudentHistoryEntry: {
+            /** Format: date-time */
+            at?: string;
+            kind?: string;
+            type?: string;
+            summary?: string;
+            fromStatus?: string;
+            toStatus?: string;
+            /** Format: date */
+            effectiveOn?: string;
+            reason?: string;
+            actorName?: string;
+        };
+        StudentGroupCount: {
+            /** Format: uuid */
+            id?: string;
+            label?: string;
+            /** Format: int64 */
+            count?: number;
+        };
+        StudentKpis: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            newlyAdmitted?: number;
+            /** Format: int64 */
+            prospective?: number;
+            /** Format: int64 */
+            suspended?: number;
+            /** Format: int64 */
+            withdrawn?: number;
+            /** Format: int64 */
+            graduated?: number;
+            /** Format: int64 */
+            documentsAwaitingScan?: number;
+            byProgram?: components["schemas"]["StudentGroupCount"][];
+            byCourse?: components["schemas"]["StudentGroupCount"][];
+            byBatch?: components["schemas"]["StudentGroupCount"][];
+            byAcademicYear?: components["schemas"]["StudentGroupCount"][];
+        };
         PageResponseStaffProfile: {
             items?: components["schemas"]["StaffProfile"][];
             /** Format: int32 */
@@ -2793,6 +3580,32 @@ export interface operations {
             };
         };
     };
+    saveRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgUnitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentNumberRuleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentNumberRule"];
+                };
+            };
+        };
+    };
     detail: {
         parameters: {
             query?: never;
@@ -3135,7 +3948,520 @@ export interface operations {
             };
         };
     };
+    search: {
+        parameters: {
+            query?: {
+                q?: string;
+                institutionId?: string;
+                campusId?: string;
+                departmentId?: string;
+                programId?: string;
+                courseId?: string;
+                batchId?: string;
+                academicYearId?: string;
+                termNumber?: number;
+                status?: "PROSPECTIVE" | "ADMITTED" | "ENROLLED" | "ACTIVE" | "SUSPENDED" | "WITHDRAWN" | "GRADUATED" | "ALUMNI" | "CANCELLED";
+                active?: boolean;
+                page?: number;
+                size?: number;
+                sort?: string;
+                direction?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseStudentSummary"];
+                };
+            };
+        };
+    };
+    create_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDetail"];
+                };
+            };
+        };
+    };
+    guardians: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Guardian"][];
+                };
+            };
+        };
+    };
+    addGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuardianRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Guardian"][];
+                };
+            };
+        };
+    };
+    enrolments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentEnrolment"][];
+                };
+            };
+        };
+    };
+    changeEnrolment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolmentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentEnrolment"][];
+                };
+            };
+        };
+    };
     list_1: {
+        parameters: {
+            query?: {
+                includeRemoved?: boolean;
+            };
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDocument"][];
+                };
+            };
+        };
+    };
+    upload: {
+        parameters: {
+            query: {
+                category: string;
+                title?: string;
+            };
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDocument"][];
+                };
+            };
+        };
+    };
+    verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentVerificationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDocument"][];
+                };
+            };
+        };
+    };
+    rescan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDocument"][];
+                };
+            };
+        };
+    };
+    remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentRemovalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDocument"][];
+                };
+            };
+        };
+    };
+    admissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentAdmission"][];
+                };
+            };
+        };
+    };
+    createAdmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentAdmission"][];
+                };
+            };
+        };
+    };
+    admissionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentAdmission"][];
+                };
+            };
+        };
+    };
+    status_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDetail"];
+                };
+            };
+        };
+    };
+    active: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentActiveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDetail"];
+                };
+            };
+        };
+    };
+    createAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDetail"];
+                };
+            };
+        };
+    };
+    options: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentOption"][];
+                };
+            };
+        };
+    };
+    addOption: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentOptionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentOption"];
+                };
+            };
+        };
+    };
+    optionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "ADMISSION_TYPE" | "ADMISSION_CATEGORY" | "DOCUMENT_CATEGORY";
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentOptionStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentOption"][];
+                };
+            };
+        };
+    };
+    list_2: {
         parameters: {
             query?: {
                 q?: string;
@@ -3165,7 +4491,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3284,7 +4610,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 q?: string;
@@ -3312,7 +4638,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -3336,7 +4662,7 @@ export interface operations {
             };
         };
     };
-    status_1: {
+    status_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3408,7 +4734,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
@@ -3437,7 +4763,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4355,7 +5681,152 @@ export interface operations {
             };
         };
     };
+    removeGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                guardianId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateGuardian: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                guardianId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuardianRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Guardian"][];
+                };
+            };
+        };
+    };
+    updateAdmission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                admissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdmissionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentAdmission"][];
+                };
+            };
+        };
+    };
     detail_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDetail"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query: {
+                version: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StudentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentDetail"];
+                };
+            };
+        };
+    };
+    detail_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4399,7 +5870,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -4447,7 +5918,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    delete_1: {
         parameters: {
             query: {
                 version: number;
@@ -4469,7 +5940,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -4805,6 +6276,91 @@ export interface operations {
             };
         };
     };
+    download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                studentId: string;
+                documentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    history: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentHistoryEntry"][];
+                };
+            };
+        };
+    };
+    kpis: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentKpis"];
+                };
+            };
+        };
+    };
+    rules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentNumberRule"][];
+                };
+            };
+        };
+    };
     holders: {
         parameters: {
             query?: {
@@ -4897,7 +6453,7 @@ export interface operations {
             };
         };
     };
-    history: {
+    history_1: {
         parameters: {
             query?: {
                 page?: number;
@@ -4962,7 +6518,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -5028,7 +6584,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
@@ -5097,7 +6653,7 @@ export interface operations {
             };
         };
     };
-    search: {
+    search_1: {
         parameters: {
             query?: {
                 action?: string;
@@ -5125,7 +6681,7 @@ export interface operations {
             };
         };
     };
-    verify: {
+    verify_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -5238,7 +6794,7 @@ export interface operations {
             };
         };
     };
-    kpis: {
+    kpis_1: {
         parameters: {
             query?: never;
             header?: never;

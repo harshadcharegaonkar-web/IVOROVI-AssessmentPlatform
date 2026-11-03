@@ -24,6 +24,7 @@ sed -e "s/__POSTGRES_PASSWORD__/$(rnd)/" \
     -e "s/__RABBITMQ_PASSWORD__/$(rnd)/" \
     -e "s/__S3_ACCESS_KEY__/$(rnd 20)/" \
     -e "s/__S3_SECRET_KEY__/$(rnd 40)/" \
+    -e "s/__DATA_ENCRYPTION_KEY__/$(rnd 48)/" \
     .env.example > .env
 chmod 600 .env
 echo "Created deploy/compose/.env. Dev login password for seeded users: DEV_USER_PASSWORD in that file."

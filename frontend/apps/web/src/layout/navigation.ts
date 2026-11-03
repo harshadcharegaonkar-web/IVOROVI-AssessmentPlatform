@@ -1,6 +1,6 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
 import type { TerminologyKey } from "../session/useOrgLabels";
-import { BadgeCheck, BookKey, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { BadgeCheck, BookKey, Contact, Gauge, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -9,7 +9,7 @@ export interface NavGroup { id: string; label: string | null; items: NavItem[] }
 
 /**
  * Navigation model (design system §3). Only implemented screens are listed: groups gain items as increments
- * deliver them (People 1.2; Access 1.3; Academics 1.4; Students later).
+ * deliver them (People 1.2; Access 1.3; Academics 1.4; Students 1.5).
  * Visibility mirrors server permissions for convenience only; the API enforces every permission.
  */
 export const NAV_GROUPS: NavGroup[] = [
@@ -51,6 +51,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/academics/terms", label: "Semesters", orgType: "TERM", icon: CalendarDays, visible: (a) => a.hasAnywhere("academics.read") },
       { to: "/academics/batches", label: "Batches", orgType: "BATCH", icon: Users, visible: (a) => a.hasAnywhere("academics.read") },
       { to: "/academics/offerings", label: "Subject Offerings", icon: Layers, visible: (a) => a.hasAnywhere("academics.read") },
+    ],
+  },
+  {
+    id: "students", label: "Students",
+    items: [
+      { to: "/students", label: "Student Dashboard", icon: Gauge, visible: (a) => a.hasAnywhere("student.read") },
+      { to: "/students/list", label: "Students", icon: Contact, visible: (a) => a.hasAnywhere("student.read") },
+      { to: "/students/settings", label: "Student Settings", icon: IdCard, visible: (a) => a.hasAnywhere("student.read") },
     ],
   },
   {

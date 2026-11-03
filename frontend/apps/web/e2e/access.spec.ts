@@ -47,7 +47,7 @@ test.describe("Increment 1.3: custom roles and permissions", () => {
     await page.getByLabel("Description").fill("Reviews user and staff records");
     // planned permissions are visible but cannot be chosen
     await page.getByTestId("planned-permissions").locator("summary").click();
-    await expect(page.getByTestId("permission-configurator").getByRole("checkbox", { name: /^View students/ })).toBeDisabled();
+    await expect(page.getByTestId("permission-configurator").getByRole("checkbox", { name: /^View admissions/ })).toBeDisabled();
     await pickPermissions(page, ["View users", "View staff"]);
     const summary = page.getByTestId("effective-access-summary");
     await expect(summary).toContainText("2 permission(s) selected");

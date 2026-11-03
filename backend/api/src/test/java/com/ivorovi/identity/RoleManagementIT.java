@@ -161,7 +161,7 @@ class RoleManagementIT extends IntegrationTest {
                     .andExpect(jsonPath("$[*].domain", Matchers.hasItems("USERS", "STAFF", "ROLES", "ADMISSIONS", "AI", "AUDIT")))
                     .andExpect(jsonPath("$[*].domain", Matchers.not(Matchers.hasItem("PLATFORM"))))
                     .andExpect(jsonPath("$[?(@.domain == 'USERS')].permissions[*].code", Matchers.contains("user.read", "user.manage")))
-                    .andExpect(jsonPath("$[?(@.domain == 'STUDENTS')].permissions[0].availability").value("PLANNED"))
+                    .andExpect(jsonPath("$[?(@.domain == 'ADMISSIONS')].permissions[0].availability").value("PLANNED"))
                     .andExpect(jsonPath("$[?(@.domain == 'AUDIT')].permissions[0].scope").value("ORGANIZATION"))
                     .andExpect(jsonPath("$[?(@.domain == 'USERS')].permissions[1].level").value("MANAGE"));
             for (Permission p : Permission.values()) {
@@ -178,7 +178,7 @@ class RoleManagementIT extends IntegrationTest {
         void unknownPlannedPlatformAndEmptyPermissionsAreRefused() throws Exception {
             createRole(admin, "Bad 1", null, "student.delete_everything").andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("unknown_permission"));
-            createRole(admin, "Bad 2", null, "student.read").andExpect(status().isBadRequest())
+            createRole(admin, "Bad 2", null, "admission.read").andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("permission_not_grantable"));
             createRole(admin, "Bad 3", null, "platform.tenant.manage").andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("permission_not_grantable"));

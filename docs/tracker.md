@@ -8,7 +8,7 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 | 1 | Institution & tenant management | 1 | 🟨 organization hierarchy done (1.1) | 0 | ✅ `/org-units` CRUD, move, status, history, tree, summary; tenant settings | ✅ hierarchy, 4 listings, detail, forms, System Settings | ✅ | Programs, courses, subjects, calendar, batches, offerings delivered in 1.4; tenant provisioning (super admin), logo upload (needs ADR-0006) pending |
 | 2 | User & access management | 1 | ✅ users, staff, invitations, assignments (1.2); custom roles and permission catalogue (1.3) | 0, 1 | ✅ `/users`, `/staff`, `/invitations`, `/roles`, public invitation endpoints | ✅ users, staff, invitations, access overview, public acceptance page | ✅ | Bulk user import; branded email templates (Phase 2) |
 | 21 | System administration (flags, settings) | 1 / 8 | 🟨 feature flags + terminology/time zone settings | 0 | ✅ | ✅ | ✅ | Maintenance windows pending |
-| 3 | Student & candidate management | 1 (students) / 5 (candidates) | ⬜ planned (Phase 1 inc. 1.6) | 1, 2 | ⬜ | ⬜ | ⬜ | |
+| 3 | Student & candidate management | 1 (students) / 5 (candidates) | 🟨 students delivered (1.5); candidates later | 1, 2 | ⬜ | ⬜ | ⬜ | |
 | 19 | Audit & compliance | 2 | 🟨 trail + verification | 0 | ✅ | ✅ | ✅ | Consent, data requests, retention pending |
 | 17 | Notifications & workflow | 1 / 2 / 8 | 🟨 in-app notification centre (1.0) + SMTP port | 0, 2 | 🟨 | 🟨 bell + panel | ✅ | Templates, preferences, workflows pending |
 | 5 | Question bank | 3 | ⬜ | 2 | ⬜ | ⬜ | ⬜ | |
@@ -38,7 +38,7 @@ Plan approved with Amendment 1 and design system.
 | 1.2 User and staff management | ✅ accepted 2026-11-03; closing security verification passed (`UserManagementIT.SecurityVerification`) | `phase-1/increment-1.2.md` |
 | 1.3 Custom roles and permission management | ✅ accepted 2026-11-03 after scope and college-administrator verification (`RoleManagementIT.AcceptanceVerification`; CI run 41578791577); evidence `design/evidence/1.3/` | `phase-1/increment-1.3.md` |
 | 1.4 Academic structure management | ✅ accepted 2026-11-03 (CI runs 41604859356, 41605967946); follow-ups done: bundle 178.0 → 154.2 kB (`architecture/05-frontend-performance.md`), demonstration dataset (`runbooks/demo-data.md`), restructuring design (`architecture/06-controlled-restructuring.md`) | `phase-1/increment-1.4.md` |
-| 1.5 Student lifecycle management | 🟨 in progress (authorized 2026-11-03) | `phase-1/increment-1.5.md` |
+| 1.5 Student lifecycle management | 🟨 implemented and verified; awaiting product-owner review; evidence `design/evidence/1.5/` | `phase-1/increment-1.5.md` |
 | 1.6 | ⬜ not started; needs authorization | |
 | Later | Students and enrolment, admissions, assessments (renumbered after 1.4) | `phase-1/plan.md` |
 

@@ -74,8 +74,12 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 
 | Code | Name | Level | Scope | Availability | Description |
 |---|---|---|---|---|---|
-| `student.read` | View students | READ | UNIT | PLANNED | View student records and enrolment |
-| `student.manage` | Manage students | MANAGE | UNIT | PLANNED | Create and update student records and lifecycle |
+| `student.read` | View students | READ | UNIT | AVAILABLE | View student profiles, admissions, enrolments and history (personal details need a separate permission) |
+| `student.personal.read` | View student personal details | READ | UNIT | AVAILABLE | View dates of birth, contact details, addresses, admission categories and guardians |
+| `student.manage` | Manage students | MANAGE | UNIT | AVAILABLE | Create and edit student profiles, admissions, enrolments, guardians and lifecycle status |
+| `student.document.read` | View student documents | READ | UNIT | AVAILABLE | View and download scanned, clean student documents |
+| `student.document.manage` | Manage student documents | MANAGE | UNIT | AVAILABLE | Upload, verify, reject and remove student documents |
+| `student.account.manage` | Create student sign-in accounts | WRITE | UNIT | AVAILABLE | Create a sign-in account for a student on demand (student role only) |
 
 ## Admissions
 
@@ -134,7 +138,10 @@ the ceiling rule (it can only create roles limited to its own units, with permis
 Since increment 1.4 (migration `V202611031100`): ORG_ADMIN and INSTITUTION_ADMIN hold all six academic permissions;
 DEPARTMENT_HEAD holds `academics.read`, `batch.manage` and `faculty.assign`; CAMPUS_ADMIN, FACULTY, EXAM_CONTROLLER,
 MANAGEMENT, EVALUATOR, PLACEMENT_OFFICER and ASSESSMENT_DESIGNER hold `academics.read`. STUDENT and external roles hold none.
-The catalogue now has 36 permissions: 19 available, 16 planned, 1 platform-only.
+Since increment 1.5 (migration `V202611041000`): ORG_ADMIN and INSTITUTION_ADMIN hold all six student permissions;
+ADMISSION_OFFICER holds read, personal, manage and both document permissions (not account creation) plus `academics.read`;
+DEPARTMENT_HEAD holds read, personal and document read; CAMPUS_ADMIN, FACULTY, EXAM_CONTROLLER and MANAGEMENT hold
+`student.read`. The STUDENT role holds none. The catalogue now has 40 permissions: 25 available, 14 planned, 1 platform-only.
 
 Adding a permission: add the enum entry with its metadata, grant it to system roles in a Flyway migration, and keep
 `PermissionCatalogConsistencyIT` and `RoleManagementIT.Catalogue` green.

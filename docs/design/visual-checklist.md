@@ -53,9 +53,10 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 10 | Batch management (list, details with offerings, create/edit) | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 11 | User management (list, details, create/invite, edit, status, access overview) | 1.2 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 12 | Staff management (list, details, form, link to user; faculty teaching attributes later) | 1.2 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
-| 13 | Student management | 1.6 | ☐ | ☐ | ☐ |
-| 14 | Student profile | 1.6 | ☐ | ☐ | ☐ |
-| 15 | Bulk student import | 1.6 | ☐ | ☐ | ☐ |
+| 13 | Student management (dashboard, list with search and filters, create/edit, lifecycle) | 1.5 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 14 | Student profile (overview, personal, academic: admission/enrolment/history, guardians, documents, history, account) | 1.5 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 15 | Bulk student import | later | ☐ | ☐ | ☐ |
+| + | Student settings (numbering rules, option lists) | 1.5 | ✅ (axe) | ✅ 3 viewports | ☐ |
 | 16 | Role management (list, details, create/edit/clone, deactivate, archive) | 1.3 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 17 | Permission catalogue, permission configurator, role comparison | 1.3 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 18 | Access management (role assignment view and overview, organizational assignments, effective access) | 1.2 / 1.3 | ✅ | ✅ | ☐ |
@@ -101,6 +102,14 @@ The 14 academic screens follow the baseline at 1440×900, 1024×768 and 390×844
 screenshots including the term, offering and faculty dialogs). Overflow checks at tablet and mobile on every academic
 list and editor; axe on overview, every list, program/subject editors, course curriculum, year detail, faculty assignment
 and the structure tree. Configured terminology is used in navigation, headings, filters and empty states.
+
+## I. Results: increment 1.5 (2026-11-03), awaiting review
+
+The 12 student screens follow the baseline at 1440×900, 1024×768 and 390×844 (`docs/design/evidence/1.5/`). The profile
+is split into Overview, Personal information, Academic, Guardians, Documents and History tabs; tabs the viewer may not
+see (guardians, documents) are not shown at all. Quarantined documents show a warning and a disabled download with an
+accessible explanation. Overflow checks at tablet and mobile on every student screen and tab; axe on dashboard, list,
+editor, every profile tab, dialogs and settings.
 
 Automation (re-planned): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are
