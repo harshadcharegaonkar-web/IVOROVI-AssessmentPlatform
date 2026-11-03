@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
+    "./overlay": "./src/components/Overlay.tsx",
     "./theme.css": "./src/theme.css"
   },
   "scripts": {

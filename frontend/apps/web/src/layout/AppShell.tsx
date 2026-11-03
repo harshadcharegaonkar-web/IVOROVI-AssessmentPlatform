@@ -1,4 +1,4 @@
-import { Avatar, Breadcrumbs, cn, focusRing, LinkProvider, Menu, MenuItem, MenuLabel, MenuSeparator, SideSheet, type Crumb } from "@ivorovi/ui";
+import { Avatar, Breadcrumbs, cn, focusRing, LinkProvider, type Crumb } from "@ivorovi/ui";
 import { ChevronDown, LogOut, Menu as MenuIcon, Search, UserRound } from "lucide-react";
 import { lazy, Suspense, useEffect, useState, type AnchorHTMLAttributes } from "react";
 import { useAuth } from "react-oidc-context";
@@ -7,6 +7,7 @@ import { readPreference, writePreference } from "../lib/preferences";
 import { useMediaQuery } from "../lib/useMediaQuery";
 import { InstitutionContextProvider, useInstitutionContext } from "../session/InstitutionContext";
 import { useSession } from "../session/SessionProvider";
+import { AccountMenu, NavigationSheet, usePrefetchShellOverlays } from "./LazyShell";
 import { NotificationCenter } from "./NotificationCenter";
 import { Brand, SidebarNav } from "./Sidebar";
 
@@ -36,6 +37,7 @@ export function AppShell() {
   const isTablet = useMediaQuery("(min-width: 768px)");
   const [prefCollapsed, setPrefCollapsed] = useState(() => readPreference("sidebarCollapsed") === "true");
   const [drawer, setDrawer] = useState(false);
+  usePrefetchShellOverlays();
   const location = useLocation();
   const [lastPath, setLastPath] = useState(location.pathname);
   if (lastPath !== location.pathname) {
@@ -58,9 +60,9 @@ export function AppShell() {
             </aside>
           )}
           {!isTablet && (
-            <SideSheet open={drawer} onOpenChange={setDrawer} title="Navigation" className="bg-sidebar">
+            <NavigationSheet open={drawer} onOpenChange={setDrawer}>
               <div id="mobile-nav" className="h-full"><SidebarNav collapsed={false} /></div>
-            </SideSheet>
+            </NavigationSheet>
           )}
           <div className="flex min-w-0 flex-1 flex-col">
             <TopBar navy={!isDesktop} showBrand={!isTablet} onOpenMenu={() => setDrawer(true)} />
@@ -131,26 +133,27 @@ function TopBar({ navy, showBrand, onOpenMenu }: { navy: boolean; showBrand: boo
           {!navy && <kbd className="hidden rounded border border-border px-1.5 text-[11px] text-muted md:inline">Ctrl K</kbd>}
         </button>
         <NotificationCenter buttonClassName={iconBtn} />
-        <Menu trigger={
-          <button type="button" aria-label="Account menu" className={cn("flex items-center gap-2 rounded-lg py-1 pl-1 pr-2", focusRing,
-            navy ? "hover:bg-sidebar-raised" : "hover:bg-surface-muted")}>
-            <Avatar name={me.displayName ?? "?"} size="sm" />
-            <span className="hidden text-left text-sm leading-tight lg:block">
-              <span className="block font-medium" data-testid="user-name">{me.displayName}</span>
-              <span className={cn("block text-xs", navy ? "text-sidebar-text" : "text-muted")}>{orgName}</span>
-            </span>
-            <ChevronDown aria-hidden className="hidden h-4 w-4 lg:block" />
-          </button>
-        }>
-          <MenuLabel>
+        <AccountMenu
+          trigger={(p) => (
+            <button type="button" aria-label="Account menu" {...p} className={cn("flex items-center gap-2 rounded-lg py-1 pl-1 pr-2", focusRing,
+              navy ? "hover:bg-sidebar-raised" : "hover:bg-surface-muted")}>
+              <Avatar name={me.displayName ?? "?"} size="sm" />
+              <span className="hidden text-left text-sm leading-tight lg:block">
+                <span className="block font-medium" data-testid="user-name">{me.displayName}</span>
+                <span className={cn("block text-xs", navy ? "text-sidebar-text" : "text-muted")}>{orgName}</span>
+              </span>
+              <ChevronDown aria-hidden className="hidden h-4 w-4 lg:block" />
+            </button>
+          )}
+          header={<>
             <span className="block font-semibold">{me.displayName}</span>
             <span className="block text-xs text-muted">{me.email}</span>
             <span className="block text-xs text-muted">{orgName}</span>
-          </MenuLabel>
-          <MenuSeparator />
-          <MenuItem onSelect={() => void navigate("/me")}><UserRound aria-hidden className="h-4 w-4" /> My Access</MenuItem>
-          <MenuItem tone="danger" onSelect={() => void auth.signoutRedirect()}><LogOut aria-hidden className="h-4 w-4" /> Sign out</MenuItem>
-        </Menu>
+          </>}
+          items={[
+            { label: "My Access", icon: <UserRound aria-hidden className="h-4 w-4" />, onSelect: () => void navigate("/me") },
+            { label: "Sign out", tone: "danger", icon: <LogOut aria-hidden className="h-4 w-4" />, onSelect: () => void auth.signoutRedirect() },
+          ]} />
       </div>
       {search && <Suspense fallback={null}><SearchDialog open={search} onOpenChange={setSearch} /></Suspense>}
     </header>

@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 import { cn, focusRing } from "../lib/cn";
 
 /** Account and row-action menus. */
-export function Menu({ trigger, children, align = "end" }: { trigger: ReactNode; children: ReactNode; align?: "start" | "end" }) {
+export function Menu({ trigger, children, align = "end", defaultOpen }: { trigger: ReactNode; children: ReactNode; align?: "start" | "end"; defaultOpen?: boolean }) {
   return (
-    <RadixMenu.Root>
+    <RadixMenu.Root {...(defaultOpen ? { defaultOpen } : {})}>
       <RadixMenu.Trigger asChild>{trigger}</RadixMenu.Trigger>
       <RadixMenu.Portal>
         <RadixMenu.Content align={align} sideOffset={6}
@@ -52,6 +52,7 @@ export function Popover({ trigger, children, label, open, onOpenChange }: {
   );
 }
 
+/** Optional shared provider (one delay timer for a group of tooltips); every Tooltip also works on its own. */
 export function TooltipProvider({ children }: { children: ReactNode }) {
   return <RadixTooltip.Provider delayDuration={300}>{children}</RadixTooltip.Provider>;
 }
@@ -60,6 +61,7 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
 export function Tooltip({ content, children, side = "right", disabled }: { content: string; children: ReactNode; side?: "right" | "bottom"; disabled?: boolean }) {
   if (disabled) return <>{children}</>;
   return (
+    <RadixTooltip.Provider delayDuration={300}>
     <RadixTooltip.Root>
       {/* Trigger on a wrapper: Radix's asChild would merge its className into the child's, which breaks
           children with function-valued className (e.g. router NavLink). Focus events bubble from the child. */}
@@ -70,6 +72,7 @@ export function Tooltip({ content, children, side = "right", disabled }: { conte
         </RadixTooltip.Content>
       </RadixTooltip.Portal>
     </RadixTooltip.Root>
+    </RadixTooltip.Provider>
   );
 }
 

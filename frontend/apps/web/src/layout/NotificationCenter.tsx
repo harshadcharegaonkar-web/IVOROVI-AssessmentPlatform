@@ -1,11 +1,12 @@
 import { unwrap } from "@ivorovi/api-client";
-import { Button, cn, ErrorState, Popover, Skeleton } from "@ivorovi/ui";
+import { Button, cn, ErrorState, Skeleton } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Bell, CheckCircle2, Info, XCircle } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { errorInfo, useApi } from "../api/ApiProvider";
 import { formatRelative } from "../lib/format";
+import { NotificationPopover } from "./LazyShell";
 
 const icons = { INFO: Info, SUCCESS: CheckCircle2, WARNING: AlertTriangle, ERROR: XCircle } as const;
 const tones = { INFO: "text-primary", SUCCESS: "text-success", WARNING: "text-warning", ERROR: "text-danger" } as const;
@@ -32,8 +33,8 @@ export function NotificationCenter({ buttonClassName }: { buttonClassName?: stri
   const unread = list.data?.unread ?? 0;
 
   return (
-    <Popover open={open} onOpenChange={setOpen} label="Notifications" trigger={
-      <button type="button" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"} className={cn("relative", buttonClassName)}>
+    <NotificationPopover open={open} onOpenChange={setOpen} trigger={(p) => (
+      <button type="button" aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"} {...p} className={cn("relative", buttonClassName)}>
         <Bell aria-hidden className="h-5 w-5" strokeWidth={1.75} />
         {unread > 0 && (
           <span aria-hidden data-testid="notification-count" className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
@@ -41,7 +42,7 @@ export function NotificationCenter({ buttonClassName }: { buttonClassName?: stri
           </span>
         )}
       </button>
-    }>
+    )}>
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <p className="font-semibold">Notifications</p>
         <Button variant="ghost" size="sm" disabled={!unread} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all as read</Button>
@@ -83,6 +84,6 @@ export function NotificationCenter({ buttonClassName }: { buttonClassName?: stri
             </ul>
           )}
       </div>
-    </Popover>
+    </NotificationPopover>
   );
 }

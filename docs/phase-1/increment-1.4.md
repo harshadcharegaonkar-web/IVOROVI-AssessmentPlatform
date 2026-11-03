@@ -1,6 +1,8 @@
 # Increment 1.4: academic structure management
 
-* Status: **Implemented and verified; awaiting product-owner review** (authorized 2026-11-03 with the 1.3 acceptance). Increment 1.5 not started.
+* Status: **Accepted** (product owner, 2026-11-03) with three follow-ups, all completed: initial bundle 178.0 → 154.2 kB
+  (`architecture/05-frontend-performance.md`), repeatable demonstration dataset separated from test data
+  (`runbooks/demo-data.md`), controlled restructuring design (`architecture/06-controlled-restructuring.md`).
 * Depends on: 1.3 (accepted). Data model: `docs/architecture/04-academic-data-model.md`.
 
 ## Scope delivered

@@ -1,4 +1,5 @@
-import { cn, Tooltip } from "@ivorovi/ui";
+import { cn } from "@ivorovi/ui";
+import { RailTooltip } from "./LazyShell";
 import { ChevronDown, GraduationCap, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState } from "react";
 import { NavLink } from "react-router";
@@ -29,7 +30,7 @@ function Item({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const Icon = item.icon;
   const text = item.orgType ? labels.plural(item.orgType) : item.label;
   return (
-    <Tooltip content={text} disabled={!collapsed}>
+    <RailTooltip content={text} disabled={!collapsed}>
       <NavLink
         to={item.to}
         end={item.to === "/" || item.to === "/organization"}
@@ -49,7 +50,7 @@ function Item({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
           </>
         )}
       </NavLink>
-    </Tooltip>
+    </RailTooltip>
   );
 }
 
@@ -91,14 +92,14 @@ export function SidebarNav({ collapsed, onToggleCollapsed }: { collapsed: boolea
       <div className="space-y-1 border-t border-white/10 px-3 py-3">
         {footer.map((i) => <Item key={i.to} item={i} collapsed={collapsed} />)}
         {onToggleCollapsed && (
-          <Tooltip content={collapsed ? "Expand sidebar" : "Collapse sidebar"} disabled={!collapsed}>
+          <RailTooltip content={collapsed ? "Expand sidebar" : "Collapse sidebar"} disabled={!collapsed}>
             <button type="button" onClick={onToggleCollapsed} aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               className={cn("flex h-10 w-full items-center gap-3 rounded-lg text-sm font-medium text-sidebar-text hover:bg-sidebar-raised hover:text-white",
                 collapsed ? "justify-center" : "px-3", navFocus)}>
               {collapsed ? <PanelLeftOpen aria-hidden className="h-5 w-5" /> : <PanelLeftClose aria-hidden className="h-5 w-5" />}
               {!collapsed && "Collapse"}
             </button>
-          </Tooltip>
+          </RailTooltip>
         )}
       </div>
     </div>
