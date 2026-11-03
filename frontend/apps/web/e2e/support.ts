@@ -15,10 +15,10 @@ export function password(): string {
 }
 
 /** Signs in through the real Keycloak login page. */
-export async function signIn(page: Page, username: string, path = "/"): Promise<void> {
+export async function signIn(page: Page, username: string, path = "/", secret: string = password()): Promise<void> {
   await page.goto(path);
   await page.locator("#username").fill(username);
-  await page.locator("#password").fill(password());
+  await page.locator("#password").fill(secret);
   await page.locator("#kc-login").click();
   await expect(page.locator("#username")).toHaveCount(0);
 }
@@ -49,4 +49,21 @@ export async function deleteUnitsNamed(request: APIRequestContext, prefix: strin
     const del = await request.delete(`/api/v1/org-units/${n.id}?version=${version}`, { headers });
     expect(del.status(), `delete ${n.name}`).toBe(204);
   }
+}
+
+/** Latest invitation link emailed to {@code email}, read from Mailpit's API (development mail catcher). */
+export async function invitationLink(request: APIRequestContext, email: string): Promise<string> {
+  const mailpit = process.env.MAILPIT_URL ?? "http://localhost:8025";
+  for (let i = 0; i < 20; i++) {
+    const search = await request.get(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${email}`)}`);
+    const messages = ((await search.json()) as { messages?: { ID: string }[] }).messages ?? [];
+    if (messages.length > 0) {
+      const message = await request.get(`${mailpit}/api/v1/message/${messages[0]!.ID}`);
+      const text = ((await message.json()) as { Text: string }).Text;
+      const m = /(https?:\/\/\S+\/invitation#token=[A-Za-z0-9_-]{43})/.exec(text);
+      if (m) return m[1]!;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`No invitation email for ${email}`);
 }

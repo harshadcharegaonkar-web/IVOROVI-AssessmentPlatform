@@ -20,11 +20,12 @@ token() {
     python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])'
 }
 
-# check <description> <expected-status> <token-or-empty> <method> <path> [json-body]
+# check <description> <expected-status> <token-or-empty> <method> <path> [json-body] [extra-header]
 check() {
-  local desc=$1 expected=$2 tok=$3 method=$4 path=$5 body=${6:-}
+  local desc=$1 expected=$2 tok=$3 method=$4 path=$5 body=${6:-} header=${7:-}
   local args=(-s -o /tmp/smoke-body -w '%{http_code}' -X "$method" "$API_URL$path")
   [[ -n $tok ]] && args+=(-H "Authorization: Bearer $tok")
+  [[ -n $header ]] && args+=(-H "$header")
   [[ -n $body ]] && args+=(-H 'Content-Type: application/json' -d "$body")
   local got; got=$(curl "${args[@]}")
   if [[ $got == "$expected" ]]; then pass=$((pass+1)); echo "  PASS  $desc ($got)";
@@ -55,6 +56,42 @@ check "institution admin: own institution OK"           200 "$INES"  PUT /api/v1
 check "institution admin: org-level escalation denied"  403 "$INES"  PUT /api/v1/features/module.placement/override '{"enabled":false}'
 check "institution admin: reset own override"           200 "$INES"  DELETE "/api/v1/features/module.placement/override?orgUnitId=$TENANT_A_INST"
 check "AI cannot be enabled per institution first"      409 "$ALICE" PUT /api/v1/features/ai.evaluation/override "{\"orgUnitId\":\"$TENANT_A_INST\",\"enabled\":true}"
+echo "Invitation flow: real Keycloak provisioning, email through Mailpit ..."
+MAILPIT_URL="${MAILPIT_URL:-http://localhost:8025}"
+NEW_EMAIL="smoke.$(date +%s).$RANDOM@aurora.test"
+NEW_PASSWORD="Smoke-$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')"
+json() { python3 -c "import sys,json; d=json.load(open('/tmp/smoke-body')); print($1)"; }
+check "users list (org admin)"                          200 "$ALICE" GET "/api/v1/users?size=5"
+check "users list denied to faculty"                    403 "$ARUN"  GET /api/v1/users
+check "staff list (institution admin, scoped)"          200 "$INES"  GET /api/v1/staff
+check "create and invite a user"                        201 "$ALICE" POST /api/v1/users \
+  "{\"email\":\"$NEW_EMAIL\",\"givenName\":\"Smoke\",\"familyName\":\"Test\",\"orgUnitId\":\"$TENANT_A_INST\"}" "Idempotency-Key: smoke-$RANDOM-$RANDOM"
+NEW_ID=$(json 'd["user"]["user"]["id"]')
+INVITE_TOKEN=""
+for _ in $(seq 1 20); do
+  MSG_ID=$(curl -s "$MAILPIT_URL/api/v1/search?query=to:$NEW_EMAIL" | python3 -c 'import sys,json; m=json.load(sys.stdin).get("messages") or []; print(m[0]["ID"] if m else "")')
+  if [[ -n $MSG_ID ]]; then
+    INVITE_TOKEN=$(curl -s "$MAILPIT_URL/api/v1/message/$MSG_ID" | python3 -c 'import sys,json,re; m=re.search(r"#token=([A-Za-z0-9_-]{43})", json.load(sys.stdin)["Text"]); print(m.group(1) if m else "")')
+    break
+  fi
+  sleep 1
+done
+[[ -n $INVITE_TOKEN ]] && { pass=$((pass+1)); echo "  PASS  invitation email delivered with a link"; } || { fail=$((fail+1)); echo "  FAIL  no invitation email in Mailpit"; }
+check "public invitation lookup"                         200 ""      POST /api/v1/public/invitations/lookup "{\"token\":\"$INVITE_TOKEN\"}"
+check "accept invitation (creates the Keycloak login)"   204 ""      POST /api/v1/public/invitations/accept "{\"token\":\"$INVITE_TOKEN\",\"password\":\"$NEW_PASSWORD\"}"
+check "invitation link is single-use"                    404 ""      POST /api/v1/public/invitations/accept "{\"token\":\"$INVITE_TOKEN\",\"password\":\"$NEW_PASSWORD\"}"
+NEW_TOKEN=$(curl -sf -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=password -d client_id=ivorovi-dev-cli \
+  -d scope=openid --data-urlencode "username=$NEW_EMAIL" --data-urlencode "password=$NEW_PASSWORD" | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])' || true)
+check "invited user signs in with a real token"         200 "$NEW_TOKEN" GET /api/v1/me
+check "new user without a role cannot list users"       403 "$NEW_TOKEN" GET /api/v1/users
+check "read the new user"                               200 "$ALICE" GET "/api/v1/users/$NEW_ID"
+NEW_VERSION=$(json 'd["user"]["version"]')
+check "deactivate the smoke user"                       200 "$ALICE" POST "/api/v1/users/$NEW_ID/status" "{\"action\":\"DEACTIVATE\",\"version\":$NEW_VERSION,\"reason\":\"smoke test cleanup\"}"
+check "deactivated user's token is rejected at once"    403 "$NEW_TOKEN" GET /api/v1/me
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=password \
+  -d client_id=ivorovi-dev-cli --data-urlencode "username=$NEW_EMAIL" --data-urlencode "password=$NEW_PASSWORD")
+[[ $code == 400 || $code == 401 ]] && { pass=$((pass+1)); echo "  PASS  deactivated user can no longer sign in to Keycloak ($code)"; } || { fail=$((fail+1)); echo "  FAIL  Keycloak still issues tokens ($code)"; }
+
 check "audit trail readable by org admin"               200 "$ALICE" GET "/api/v1/audit-events?size=5"
 check "audit chain verification"                        200 "$ALICE" GET /api/v1/audit-events/verification
 grep -q '"valid":true' /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  audit hash chain is valid"; } || { fail=$((fail+1)); echo "  FAIL  audit chain invalid: $(cat /tmp/smoke-body)"; }

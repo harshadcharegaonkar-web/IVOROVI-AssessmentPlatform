@@ -1,7 +1,7 @@
 import { unwrap } from "@ivorovi/api-client";
 import { Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState, ErrorState, KpiCard, Link, PageHeader, Skeleton } from "@ivorovi/ui";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CheckCircle2, Landmark, MapPin, Network, School, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, UserRound, Users, XCircle } from "lucide-react";
+import { BadgeCheck, Bell, CheckCircle2, Landmark, MailPlus, MapPin, Network, School, UserCheck, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, UserRound, Users, XCircle } from "lucide-react";
 import { errorInfo, useApi } from "../api/ApiProvider";
 import { formatNumber, formatRelative, humanize } from "../lib/format";
 import { useInstitutionContext } from "../session/InstitutionContext";
@@ -11,8 +11,8 @@ import { OrgDistributionCard } from "./organization/OrgDistributionCard";
 
 /**
  * Administration dashboard (design system §5). Shows the metrics that exist today (organization structure since
- * increment 1.1); people and academic KPIs are added as increments 1.2–1.6 deliver their data. Every value comes
- * from the API.
+ * increment 1.1, people since 1.2); academic and student KPIs are added as later increments deliver their data.
+ * Every value comes from the API.
  */
 export function DashboardPage() {
   const api = useApi();
@@ -35,6 +35,13 @@ export function DashboardPage() {
     const inactive = org.data?.inactive?.[type] ?? 0;
     return { value: formatNumber(org.data?.active?.[type] ?? 0), secondary: inactive ? `${formatNumber(inactive)} inactive` : "All active" };
   };
+  const canSeeUsers = access.hasAnywhere("user.read");
+  const activeUsers = useQuery({ queryKey: ["users", "kpi", "active"], enabled: canSeeUsers,
+    queryFn: async () => unwrap(await api.GET("/api/v1/users", { params: { query: { status: "ACTIVE", size: 1 } } })) });
+  const pendingInvites = useQuery({ queryKey: ["invitations", "kpi", "pending"], enabled: canSeeUsers,
+    queryFn: async () => unwrap(await api.GET("/api/v1/invitations", { params: { query: { status: "PENDING", size: 1 } } })) });
+  const staff = useQuery({ queryKey: ["staff", "kpi"], enabled: access.hasAnywhere("staff.read"),
+    queryFn: async () => unwrap(await api.GET("/api/v1/staff", { params: { query: { status: "ACTIVE", size: 1 } } })) });
   const notifications = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => unwrap(await api.GET("/api/v1/notifications", { params: { query: { size: 10 } } })),
@@ -62,6 +69,16 @@ export function DashboardPage() {
           <KpiCard icon={School} label={labels.plural("COLLEGE")} to="/organization/colleges" testId="kpi-colleges" loading={org.isPending} {...orgKpi("COLLEGE")} />
           <KpiCard icon={MapPin} label={labels.plural("CAMPUS")} to="/organization/campuses" testId="kpi-campuses" loading={org.isPending} {...orgKpi("CAMPUS")} />
           <KpiCard icon={Users} label={labels.plural("DEPARTMENT")} to="/organization/departments" testId="kpi-departments" loading={org.isPending} {...orgKpi("DEPARTMENT")} />
+        </div>
+      )}
+      {(canSeeUsers || access.hasAnywhere("staff.read")) && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-3 xl:gap-6" data-testid="people-kpis">
+          {canSeeUsers && <KpiCard icon={UserCheck} label="Active users" to="/people/users?status=ACTIVE" testId="kpi-active-users"
+            loading={activeUsers.isPending} value={formatNumber(activeUsers.data?.totalElements)} secondary="Can sign in" />}
+          {canSeeUsers && <KpiCard icon={MailPlus} label="Pending invitations" to="/people/invitations?status=PENDING" testId="kpi-pending-invitations"
+            loading={pendingInvites.isPending} value={formatNumber(pendingInvites.data?.totalElements)} secondary="Not yet accepted" />}
+          {access.hasAnywhere("staff.read") && <KpiCard icon={BadgeCheck} label="Active staff" to="/people/staff?status=ACTIVE" testId="kpi-staff"
+            loading={staff.isPending} value={formatNumber(staff.data?.totalElements)} secondary="With or without a login" />}
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-6">

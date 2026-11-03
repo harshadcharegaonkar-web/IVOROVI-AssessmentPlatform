@@ -1,6 +1,6 @@
 import { ErrorState, Spinner } from "@ivorovi/ui";
 import { useEffect } from "react";
-import { createBrowserRouter, useNavigate, useRouteError, type RouteObject } from "react-router";
+import { createBrowserRouter, Navigate, useNavigate, useRouteError, type RouteObject } from "react-router";
 import { CALLBACK_PATH } from "./auth/auth";
 import { AppShell } from "./layout/AppShell";
 import { NotFoundPage, RequirePermission } from "./routes/Guards";
@@ -64,6 +64,18 @@ export const routes: RouteObject[] = [
           { index: true, ...page(() => import("./routes/organization/OrgHierarchyPage"), (a) => a.hasAnywhere("org_unit.read")) },
           { path: "units/:id", handle: { crumb: "Details" }, ...page(() => import("./routes/organization/OrgUnitDetailPage"), (a) => a.hasAnywhere("org_unit.read")) },
           { path: ":typeSlug", ...page(() => import("./routes/organization/OrgUnitListPage"), (a) => a.hasAnywhere("org_unit.read")) },
+        ] },
+        { path: "people", handle: { crumb: "People" }, children: [
+          { index: true, element: <Navigate to="/people/users" replace /> },
+          { path: "users", handle: { crumb: "Users" }, children: [
+            { index: true, ...page(() => import("./routes/people/UserListPage"), (a) => a.hasAnywhere("user.read")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/people/UserDetailPage"), (a) => a.hasAnywhere("user.read")) },
+          ] },
+          { path: "staff", handle: { crumb: "Staff" }, children: [
+            { index: true, ...page(() => import("./routes/people/StaffListPage"), (a) => a.hasAnywhere("staff.read")) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/people/StaffDetailPage"), (a) => a.hasAnywhere("staff.read")) },
+          ] },
+          { path: "invitations", handle: { crumb: "Invitations" }, ...page(() => import("./routes/people/InvitationsPage"), (a) => a.hasAnywhere("user.read")) },
         ] },
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
         { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },

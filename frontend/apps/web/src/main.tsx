@@ -17,7 +17,13 @@ const root = createRoot(document.getElementById("root")!);
 root.render(<div className="flex min-h-screen items-center justify-center"><Spinner size="lg" label="Starting" /></div>);
 
 loadConfig()
-  .then((config) => {
+  .then(async (config) => {
+    // Public page: accepting an invitation must work without signing in (and without loading the shell).
+    if (window.location.pathname === "/invitation") {
+      const { AcceptInvitationPage } = await import("./routes/people/AcceptInvitationPage");
+      root.render(<StrictMode><AcceptInvitationPage apiBaseUrl={config.apiBaseUrl} /></StrictMode>);
+      return;
+    }
     const userManager = new UserManager(oidcSettings(config));
     root.render(
       <StrictMode>

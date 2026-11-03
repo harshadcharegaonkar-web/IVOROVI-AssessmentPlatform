@@ -1,5 +1,5 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
-import { Landmark, LayoutDashboard, type LucideIcon, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserRound, Users } from "lucide-react";
+import { BadgeCheck, Landmark, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -8,7 +8,7 @@ export interface NavGroup { id: string; label: string | null; items: NavItem[] }
 
 /**
  * Navigation model (design system §3). Only implemented screens are listed: groups gain items as increments
- * deliver them (Academics 1.2/1.5; People 1.3/1.6; Access 1.4).
+ * deliver them (People 1.2; Access 1.3; Academics and Students later).
  * Visibility mirrors server permissions for convenience only; the API enforces every permission.
  */
 export const NAV_GROUPS: NavGroup[] = [
@@ -21,6 +21,14 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/organization/colleges", label: "Colleges", orgType: "COLLEGE", icon: School, visible: (a) => a.hasAnywhere("org_unit.read") },
       { to: "/organization/campuses", label: "Campuses", orgType: "CAMPUS", icon: MapPin, visible: (a) => a.hasAnywhere("org_unit.read") },
       { to: "/organization/departments", label: "Departments", orgType: "DEPARTMENT", icon: Users, visible: (a) => a.hasAnywhere("org_unit.read") },
+    ],
+  },
+  {
+    id: "people", label: "People",
+    items: [
+      { to: "/people/users", label: "Users", icon: UserCog, visible: (a) => a.hasAnywhere("user.read") },
+      { to: "/people/staff", label: "Staff", icon: BadgeCheck, visible: (a) => a.hasAnywhere("staff.read") },
+      { to: "/people/invitations", label: "Invitations", icon: MailPlus, visible: (a) => a.hasAnywhere("user.read") },
     ],
   },
   {
