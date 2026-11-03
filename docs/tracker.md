@@ -36,7 +36,7 @@ Plan approved with Amendment 1 and design system.
 | 1.0 Platform hardening + design-system shell | ✅ complete and signed off (CI run 41452811631); visual baseline `design/evidence/1.0/` | `phase-1/increment-1.0.md` |
 | 1.1 Organization hierarchy | ✅ accepted 2026-11-02 subject to six final checks, all passing (`OrgUnitIT.AcceptanceChecks`, CI run 41483588840) | `phase-1/increment-1.1.md` |
 | 1.2 User and staff management | ✅ accepted 2026-11-03; closing security verification passed (`UserManagementIT.SecurityVerification`) | `phase-1/increment-1.2.md` |
-| 1.3 Custom roles and permission management | ✅ implemented and verified, **awaiting review**; evidence `design/evidence/1.3/` | `phase-1/increment-1.3.md` |
+| 1.3 Custom roles and permission management | ✅ implemented and verified, **awaiting review** (CI run 41578791577 green on `ee21b06`); evidence `design/evidence/1.3/` | `phase-1/increment-1.3.md` |
 | 1.4 | ⬜ not started; needs authorization | |
 | Later | Academic calendar, programs/courses/batches, students (renumbered after 1.3) | `phase-1/plan.md` |
 

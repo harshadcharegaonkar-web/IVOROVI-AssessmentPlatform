@@ -59,7 +59,7 @@
 | Bundle | initial **176.1 kB gzip** (≤ 180 kB; headroom 3.9 kB, KI-37); largest lazy chunk 34.7 kB |
 | Playwright desktop / tablet / mobile | **68 passed** (1.0–1.2 suites unchanged and passing): list/filters/catalogue, create with configurator → edit → clone → compare, assign custom role → holder signs in with access → deactivate (access gone on next request) → reactivate → archive refused while assigned, college administrator (unit-only roles, organization-only permissions disabled, system role read-only, clone drops what cannot be granted), assignment overview, no horizontal scrolling on every new screen |
 | Accessibility | axe WCAG 2.1 AA: no serious/critical violations on roles list, catalogue, editor, role detail, comparison, assignment overview |
-| GitHub Actions | recorded in the tracker |
+| GitHub Actions | run 41578791577 on `ee21b06`: backend, frontend (incl. bundle budget), end-to-end (compose stack, real Keycloak, smoke, Playwright) and security scan all green |
 
 Acceptance criteria 1–21: 1–3 `Lifecycle`, E2E; 4–5 `CeilingAndScope`; 6 `systemRolesAreProtected`; 7 self-edit/self-assign in `CeilingAndScope`; 8 assignments at all five levels; 9 revocation in `editingARole…`; 10 deactivation; 11 cache (edit, deactivate, revoke take effect next request); 12 last organization administrator: ORG_ADMIN cannot be edited/deactivated and the 1.2 concurrency verification still passes; 13 audit; 14 `Isolation`; 15 migration test + dev upgrade; 16–21 suites, smoke, Playwright, axe, regressions, CI.
 
