@@ -46,11 +46,11 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 3 | University / College listings and unit details | 1.1 | ✅ listing, detail (overview, sub-units, features, history), forms, dialogs | ✅ | ☐ |
 | 4 | Campus management | 1.1 | ✅ (shared listing/detail) | ✅ | ☐ |
 | 5 | Department management | 1.1 | ✅ (shared listing/detail; axe) | ✅ | ☐ |
-| 6 | Academic year management | 1.2 | ☐ | ☐ | ☐ |
-| 7 | Program management | 1.5 | ☐ | ☐ | ☐ |
-| 8 | Course management | 1.5 | ☐ | ☐ | ☐ |
-| 9 | Subject management | 1.5 | ☐ | ☐ | ☐ |
-| 10 | Batch management | 1.5 | ☐ | ☐ | ☐ |
+| 6 | Academic year management (years, year detail with terms; semester management) | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 7 | Program management (list, details, create/edit) | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 8 | Course management (list, details with curriculum by term, create/edit) | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 9 | Subject management (list, details with prerequisites, create/edit) | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
+| 10 | Batch management (list, details with offerings, create/edit) | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 11 | User management (list, details, create/invite, edit, status, access overview) | 1.2 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 12 | Staff management (list, details, form, link to user; faculty teaching attributes later) | 1.2 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 | 13 | Student management | 1.6 | ☐ | ☐ | ☐ |
@@ -63,7 +63,8 @@ is marked complete. The result is recorded per screen with screenshots at 1440 �
 | 20 | Audit logs | 1.0 (restyle) | ✅ (B5 fixed: actor names) | ✅ | ✅ approved 2026-11-02 |
 | 21 | My Access | 1.0 (restyle) | ✅ | ✅ | ✅ approved 2026-11-02 |
 | + | Invitation management; public invitation acceptance | 1.2 | ✅ (axe) | ✅ 3 viewports | ☐ |
-| + | System settings | 1.1 | ✅ (axe) | ✅ 3 viewports | ☐ |
+| + | System settings (academic terminology, overlapping years in 1.4) | 1.1 / 1.4 | ✅ (axe) | ✅ 3 viewports | ☐ |
+| + | Academic overview, subject offerings, faculty assignment, academic structure tree | 1.4 | ✅ A1–A7, axe | ✅ 3 viewports | ☐ |
 
 ## D. Results: increment 1.0 (2026-11-02), approved by the product owner as the visual baseline
 
@@ -93,6 +94,13 @@ New Access screens follow the baseline at 1440×900, 1024×768 and 390×844 (`do
 screenshots). Overflow checks at tablet and mobile on every new screen; axe on list, catalogue, editor, detail,
 comparison and overview. Review changes: planned permission areas collapsed in the editor so a non-specialist sees
 only what can be granted today; organization-only permissions disabled with the reason for unit-limited roles.
+
+## H. Results: increment 1.4 (2026-11-03), awaiting review
+
+The 14 academic screens follow the baseline at 1440×900, 1024×768 and 390×844 (`docs/design/evidence/1.4/`, 55
+screenshots including the term, offering and faculty dialogs). Overflow checks at tablet and mobile on every academic
+list and editor; axe on overview, every list, program/subject editors, course curriculum, year detail, faculty assignment
+and the structure tree. Configured terminology is used in navigation, headings, filters and empty states.
 
 Automation (re-planned): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are

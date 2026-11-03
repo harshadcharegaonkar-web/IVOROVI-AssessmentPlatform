@@ -5,7 +5,7 @@ Legend: ⬜ not started · 🟨 in progress · ✅ done · ⚠️ done with an o
 | # | Module | Phase | Status | Depends on | API | UI | Tests | Known issues |
 |---|---|---|---|---|---|---|---|---|
 | 0 | Foundation / platform kernel | 0 | ✅ closed (CI run 41444289316 green) | — | ✅ | ✅ | ✅ 73 BE / 26 FE / 9 E2E | See `phase-0-report.md` §Known issues |
-| 1 | Institution & tenant management | 1 | 🟨 organization hierarchy done (1.1) | 0 | ✅ `/org-units` CRUD, move, status, history, tree, summary; tenant settings | ✅ hierarchy, 4 listings, detail, forms, System Settings | ✅ | Programs/courses (1.3), tenant provisioning (super admin), logo upload (needs ADR-0006) pending |
+| 1 | Institution & tenant management | 1 | 🟨 organization hierarchy done (1.1) | 0 | ✅ `/org-units` CRUD, move, status, history, tree, summary; tenant settings | ✅ hierarchy, 4 listings, detail, forms, System Settings | ✅ | Programs, courses, subjects, calendar, batches, offerings delivered in 1.4; tenant provisioning (super admin), logo upload (needs ADR-0006) pending |
 | 2 | User & access management | 1 | ✅ users, staff, invitations, assignments (1.2); custom roles and permission catalogue (1.3) | 0, 1 | ✅ `/users`, `/staff`, `/invitations`, `/roles`, public invitation endpoints | ✅ users, staff, invitations, access overview, public acceptance page | ✅ | Bulk user import; branded email templates (Phase 2) |
 | 21 | System administration (flags, settings) | 1 / 8 | 🟨 feature flags + terminology/time zone settings | 0 | ✅ | ✅ | ✅ | Maintenance windows pending |
 | 3 | Student & candidate management | 1 (students) / 5 (candidates) | ⬜ planned (Phase 1 inc. 1.6) | 1, 2 | ⬜ | ⬜ | ⬜ | |
@@ -37,8 +37,9 @@ Plan approved with Amendment 1 and design system.
 | 1.1 Organization hierarchy | ✅ accepted 2026-11-02 subject to six final checks, all passing (`OrgUnitIT.AcceptanceChecks`, CI run 41483588840) | `phase-1/increment-1.1.md` |
 | 1.2 User and staff management | ✅ accepted 2026-11-03; closing security verification passed (`UserManagementIT.SecurityVerification`) | `phase-1/increment-1.2.md` |
 | 1.3 Custom roles and permission management | ✅ accepted 2026-11-03 after scope and college-administrator verification (`RoleManagementIT.AcceptanceVerification`; CI run 41578791577); evidence `design/evidence/1.3/` | `phase-1/increment-1.3.md` |
-| 1.4 | ⬜ not started; needs authorization | |
-| Later | Academic calendar, programs/courses/batches, students (renumbered after 1.3) | `phase-1/plan.md` |
+| 1.4 Academic structure management | 🟨 implemented and verified; awaiting product-owner review (code `97cf7f1`); evidence `design/evidence/1.4/` | `phase-1/increment-1.4.md` |
+| 1.5 | ⬜ not started; needs authorization | |
+| Later | Students and enrolment, admissions, assessments (renumbered after 1.4) | `phase-1/plan.md` |
 
 Open decisions: XLSX library (fastexcel) to be requested before the student import increment.
 

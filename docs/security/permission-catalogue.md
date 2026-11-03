@@ -59,6 +59,17 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 |---|---|---|---|---|---|
 | `audit.read` | View the audit trail | READ | ORGANIZATION | AVAILABLE | View and verify the tamper-evident audit trail |
 
+## Academic structure
+
+| Code | Name | Level | Scope | Availability | Description |
+|---|---|---|---|---|---|
+| `academics.read` | View academic structure | READ | UNIT | AVAILABLE | View programs, courses, subjects, the academic calendar, batches and subject offerings |
+| `program.manage` | Manage programs and courses | MANAGE | UNIT | AVAILABLE | Create, edit and deactivate programs and their courses or branches |
+| `subject.manage` | Manage subjects and curricula | MANAGE | UNIT | AVAILABLE | Create and edit subjects, prerequisites and which terms of a course teach them |
+| `academic_calendar.manage` | Manage the academic calendar | MANAGE | UNIT | AVAILABLE | Create and edit academic years and their semesters or terms |
+| `batch.manage` | Manage batches and subject offerings | MANAGE | UNIT | AVAILABLE | Create and edit batches and decide which subjects are offered to them in a term |
+| `faculty.assign` | Assign faculty | WRITE | UNIT | AVAILABLE | Assign faculty to subject offerings and end assignments |
+
 ## Student management
 
 | Code | Name | Level | Scope | Availability | Description |
@@ -119,6 +130,11 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 
 System roles are immutable through the API. Since increment 1.3 INSTITUTION_ADMIN also holds `role.manage`, bounded by
 the ceiling rule (it can only create roles limited to its own units, with permissions it holds there).
+
+Since increment 1.4 (migration `V202611031100`): ORG_ADMIN and INSTITUTION_ADMIN hold all six academic permissions;
+DEPARTMENT_HEAD holds `academics.read`, `batch.manage` and `faculty.assign`; CAMPUS_ADMIN, FACULTY, EXAM_CONTROLLER,
+MANAGEMENT, EVALUATOR, PLACEMENT_OFFICER and ASSESSMENT_DESIGNER hold `academics.read`. STUDENT and external roles hold none.
+The catalogue now has 36 permissions: 19 available, 16 planned, 1 platform-only.
 
 Adding a permission: add the enum entry with its metadata, grant it to system roles in a Flyway migration, and keep
 `PermissionCatalogConsistencyIT` and `RoleManagementIT.Catalogue` green.

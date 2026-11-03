@@ -100,7 +100,7 @@ erDiagram
   (unique among siblings, case-insensitive), `name`, `short_name`, `status (ACTIVE|INACTIVE)`, `path` (ltree of
   hex ids), `attributes` (city, state, website, email), `branding` (accent colour; universities/colleges only),
   `version`. Allowed parents: COLLEGE → none/UNIVERSITY; CAMPUS → UNIVERSITY/COLLEGE; DEPARTMENT →
-  UNIVERSITY/COLLEGE/CAMPUS. Units form the **scope tree** for authorization. Programs (1.3) attach to units.
+  UNIVERSITY/COLLEGE/CAMPUS. Units form the **scope tree** for authorization. Academic records (1.4) attach to units.
 * **OrgUnitHistory**: append-only before/after snapshots per change (app role may not update/delete).
 * **TenantSettings**: per-type display labels and the organization time zone (optimistic `version`).
 * **UserAccount**: `external_subject` (IdP `sub`, unique per tenant), `email`, `status`, `person_id?`.
@@ -120,6 +120,14 @@ erDiagram
   codes from the catalogue (`Permission` enum: domain, level, scope rule, availability).
 * **RoleAssignment**: `(user_id, role_id, scope_type, scope_id, valid_from, valid_to)`. Time-bound
   assignments support external evaluators and invigilators.
+
+### Academic structure (increment 1.4; details in `04-academic-data-model.md`)
+* **Program** (owned by a university/college; term system, duration, total terms) → **Course** (branch, run by a department of
+  the institution) → **Subject** masters (owned by any unit, reused through **CurriculumEntry** per course term; prerequisites
+  without cycles).
+* **AcademicYear** (organization-wide or per institution; no overlap per owner unless allowed) → **AcademicTerm** (any number).
+* **Batch** (course × year, section, capacity) → **SubjectOffering** (subject × batch × term, only if in the curriculum) →
+  **FacultyAssignment** (existing staff profiles; one primary; dated; ended assignments kept as history).
 
 ### People and admissions
 * **Person**: shared identity for student, candidate, alumni. PII fields are encrypted where configured.

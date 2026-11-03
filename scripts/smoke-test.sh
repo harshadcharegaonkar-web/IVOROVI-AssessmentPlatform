@@ -38,6 +38,7 @@ INES=$(token ines.instadmin@aurora.test)
 ARUN=$(token arun.faculty@aurora.test)
 BELA=$(token bela.admin@borealis.test)
 GHOST=$(token ghost.user@aurora.test)
+ASHA=$(token asha.student@aurora.test)
 echo "Running checks against $API_URL"
 
 check "health endpoint is public"                       200 ""      GET /actuator/health/readiness
@@ -101,6 +102,20 @@ check "faculty cannot create roles"                     403 "$ARUN"  POST /api/v
 check "college admin cannot create an organization-wide role" 403 "$INES" POST /api/v1/roles '{"name":"x","permissions":["user.read"]}' "Idempotency-Key: smoke-deny-$RANDOM-$RANDOM"
 check "system roles cannot be edited"                   403 "$ALICE" PATCH /api/v1/roles/01920000-0000-7000-8000-000000000002 '{"version":0,"name":"x"}'
 check "archive the smoke role"                          204 "$ALICE" DELETE "/api/v1/roles/$SMOKE_ROLE?version=0"
+
+echo "Academic structure (increment 1.4) ..."
+AC=$RANDOM$RANDOM
+check "academic overview (org admin)"                   200 "$ALICE" GET /api/v1/academics/overview
+check "academic overview readable by faculty"           200 "$ARUN"  GET /api/v1/academics/overview
+check "student has no academic access"                   403 "$ASHA"  GET /api/v1/academics/programs
+check "college admin creates a program in own college"  201 "$INES"  POST /api/v1/academics/programs \
+  "{\"code\":\"SMK$AC\",\"name\":\"Smoke program\",\"qualificationLevel\":\"DIPLOMA\",\"ownerOrgUnitId\":\"$TENANT_A_INST\",\"termSystem\":\"SEMESTER\",\"durationYears\":1}" "Idempotency-Key: smoke-prog-$AC"
+SMOKE_PROGRAM=$(json 'd["id"]')
+check "college admin cannot create an organization-wide year" 403 "$INES" POST /api/v1/academics/academic-years \
+  '{"code":"SMK","name":"x","startDate":"2090-07-01","endDate":"2091-06-30"}' "Idempotency-Key: smoke-year-$AC"
+check "faculty cannot create programs"                  403 "$ARUN"  POST /api/v1/academics/programs '{"code":"X","name":"x"}' "Idempotency-Key: smoke-deny-$AC"
+check "cross-tenant program read → 404"                 404 "$BELA"  GET "/api/v1/academics/programs/$SMOKE_PROGRAM"
+check "deactivate the smoke program"                    200 "$INES"  POST "/api/v1/academics/programs/$SMOKE_PROGRAM/status" '{"status":"INACTIVE","version":0,"reason":"smoke test"}'
 
 echo "Provisioning service account is least-privilege (real Keycloak) ..."
 PROV=$(curl -s -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=client_credentials \
