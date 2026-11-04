@@ -8,7 +8,7 @@ increment that needs it is planned), **Open question** (needs an answer before t
 
 | Scope | Status |
 |---|---|
-| KI-59 implementation | Approved and implemented (Increment 1.7 closes after CI is green) |
+| KI-59 implementation | Approved, implemented; Increment 1.7 closed (commit `fe68a41`, CI run 41777630761) |
 | Phase 2 shared assessment engine | **Approved with conditions C-1…C-7** |
 | Phase 2 roadmap structure (increments 2.0–2.15) | **Approved with conditions C-1…C-7** |
 | Increment 2.0 | **Planning and review only** (`increment-2.0-plan.md`). No implementation until separately approved |

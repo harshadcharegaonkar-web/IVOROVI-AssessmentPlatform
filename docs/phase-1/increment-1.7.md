@@ -1,6 +1,6 @@
 # Increment 1.7 — Dashboard and integration improvements
 
-**Status: accepted in principle; closure pending final CI of the KI-59 fix (2026-11-04).** Authorized 2026-11-03 together with the acceptance of increment 1.6.
+**Status: ✅ closed 2026-11-04** — accepted in principle, KI-59 fixed (commit `fe68a41`, CI run 41777630761 green on all four jobs). Authorized 2026-11-03 together with the acceptance of increment 1.6.
 Not a production-readiness claim: the release blockers in `runbooks/production-readiness.md` remain open.
 
 ## Part A — 1.6 acceptance items (done before 1.7 work)
@@ -105,7 +105,7 @@ Evidence:
 | Security tests | `ApiClientAuthorizationIT` 9/9 (permission removal, assignment revocation and expiry, unit narrowing, owner suspension/deactivation, no automatic resume, reassignment, concurrent revocation with 6 parallel clients, service-identity approval/envelope/roles, 30-day custodian rule, isolation and audit); 1.7 `ApiClientIT` 5/5 unchanged |
 | Full backend suite | 66 classes, **251 tests, 0 failures** |
 | Frontend | typecheck, lint, 39 unit tests; bundle 157.7 kB ≤ 180 kB |
-| E2E | full suite incl. new `ki59.spec.ts` (see CI) |
+| E2E | local full suite 101/102 on first run (one intermittent Increment 1.1 menu-timing failure, passed on two re-runs); **CI run 41777630761: all four jobs green** (security scan, frontend, backend, end-to-end) for commit `fe68a41` |
 | Smoke | **99 / 99** (5 new KI-59 checks) |
 | Benchmark | `performance/api-key-authorization-benchmark.md`: +0.6 ms p50 single client; ≈ 75% of bearer throughput at 32 concurrent clients after batching usage counters (finding fixed during the benchmark) |
 | Docs | `architecture/10-api-client-authorization.md` §8, `runbooks/service-identities.md`, register `increment-1.7-known-issues.md` |
