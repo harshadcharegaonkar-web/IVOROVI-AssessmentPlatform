@@ -26,6 +26,8 @@ class ApiClientIT extends IntegrationTest {
 
     @org.springframework.beans.factory.annotation.Autowired
     com.ivorovi.platform.tenancy.TenantDirectory tenants;
+    @org.springframework.beans.factory.annotation.Autowired
+    com.ivorovi.integrations.internal.ApiClientUsage usage;
 
     private TestOrg org;
     private UUID college1, college2;
@@ -89,6 +91,7 @@ class ApiClientIT extends IntegrationTest {
         mvc.perform(withKey(get("/api/v1/students"), "ivk_000000000000000000000000_" + secret)).andExpect(status().isUnauthorized());
         mvc.perform(withKey(get("/api/v1/students"), "not-a-key")).andExpect(status().isUnauthorized());
 
+        usage.flush();   // counters are written in batches
         JsonNode usage = call(get("/api/v1/api-clients/" + id), admin, status().isOk()).path("usage");
         assertThat(usage.get(0).path("requests").asLong()).isGreaterThanOrEqualTo(7);
         assertThat(usage.get(0).path("denied").asLong()).isGreaterThanOrEqualTo(4);

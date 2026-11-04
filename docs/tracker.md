@@ -75,4 +75,4 @@ Sequence change (2026-11-02, product owner): users and staff moved to 1.2, custo
 
 ## Phase 2 (planning)
 
-Blueprint `phase-2/README.md` (documents 01–18) — 🟦 delivered for review 2026-11-04; **no Phase 2 implementation until approved**. Decisions P2-01…P2-20 and D-KI59-1…6 pending.
+Blueprint `phase-2/README.md` (documents 01–18) — ✅ approved with conditions C-1…C-7 on 2026-11-04 (shared engine and roadmap structure); decisions and open questions in `phase-2/decision-register.md`. Increment 2.0: plan for review (`phase-2/increment-2.0-plan.md`), **not authorized for implementation**. DPDP review brief: `legal/dpdp-review-brief.md`.

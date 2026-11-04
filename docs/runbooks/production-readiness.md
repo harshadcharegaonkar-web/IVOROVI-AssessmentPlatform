@@ -12,8 +12,13 @@ or legal-compliance claim is made until then. Updated at the 1.6 acceptance (202
 | RB-2 | **`IVOROVI_DATA_KEY` operational management** (KI-51) | All encrypted personal fields and import row values | Open | Key in the production secret store; escrow backup; quarterly recovery drill executed once in staging and recorded (`runbooks/data-encryption-key.md`) |
 | RB-3 | **Encryption key rotation tooling** (KI-49) | Same | Open | Re-encryption job (or offline tool) implemented and tested; rotation rehearsed in staging |
 | RB-4 | **Student account lifecycle alignment** (KI-46) | Student sign-in accounts | Open (behaviour defined, not implemented) | Suspension/withdrawal/graduation/reinstatement rules implemented with tests (`architecture/07-student-lifecycle.md`) |
-| RB-5 | **DPDP legal review and data-principal request workflow** (KI-48) | All personal data | Open | Legal review of notices, consent, purposes and retention; request workflow (access, correction, erasure with statutory retention) |
+| RB-5 | **DPDP legal review and data-principal request workflow** (KI-48) | All personal data | Open — review brief prepared 2026-11-04 (`legal/dpdp-review-brief.md`); counsel to be engaged by the product owner | Legal review of notices, consent, purposes and retention; request workflow (access, correction, erasure with statutory retention) |
 | RB-6 | Penetration test / DAST, production realm template without the dev password client (SA-03), unprivileged web image (SA-04) | Platform | Open (Phase 8) | Reports and checklist |
+
+## Real-candidate testing (decision-register C-7)
+
+No admission assessment with real candidates until RB-1, RB-2/RB-3, RB-4, RB-5 and RB-6 are resolved **and formally
+verified**. Phase 2 milestone M1 uses synthetic candidates only.
 
 ## Before enabling integrations in production (increment 1.7)
 

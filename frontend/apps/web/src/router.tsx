@@ -180,6 +180,10 @@ export const routes: RouteObject[] = [
             { index: true, ...page(() => import("./routes/integrations/ApiClientsPage"), INTEGRATIONS) },
             { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/integrations/ApiClientDetailPage"), INTEGRATIONS) },
           ] },
+          { path: "service-identities", handle: { crumb: "Service identities" }, children: [
+            { index: true, ...page(() => import("./routes/integrations/ServiceIdentitiesPage"), INTEGRATIONS) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/integrations/ServiceIdentityDetailPage"), INTEGRATIONS) },
+          ] },
           { path: "webhooks", handle: { crumb: "Webhooks" }, children: [
             { index: true, ...page(() => import("./routes/integrations/WebhooksPage"), INTEGRATIONS) },
             { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/integrations/WebhookDetailPage"), INTEGRATIONS) },

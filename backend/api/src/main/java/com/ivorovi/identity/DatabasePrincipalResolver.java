@@ -34,6 +34,12 @@ class DatabasePrincipalResolver implements PrincipalResolver {
                 grants(tenantId, a.id()), roles(tenantId, a.id()), nextBoundary(tenantId, a.id())));
     }
 
+    @Override
+    public Optional<String> activeSubject(UUID tenantId, UUID userId) {
+        return jdbc.sql("SELECT external_subject FROM user_account WHERE tenant_id = ? AND id = ? AND status = 'ACTIVE' AND external_subject IS NOT NULL")
+                .params(tenantId, userId).query(String.class).optional();
+    }
+
     /** Earliest future start or end of one of the user's role assignments (null when none). */
     private java.time.Instant nextBoundary(UUID tenantId, UUID userId) {
         java.sql.Timestamp t = jdbc.sql("""

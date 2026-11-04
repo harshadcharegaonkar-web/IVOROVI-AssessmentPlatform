@@ -185,6 +185,11 @@ key_check() {
   if [[ $got == "$expected" ]]; then pass=$((pass+1)); echo "  PASS  $desc ($got)"; else fail=$((fail+1)); echo "  FAIL  $desc: expected $expected, got $got"; fi
 }
 key_check "API key reads within its scope"                200 GET  /api/v1/org-units
+check "API client shows its effective scopes (KI-59)"    200 "$ALICE" GET "/api/v1/api-clients/$SMK_CLIENT"
+grep -q '"effectiveScopes":\["org_unit.read"\]' /tmp/smoke-body && { pass=$((pass+1)); echo "  PASS  effective scopes computed from the owner's current permissions"; } || { fail=$((fail+1)); echo "  FAIL  effective scopes: $(head -c 300 /tmp/smoke-body)"; }
+check "service identities (org admin)"                    200 "$ALICE" GET /api/v1/service-identities
+check "service identities denied to institution admin"    403 "$INES"  GET /api/v1/service-identities
+check "service identity envelope must be read-only"       400 "$ALICE" POST /api/v1/service-identities "{\"name\":\"Smoke $SMK_ID\",\"purpose\":\"smoke\",\"businessCustodianId\":\"$(curl -s -H "Authorization: Bearer $ALICE" "$API_URL/api/v1/me" | python3 -c 'import sys,json; print(json.load(sys.stdin)["userId"])')\",\"technicalCustodianId\":\"$(curl -s -H "Authorization: Bearer $ALICE" "$API_URL/api/v1/me" | python3 -c 'import sys,json; print(json.load(sys.stdin)["userId"])')\",\"envelope\":[\"student.manage\"]}"
 key_check "API key outside its scope"                     403 GET  /api/v1/users
 key_check "API key cannot write"                          403 POST /api/v1/org-units
 check "revoke the smoke API client"                      200 "$ALICE" POST "/api/v1/api-clients/$SMK_CLIENT/revoke" '{"reason":"smoke test"}'

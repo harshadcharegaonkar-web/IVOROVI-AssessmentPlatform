@@ -19,6 +19,7 @@ export function ApiClientsPage() {
   const columns: Column<ApiClient>[] = [
     { key: "name", header: "Name", cell: (c) => <Link to={`/integrations/api-clients/${c.id}`} className="font-medium text-fg hover:underline">{c.name}</Link> },
     { key: "status", header: "Status", cell: (c) => <StatusBadge status={c.status} /> },
+    { key: "for", header: "Acts for", cell: (c) => c.kind === "SERVICE" ? <span className="text-sm">Service: {c.serviceIdentityName}</span> : <span className="text-sm">{c.ownerName}</span> },
     { key: "scopes", header: "Scopes", cell: (c) => <span className="text-sm">{c.scopes?.join(", ")}</span> },
     { key: "unit", header: "Restricted to", cell: (c) => c.orgUnitName ?? "Whole organization", hideOnMobile: true },
     { key: "keys", header: "Active keys", cell: (c) => formatNumber(c.activeKeys), hideOnMobile: true },
@@ -27,7 +28,7 @@ export function ApiClientsPage() {
   ];
   return (
     <>
-      <PageHeader title="API clients" description="Read-only access for other systems. Keys carry only the scopes you give them, never personal, audit or integration data."
+      <PageHeader title="API clients" description="Read-only access for other systems. Each request is checked against the current permissions of the owner or service identity; never personal, audit or integration data."
         actions={access.has("integration.manage") ? <Button variant="primary" onClick={() => setCreating(true)}><Plus aria-hidden className="h-4 w-4" /> Register client</Button> : undefined} />
       <IntegrationTabs>
         {issued && <div className="mb-4"><SecretOnce label={`API key for ${issued.client?.name}`} value={issued.apiKey!}>
@@ -54,9 +55,12 @@ function ClientDialog({ onClose, onIssued }: { onClose: () => void; onIssued: (c
   const [unit, setUnit] = useState("");
   const [ips, setIps] = useState("");
   const [expires, setExpires] = useState("");
+  const [identity, setIdentity] = useState("");
+  const identities = useQuery({ queryKey: ["service-identities"], queryFn: async () => unwrap(await api.GET("/api/v1/service-identities")) });
+  const chosenIdentity = identities.data?.find((i) => i.id === identity);
   const save = useMutation({
     mutationFn: async () => unwrap(await api.POST("/api/v1/api-clients", { body: {
-      name, description, scopes: chosen, ...(unit ? { orgUnitId: unit } : {}),
+      name, description, scopes: chosen, ...(unit ? { orgUnitId: unit } : {}), ...(identity ? { serviceIdentityId: identity } : {}),
       allowedIps: ips.split(/[\s,]+/).filter(Boolean), ...(expires ? { expiresAt: new Date(`${expires}T23:59:59`).toISOString() } : {}),
     } })),
     onSuccess: (c) => { void qc.invalidateQueries({ queryKey: ["api-clients"] }); onIssued(c); onClose(); },
@@ -68,10 +72,16 @@ function ClientDialog({ onClose, onIssued }: { onClose: () => void; onIssued: (c
         {save.isError && <p role="alert" className="text-sm text-danger">{errorInfo(save.error).message}</p>}
         <Field label="Name">{(p) => <Input {...p} value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />}</Field>
         <Field label="Description (optional)">{(p) => <TextArea {...p} value={description} rows={2} maxLength={300} onChange={(e) => setDescription(e.target.value)} />}</Field>
+        <Field label="Acts for" hint={identity ? "Permissions come from the service identity's roles, within its approved envelope." : "The client can never do more than you can do at the time of each request; it stops if you lose access."}>
+          {(p) => <Select {...p} value={identity} onChange={(e) => { setIdentity(e.target.value); setChosen([]); }}>
+            <option value="">Me (delegated client)</option>
+            {identities.data?.filter((i) => i.status === "ACTIVE").map((i) => <option key={i.id} value={i.id}>Service identity: {i.name}</option>)}
+          </Select>}
+        </Field>
         <fieldset>
           <legend className="mb-2 text-sm font-medium">Scopes (read-only)</legend>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {scopes.data?.map((s) => (
+            {scopes.data?.filter((s) => !chosenIdentity || chosenIdentity.scopeEnvelope?.includes(s.key!)).map((s) => (
               <label key={s.key} className="flex items-start gap-2 text-sm">
                 <input type="checkbox" className="mt-1" checked={chosen.includes(s.key!)} onChange={(e) => setChosen(e.target.checked ? [...chosen, s.key!] : chosen.filter((x) => x !== s.key))} />
                 <span><span className="font-medium">{s.name}</span><span className="block text-xs text-muted">{s.key}</span></span>

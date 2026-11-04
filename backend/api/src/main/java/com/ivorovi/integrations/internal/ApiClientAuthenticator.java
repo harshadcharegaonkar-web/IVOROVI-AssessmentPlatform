@@ -1,9 +1,9 @@
 package com.ivorovi.integrations.internal;
 
+import com.ivorovi.platform.audit.AuditLog;
+import com.ivorovi.platform.audit.AuditOutcome;
 import com.ivorovi.platform.security.ApiKeyAuthenticator;
-import com.ivorovi.platform.security.Grant;
 import com.ivorovi.platform.security.IvoroviPrincipal;
-import com.ivorovi.platform.security.ScopeType;
 import com.ivorovi.platform.tenancy.TenantContext;
 import com.ivorovi.platform.tenancy.TenantDirectory;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -28,20 +29,28 @@ import org.springframework.transaction.support.TransactionTemplate;
 class ApiClientAuthenticator implements ApiKeyAuthenticator {
 
     private static final Logger log = LoggerFactory.getLogger(ApiClientAuthenticator.class);
-    static final String ROLE = "API_CLIENT";
+    static final String ROLE = ClientAuthorization.ROLE;
 
     private final JdbcClient jdbc;
     private final TransactionTemplate tx;
     private final TenantDirectory tenants;
+    private final ClientAuthorization authorization;
+    private final AuditLog audit;
+    private final ApiClientUsage usage;
 
-    ApiClientAuthenticator(JdbcClient jdbc, TransactionTemplate tx, TenantDirectory tenants) {
+    ApiClientAuthenticator(JdbcClient jdbc, TransactionTemplate tx, TenantDirectory tenants, ClientAuthorization authorization, AuditLog audit,
+                           ApiClientUsage usage) {
+        this.usage = usage;
         this.jdbc = jdbc;
         this.tx = tx;
         this.tenants = tenants;
+        this.authorization = authorization;
+        this.audit = audit;
     }
 
     private record Row(UUID secretRowId, String hash, Instant secretExpires, Instant secretRevoked, UUID clientId, String name, String status,
-                       Instant clientExpires, List<String> ips, List<String> scopes, UUID orgUnitId, Instant lastUsed) {}
+                       Instant clientExpires, List<String> ips, List<String> scopes, UUID orgUnitId, Instant lastUsed, String kind, UUID owner,
+                       UUID serviceIdentity) {}
 
     @Override
     public Result authenticate(String presentedKey, String clientIp) {
@@ -58,11 +67,12 @@ class ApiClientAuthenticator implements ApiKeyAuthenticator {
         if (info.isEmpty() || !info.get().status().allowsAccess()) return new Rejected("invalid_api_key", 401);
         return TenantContext.callInTenant(tenant, () -> tx.execute(s -> {
             Optional<Row> found = jdbc.sql("""
-                    SELECT s.id, s.secret_hash, s.expires_at, s.revoked_at, c.id, c.name, c.status, c.expires_at, c.allowed_ips, c.scopes, c.org_unit_id, s.last_used_at
+                    SELECT s.id, s.secret_hash, s.expires_at, s.revoked_at, c.id, c.name, c.status, c.expires_at, c.allowed_ips, c.scopes, c.org_unit_id, s.last_used_at,
+                           c.kind, c.owner_user_id, c.service_identity_id
                     FROM api_client_secret s JOIN api_client c ON c.id = s.client_id WHERE s.key_id = ?""").param(keyId)
                     .query((rs, n) -> new Row(rs.getObject(1, UUID.class), rs.getString(2), ts(rs.getTimestamp(3)), ts(rs.getTimestamp(4)), rs.getObject(5, UUID.class),
                             rs.getString(6), rs.getString(7), ts(rs.getTimestamp(8)), ApiClientService.strings(rs.getArray(9)), ApiClientService.strings(rs.getArray(10)),
-                            rs.getObject(11, UUID.class), ts(rs.getTimestamp(12)))).optional();
+                            rs.getObject(11, UUID.class), ts(rs.getTimestamp(12)), rs.getString(13), rs.getObject(14, UUID.class), rs.getObject(15, UUID.class))).optional();
             if (found.isEmpty()) return new Rejected("invalid_api_key", 401);
             Row r = found.get();
             byte[] expected = r.hash().getBytes(StandardCharsets.US_ASCII);
@@ -72,7 +82,8 @@ class ApiClientAuthenticator implements ApiKeyAuthenticator {
                 return new Rejected("invalid_api_key", 401);
             }
             Instant now = Instant.now();
-            if (!"ACTIVE".equals(r.status()) || r.secretRevoked() != null) return deny("api_key_revoked", 401, keyId, r.clientId(), tenant);
+            if ("REVOKED".equals(r.status()) || r.secretRevoked() != null) return deny("api_key_revoked", 401, keyId, r.clientId(), tenant);
+            if ("SUSPENDED".equals(r.status())) return deny("api_client_suspended", 401, keyId, r.clientId(), tenant);
             if ((r.secretExpires() != null && r.secretExpires().isBefore(now)) || (r.clientExpires() != null && r.clientExpires().isBefore(now))) {
                 return deny("api_key_expired", 401, keyId, r.clientId(), tenant);
             }
@@ -82,13 +93,25 @@ class ApiClientAuthenticator implements ApiKeyAuthenticator {
                 jdbc.sql("UPDATE api_client_secret SET last_used_at = now() WHERE id = ?").param(r.secretRowId()).update();
                 jdbc.sql("UPDATE api_client SET last_used_at = now() WHERE id = ?").param(r.clientId()).update();
             }
-            ScopeType type = r.orgUnitId() == null ? ScopeType.TENANT : ScopeType.ORG_UNIT;
-            UUID scopeId = r.orgUnitId() == null ? tenant : r.orgUnitId();
-            List<Grant> grants = r.scopes().stream().map(p -> new Grant(p, ROLE, type, scopeId)).toList();
-            IvoroviPrincipal principal = new IvoroviPrincipal(r.clientId(), tenant, "api-client:" + r.clientId(), null, "API client: " + r.name(), grants,
+            // KI-59: effective permissions from CURRENT authority, never from the stored scopes alone
+            ClientAuthorization.Effective eff = authorization.evaluate(tenant, new ClientAuthorization.Subject(r.clientId(), r.kind(), r.owner(),
+                    r.serviceIdentity(), r.scopes(), r.orgUnitId()));
+            if (eff.denial() != null) return deny(eff.denial(), 401, keyId, r.clientId(), tenant);
+            for (Map.Entry<String, String> lost : eff.lostScopes().entrySet()) scopeLost(r.clientId(), lost.getKey(), lost.getValue());
+            IvoroviPrincipal principal = new IvoroviPrincipal(r.clientId(), tenant, "api-client:" + r.clientId(), null, "API client: " + r.name(), eff.grants(),
                     List.of(ROLE), null);
             return (Result) new Authenticated(principal, r.clientId());
         }));
+    }
+
+    /** One audit record per client, scope and day when a registered scope no longer works (and why). */
+    private void scopeLost(UUID clientId, String scope, String reason) {
+        int inserted = jdbc.sql("""
+                INSERT INTO api_client_scope_loss (tenant_id, client_id, scope, day, reason) VALUES (current_tenant_id(), ?, ?, current_date, ?)
+                ON CONFLICT DO NOTHING""").params(clientId, scope, reason).update();
+        if (inserted > 0) {
+            audit.record("api_client.scope_lost", "api_client", clientId.toString(), AuditOutcome.DENIED, Map.of("scope", scope, "reason", reason));
+        }
     }
 
     private Rejected deny(String reason, int status, String keyId, UUID clientId, UUID tenant) {
@@ -99,14 +122,7 @@ class ApiClientAuthenticator implements ApiKeyAuthenticator {
 
     @Override
     public void recordUsage(UUID tenantId, UUID clientId, boolean denied) {
-        try {
-            TenantContext.runInTenant(tenantId, () -> tx.executeWithoutResult(s -> jdbc.sql("""
-                    INSERT INTO api_client_usage (tenant_id, client_id, day, requests, denied) VALUES (?, ?, current_date, 1, ?)
-                    ON CONFLICT (tenant_id, client_id, day) DO UPDATE SET requests = api_client_usage.requests + 1, denied = api_client_usage.denied + EXCLUDED.denied""")
-                    .params(tenantId, clientId, denied ? 1 : 0).update()));
-        } catch (RuntimeException e) {
-            log.warn("API client usage not recorded: {}", e.getClass().getSimpleName());
-        }
+        usage.count(tenantId, clientId, denied);
     }
 
     private static Instant ts(Timestamp t) {

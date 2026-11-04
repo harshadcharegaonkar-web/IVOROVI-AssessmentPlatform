@@ -144,6 +144,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-identities/{id}/envelope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Narrow the envelope (immediate) or propose a wider one (needs independent approval) */
+        put: operations["envelope"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/custodians": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Name the business and technical custodians (active users) */
+        put: operations["custodians"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/{id}": {
         parameters: {
             query?: never;
@@ -209,6 +243,40 @@ export interface paths {
         get: operations["get_3"];
         /** Change name, description, IP allow-list or expiry (scopes are fixed) */
         put: operations["update_4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Remove scopes (widening needs a new client) */
+        put: operations["scopes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/owner": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reassign a delegated client to another active user who holds every scope now (resumes it if it was suspended because its owner left) */
+        put: operations["reassign"];
         post?: never;
         delete?: never;
         options?: never;
@@ -835,6 +903,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Service identities with custodians, envelope and status */
+        get: operations["list_4"];
+        put?: never;
+        /** Create a service identity; its envelope waits for approval by a second integration manager */
+        post: operations["create_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend (its keys stop working) */
+        post: operations["suspend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign a role (must fit the envelope; ceiling rule applies) */
+        post: operations["assignRole_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume (custodians must be active) */
+        post: operations["resume"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/envelope/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject the proposed envelope */
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/envelope/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve the proposed envelope (not by its proposer; approver must hold the permissions) */
+        post: operations["approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable permanently; revokes its role assignments and API clients */
+        post: operations["disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles": {
         parameters: {
             query?: never;
@@ -843,10 +1031,10 @@ export interface paths {
             cookie?: never;
         };
         /** System and custom roles (search, type and status filters, sort, pagination) */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         /** Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope */
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -912,10 +1100,10 @@ export interface paths {
             cookie?: never;
         };
         /** List organization units visible to the caller (search, filters, sort, pagination) */
-        get: operations["list_5"];
+        get: operations["list_6"];
         put?: never;
         /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
-        post: operations["create_5"];
+        post: operations["create_6"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1049,10 +1237,10 @@ export interface paths {
             cookie?: never;
         };
         /** Integrations with connection status, last check, last success and last sync */
-        get: operations["list_6"];
+        get: operations["list_7"];
         put?: never;
         /** Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked */
-        post: operations["create_6"];
+        post: operations["create_7"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1118,10 +1306,27 @@ export interface paths {
             cookie?: never;
         };
         /** API clients with status, last use and 30-day usage */
-        get: operations["list_7"];
+        get: operations["list_8"];
         put?: never;
         /** Register an API client; returns the key once */
-        post: operations["create_7"];
+        post: operations["create_8"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Suspend a client (keys stop working until resumed) */
+        post: operations["suspend_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1156,6 +1361,23 @@ export interface paths {
         put?: never;
         /** Revoke the client and all its keys (permanent) */
         post: operations["revoke_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume a suspended client; never automatic, the owner or service identity must be active */
+        post: operations["resume_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1996,6 +2218,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/service-identities/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Identity with role assignments, API clients and current effective permissions */
+        get: operations["get_5"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/roles/{id}/holders": {
         parameters: {
             query?: never;
@@ -2174,7 +2413,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first); state ALL, UNREAD or READ; optional category */
-        get: operations["list_8"];
+        get: operations["list_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2225,7 +2464,7 @@ export interface paths {
             cookie?: never;
         };
         /** Invitations of users visible to the caller */
-        get: operations["list_9"];
+        get: operations["list_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2429,7 +2668,7 @@ export interface paths {
             cookie?: never;
         };
         /** Scopes the caller can give an API client (read permissions they hold; never personal, audit or integration data) */
-        get: operations["scopes"];
+        get: operations["scopes_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2566,6 +2805,23 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["removeOrgAssignment_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/service-identities/{id}/roles/{assignmentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke a role assignment (effective on the next request) */
+        delete: operations["revokeRole_1"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2937,6 +3193,58 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        ServiceIdentityEnvelopeRequest: {
+            envelope?: string[];
+            /** Format: int64 */
+            version?: number;
+        };
+        ServiceIdentity: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            purpose?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            /** Format: uuid */
+            businessCustodianId?: string;
+            businessCustodianName?: string;
+            /** Format: uuid */
+            technicalCustodianId?: string;
+            technicalCustodianName?: string;
+            scopeEnvelope?: string[];
+            proposedEnvelope?: string[];
+            /** Format: uuid */
+            proposedBy?: string;
+            proposedByName?: string;
+            /** Format: date-time */
+            proposedAt?: string;
+            /** Format: uuid */
+            approvedBy?: string;
+            approvedByName?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            status?: string;
+            statusReason?: string;
+            /** Format: date-time */
+            custodianInvalidSince?: string;
+            /** Format: int32 */
+            activeRoles?: number;
+            /** Format: int32 */
+            activeClients?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ServiceIdentityCustodiansRequest: {
+            /** Format: uuid */
+            businessCustodianId?: string;
+            /** Format: uuid */
+            technicalCustodianId?: string;
+            /** Format: int64 */
+            version?: number;
+        };
         IntegrationRequest: {
             /** @enum {string} */
             kind?: "SIS_ERP" | "LMS" | "EMAIL" | "APPLICATION";
@@ -3015,6 +3323,11 @@ export interface components {
             expiresAt?: string;
             /** Format: int64 */
             version?: number;
+            /**
+             * Format: uuid
+             * @description Register the client for a service identity instead of yourself
+             */
+            serviceIdentityId?: string;
         };
         ApiClient: {
             /** Format: uuid */
@@ -3042,6 +3355,27 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             revokedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            kind?: string;
+            /** Format: uuid */
+            ownerUserId?: string;
+            ownerName?: string;
+            /** Format: uuid */
+            serviceIdentityId?: string;
+            serviceIdentityName?: string;
+            suspendedReason?: string;
+            /** Format: date-time */
+            suspendedAt?: string;
+        };
+        ApiClientScopesRequest: {
+            scopes?: string[];
+            /** Format: int64 */
+            version?: number;
+        };
+        ApiClientOwnerRequest: {
+            /** Format: uuid */
+            userId?: string;
             /** Format: int64 */
             version?: number;
         };
@@ -3566,6 +3900,48 @@ export interface components {
             /** Format: uuid */
             userId: string;
         };
+        ServiceIdentityRequest: {
+            name?: string;
+            purpose?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            /** Format: uuid */
+            businessCustodianId?: string;
+            /** Format: uuid */
+            technicalCustodianId?: string;
+            envelope?: string[];
+            /** Format: int64 */
+            version?: number;
+        };
+        ServiceIdentityReasonRequest: {
+            reason?: string;
+        };
+        ServiceIdentityRoleRequest: {
+            /** Format: uuid */
+            roleId?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+        };
+        ServiceRoleAssignment: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            roleId?: string;
+            roleCode?: string;
+            roleName?: string;
+            scopeType?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            permissions?: string[];
+            outsideEnvelope?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ServiceIdentityVersionRequest: {
+            /** Format: int64 */
+            version?: number;
+        };
         RoleCreateRequest: {
             code?: string;
             name: string;
@@ -3746,6 +4122,9 @@ export interface components {
             keyId?: string;
             /** Format: date-time */
             keyExpiresAt?: string;
+        };
+        ApiClientSuspendRequest: {
+            reason?: string;
         };
         ApiClientRotateRequest: {
             /** Format: int32 */
@@ -4488,6 +4867,12 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
         };
+        ServiceIdentityDetail: {
+            identity?: components["schemas"]["ServiceIdentity"];
+            roles?: components["schemas"]["ServiceRoleAssignment"][];
+            clients?: components["schemas"]["ApiClient"][];
+            effectivePermissions?: string[];
+        };
         PageResponseRoleSummary: {
             items?: components["schemas"]["RoleSummary"][];
             /** Format: int32 */
@@ -5088,6 +5473,10 @@ export interface components {
             client?: components["schemas"]["ApiClient"];
             keys?: components["schemas"]["ApiClientKey"][];
             usage?: components["schemas"]["ApiClientUsageDay"][];
+            effectiveScopes?: string[];
+            lostScopes?: {
+                [key: string]: string;
+            };
         };
         ApiClientKey: {
             /** Format: uuid */
@@ -5601,6 +5990,58 @@ export interface operations {
             };
         };
     };
+    envelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityEnvelopeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    custodians: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityCustodiansRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
     get_2: {
         parameters: {
             query?: never;
@@ -5779,6 +6220,58 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ApiClientRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"];
+                };
+            };
+        };
+    };
+    scopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientScopesRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"];
+                };
+            };
+        };
+    };
+    reassign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientOwnerRequest"];
             };
         };
         responses: {
@@ -7013,6 +7506,202 @@ export interface operations {
     };
     list_4: {
         parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"][];
+                };
+            };
+        };
+    };
+    create_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    suspend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    assignRole_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceRoleAssignment"];
+                };
+            };
+        };
+    };
+    resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityVersionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    disable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ServiceIdentityReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentity"];
+                };
+            };
+        };
+    };
+    list_5: {
+        parameters: {
             query?: {
                 q?: string;
                 type?: string;
@@ -7039,7 +7728,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -7135,7 +7824,7 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_6: {
         parameters: {
             query?: {
                 type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
@@ -7164,7 +7853,7 @@ export interface operations {
             };
         };
     };
-    create_5: {
+    create_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -7348,7 +8037,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7368,7 +8057,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -7459,7 +8148,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7479,7 +8168,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7499,6 +8188,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiClientCreated"];
+                };
+            };
+        };
+    };
+    suspend_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientSuspendRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"];
                 };
             };
         };
@@ -7543,6 +8258,28 @@ export interface operations {
                 "application/json": components["schemas"]["ApiClientRevokeRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"];
+                };
+            };
+        };
+    };
+    resume_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -9284,6 +10021,28 @@ export interface operations {
             };
         };
     };
+    get_5: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ServiceIdentityDetail"];
+                };
+            };
+        };
+    };
     holders: {
         parameters: {
             query?: {
@@ -9532,7 +10291,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_9: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -9600,7 +10359,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_10: {
         parameters: {
             query?: {
                 status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
@@ -9872,7 +10631,7 @@ export interface operations {
             };
         };
     };
-    scopes: {
+    scopes_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -10055,6 +10814,27 @@ export interface operations {
         };
     };
     removeOrgAssignment_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                assignmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    revokeRole_1: {
         parameters: {
             query?: never;
             header?: never;

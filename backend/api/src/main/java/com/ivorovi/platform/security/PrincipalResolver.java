@@ -10,4 +10,7 @@ import java.util.UUID;
 public interface PrincipalResolver {
 
     Optional<IvoroviPrincipal> resolve(UUID tenantId, String subject);
+
+    /** Sign-in subject of an ACTIVE account (empty when the account is not ACTIVE or has never signed in). KI-59. */
+    Optional<String> activeSubject(UUID tenantId, UUID userId);
 }

@@ -1,7 +1,8 @@
 # Phase 2 blueprint — AI-assisted college screening and assessment platform
 
-Status: **planning only — awaiting your review and explicit approval** (2026-11-04). No Phase 2 code has been written
-and no Phase 1 module has been changed for Phase 2.
+Status: **approved with conditions C-1…C-7** (2026-11-04): shared assessment engine and roadmap structure. Decisions,
+conditions and open questions: `decision-register.md`. Increment 2.0 plan for review: `increment-2.0-plan.md`. No Phase 2
+code has been written.
 
 ## Documents
 
@@ -25,6 +26,8 @@ and no Phase 1 module has been changed for Phase 2.
 | 16 | Deployment architecture (SaaS, private cloud, on-premises) | `16-deployment-architecture.md` |
 | — | Delivery roadmap, estimates, risks, test strategy, demonstrations | `17-roadmap.md` |
 | — | Business readiness | `18-business-readiness.md` |
+| — | Decision register (approvals, conditions, open questions) | `decision-register.md` |
+| — | Increment 2.0 plan (for review) | `increment-2.0-plan.md` |
 
 ## Relationship to the existing plan
 

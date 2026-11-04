@@ -49,7 +49,8 @@ public class NotificationProducer {
     /** Event types this consumer listens to (topic patterns). */
     static final List<String> KEYS = List.of("user.activated", "user.suspended", "user.deactivated", "user.reactivated", "user.invitation.delivery_failed",
             "role.assigned", "role.revoked", "role.updated", "role.deactivated", "student.status_changed", "student.enrolment.*", "student.import.finished",
-            "student.import.validated", "integration.failing", "webhook.endpoint.disabled");
+            "student.import.validated", "integration.failing", "webhook.endpoint.disabled", "api_client.suspended", "service_identity.envelope_proposed",
+            "service_identity.custodian_missing", "service_identity.suspended");
 
     @Configuration(proxyBeanMethods = false)
     static class Messaging {
@@ -162,6 +163,18 @@ public class NotificationProducer {
             case "webhook.endpoint.disabled" -> send(e, holders("integration.manage"), new Message("integrations", Severity.ERROR, "Webhook endpoint disabled",
                     "Deliveries to " + d.get("name") + " failed " + d.get("failures") + " times in a row, so the endpoint was disabled. Fix it and re-enable it.",
                     "/integrations/webhooks/" + id, e.id(), type, "webhook_endpoint", id));
+            case "api_client.suspended" -> send(e, holders("integration.manage"), new Message("integrations", Severity.WARNING, "API client suspended",
+                    "The API client " + d.get("name") + " was suspended because its owner is no longer active. Reassign it to another owner or revoke it.",
+                    "/integrations/api-clients/" + id, e.id(), type, "api_client", id));
+            case "service_identity.envelope_proposed" -> send(e, holders("integration.manage"), new Message("integrations", Severity.INFO,
+                    "Service identity needs approval", "A scope envelope for " + d.get("name") + " was proposed and needs approval by another integration manager.",
+                    "/integrations/service-identities/" + id, e.id(), type, "service_identity", id));
+            case "service_identity.custodian_missing" -> send(e, holders("integration.manage"), new Message("integrations", Severity.WARNING,
+                    "Service identity needs a custodian", d.get("name") + " has no active custodian. Name one within 30 days or it will be suspended.",
+                    "/integrations/service-identities/" + id, e.id(), type, "service_identity", id));
+            case "service_identity.suspended" -> send(e, holders("integration.manage"), new Message("integrations", Severity.ERROR, "Service identity suspended",
+                    d.get("name") + " was suspended (" + label(String.valueOf(d.get("reason"))) + "). Its API clients stop working until it is resumed.",
+                    "/integrations/service-identities/" + id, e.id(), type, "service_identity", id));
             default -> type.startsWith("student.enrolment.")
                     ? send(e, studentAccount(UUID.fromString(id)), new Message("students", Severity.INFO, "Your enrolment changed",
                             label(type.substring("student.enrolment.".length())) + ": batch " + d.get("batch") + ", term " + d.get("termNumber") + ".", null, e.id(), type,

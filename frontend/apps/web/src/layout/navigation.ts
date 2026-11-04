@@ -1,6 +1,6 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
 import type { TerminologyKey } from "../session/useOrgLabels";
-import { Activity, BadgeCheck, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { Activity, BadgeCheck, Bot, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -77,6 +77,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/settings/features", label: "Feature Settings", icon: SlidersHorizontal, visible: (a) => a.hasAnywhere("feature.read") },
       { to: "/integrations", label: "Integrations", icon: Plug, visible: (a) => a.has("integration.read") },
       { to: "/integrations/api-clients", label: "API Clients", icon: KeySquare, visible: (a) => a.has("integration.read") },
+      { to: "/integrations/service-identities", label: "Service Identities", icon: Bot, visible: (a) => a.has("integration.read") },
       { to: "/integrations/webhooks", label: "Webhooks", icon: Webhook, visible: (a) => a.has("integration.read") },
       { to: "/audit", label: "Audit Logs", icon: ScrollText, visible: (a) => a.has("audit.read") },
       { to: "/settings/system", label: "System Settings", icon: Settings2, visible: (a) => a.has("tenant.settings.manage") },

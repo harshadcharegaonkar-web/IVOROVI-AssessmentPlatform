@@ -1,8 +1,8 @@
 # 10 — API-client authorization model (KI-59)
 
-Status: **proposal for approval** (2026-11-04). Implementation starts after the decisions in §7 are approved. This
-document answers Part A of the “Increment 1.7 Acceptance” message: an API client must not keep a permission once the
-authorization behind it is gone.
+Status: **implemented** (2026-11-04) after approval of the decisions in §7 (approval record: `phase-2/decision-register.md`).
+Implementation notes and deviations are in §8. This document answers Part A of the “Increment 1.7 Acceptance” message:
+an API client must not keep a permission once the authorization behind it is gone.
 
 ## 1. The problem
 
@@ -159,3 +159,18 @@ accepted platform-wide.
 
 Estimate after approval: 2–3 days including migration, UI (owner, effective scopes, service identities, suspended
 state, reassignment), the tests in §6, docs and CI.
+
+
+## 8. As implemented (2026-11-04)
+
+| Item | Implementation |
+|---|---|
+| Live evaluation | `ClientAuthorization.evaluate` on every key request. Owner via `PrincipalDirectory.activeUser` (status read from the database each time; grants from the shared, eviction-driven cache). Service identity via its unrevoked role assignments of ACTIVE roles ∩ approved envelope. Both are narrowed to the client's unit and read-only assignable permissions |
+| Owner lifecycle | Live refusal `401 api_client_owner_inactive`. `IntegrationLifecycle` consumes `user.suspended/deactivated` → `SUSPENDED (owner_inactive)` + audit + notification. No automatic resume; manual resume needs an active owner; reassignment needs full coverage of the client's scope by the new owner |
+| Service identities | Business **and** technical custodian (active users). Envelope proposed → **approved by a different integration manager**, who holds the permissions (`service_identity.envelope_approval_denied` is audited when the proposer tries). Narrowing is immediate. Roles must fit the envelope (ceiling rule applies). 30-day custodian rule: hourly check, then automatic suspension |
+| Deviation from D-KI59-4 | Service-identity roles are stored in a separate `service_role_assignment` table (same roles, same ceiling rule) instead of extending `role_assignment`. This keeps Phase 1 user lists, counts, sign-in and the principal resolver unchanged, per the instruction not to modify completed Phase 1 functionality |
+| Additive Phase 1 change | `PrincipalResolver.activeSubject` (identity module) and the new platform `PrincipalDirectory`. Existing behaviour is unchanged |
+| Usage counters | Batched in memory (`ApiClientUsage`) after the benchmark showed row-lock contention |
+| Tests | `ApiClientAuthorizationIT` (9 tests): permission removal, assignment revocation and expiry, unit narrowing, owner suspension/deactivation with no automatic resume, reassignment revalidation, concurrent revocation under 6 parallel clients, service-identity approval and envelope rules, 30-day custodian rule, organization isolation and audit. 1.7 `ApiClientIT` unchanged and green. E2E `ki59.spec.ts` |
+| Benchmark | `performance/api-key-authorization-benchmark.md` |
+| Runbook | `runbooks/service-identities.md` |

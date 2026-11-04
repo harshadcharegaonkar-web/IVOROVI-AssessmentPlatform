@@ -410,6 +410,82 @@
         }
       }
     },
+    "/api/v1/service-identities/{id}/envelope" : {
+      "put" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Narrow the envelope (immediate) or propose a wider one (needs independent approval)",
+        "operationId" : "envelope",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityEnvelopeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/custodians" : {
+      "put" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Name the business and technical custodians (active users)",
+        "operationId" : "custodians",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityCustodiansRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/integrations/{id}" : {
       "get" : {
         "tags" : [ "Integrations" ],
@@ -646,6 +722,82 @@
             "application/json" : {
               "schema" : {
                 "$ref" : "#/components/schemas/ApiClientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClient"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/scopes" : {
+      "put" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Remove scopes (widening needs a new client)",
+        "operationId" : "scopes",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientScopesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClient"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/owner" : {
+      "put" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Reassign a delegated client to another active user who holds every scope now (resumes it if it was suspended because its owner left)",
+        "operationId" : "reassign",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientOwnerRequest"
               }
             }
           },
@@ -2651,11 +2803,278 @@
         }
       }
     },
+    "/api/v1/service-identities" : {
+      "get" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Service identities with custodians, envelope and status",
+        "operationId" : "list_4",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ServiceIdentity"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Create a service identity; its envelope waits for approval by a second integration manager",
+        "operationId" : "create_4",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/suspend" : {
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Suspend (its keys stop working)",
+        "operationId" : "suspend",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityReasonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/roles" : {
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Assign a role (must fit the envelope; ceiling rule applies)",
+        "operationId" : "assignRole_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityRoleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceRoleAssignment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/resume" : {
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Resume (custodians must be active)",
+        "operationId" : "resume",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/envelope/reject" : {
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Reject the proposed envelope",
+        "operationId" : "reject",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityReasonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/envelope/approve" : {
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Approve the proposed envelope (not by its proposer; approver must hold the permissions)",
+        "operationId" : "approve",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityVersionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/disable" : {
+      "post" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Disable permanently; revokes its role assignments and API clients",
+        "operationId" : "disable",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ServiceIdentityReasonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentity"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles" : {
       "get" : {
         "tags" : [ "Roles" ],
         "summary" : "System and custom roles (search, type and status filters, sort, pagination)",
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -2735,7 +3154,7 @@
       "post" : {
         "tags" : [ "Roles" ],
         "summary" : "Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope",
-        "operationId" : "create_4",
+        "operationId" : "create_5",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2853,7 +3272,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "List organization units visible to the caller (search, filters, sort, pagination)",
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "parameters" : [ {
           "name" : "type",
           "in" : "query",
@@ -2941,7 +3360,7 @@
       "post" : {
         "tags" : [ "Organization" ],
         "summary" : "Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units)",
-        "operationId" : "create_5",
+        "operationId" : "create_6",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3170,7 +3589,7 @@
       "get" : {
         "tags" : [ "Integrations" ],
         "summary" : "Integrations with connection status, last check, last success and last sync",
-        "operationId" : "list_6",
+        "operationId" : "list_7",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -3190,7 +3609,7 @@
       "post" : {
         "tags" : [ "Integrations" ],
         "summary" : "Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked",
-        "operationId" : "create_6",
+        "operationId" : "create_7",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3311,7 +3730,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "API clients with status, last use and 30-day usage",
-        "operationId" : "list_7",
+        "operationId" : "list_8",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -3331,7 +3750,7 @@
       "post" : {
         "tags" : [ "API clients" ],
         "summary" : "Register an API client; returns the key once",
-        "operationId" : "create_7",
+        "operationId" : "create_8",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3349,6 +3768,44 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ApiClientCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/suspend" : {
+      "post" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Suspend a client (keys stop working until resumed)",
+        "operationId" : "suspend_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientSuspendRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClient"
                 }
               }
             }
@@ -3418,6 +3875,34 @@
           },
           "required" : true
         },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClient"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/resume" : {
+      "post" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Resume a suspended client; never automatic, the owner or service identity must be active",
+        "operationId" : "resume_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -6183,6 +6668,34 @@
         }
       }
     },
+    "/api/v1/service-identities/{id}" : {
+      "get" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Identity with role assignments, API clients and current effective permissions",
+        "operationId" : "get_5",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ServiceIdentityDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/roles/{id}/holders" : {
       "get" : {
         "tags" : [ "Roles" ],
@@ -6729,7 +7242,7 @@
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first); state ALL, UNREAD or READ; optional category",
-        "operationId" : "list_8",
+        "operationId" : "list_9",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -6835,7 +7348,7 @@
       "get" : {
         "tags" : [ "Invitations" ],
         "summary" : "Invitations of users visible to the caller",
-        "operationId" : "list_9",
+        "operationId" : "list_10",
         "parameters" : [ {
           "name" : "status",
           "in" : "query",
@@ -7269,7 +7782,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "Scopes the caller can give an API client (read permissions they hold; never personal, audit or integration data)",
-        "operationId" : "scopes",
+        "operationId" : "scopes_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -7562,6 +8075,35 @@
       "delete" : {
         "tags" : [ "Staff" ],
         "operationId" : "removeOrgAssignment_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "assignmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/service-identities/{id}/roles/{assignmentId}" : {
+      "delete" : {
+        "tags" : [ "Service identities" ],
+        "summary" : "Revoke a role assignment (effective on the next request)",
+        "operationId" : "revokeRole_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -8525,6 +9067,138 @@
           }
         }
       },
+      "ServiceIdentityEnvelopeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "envelope" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 60,
+              "minLength" : 0
+            },
+            "maxItems" : 40,
+            "minItems" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ServiceIdentity" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "businessCustodianId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "businessCustodianName" : {
+            "type" : "string"
+          },
+          "technicalCustodianId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "technicalCustodianName" : {
+            "type" : "string"
+          },
+          "scopeEnvelope" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "proposedEnvelope" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "proposedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "proposedByName" : {
+            "type" : "string"
+          },
+          "proposedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "approvedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "approvedByName" : {
+            "type" : "string"
+          },
+          "approvedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "statusReason" : {
+            "type" : "string"
+          },
+          "custodianInvalidSince" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "activeRoles" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "activeClients" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ServiceIdentityCustodiansRequest" : {
+        "type" : "object",
+        "properties" : {
+          "businessCustodianId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "technicalCustodianId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "IntegrationRequest" : {
         "type" : "object",
         "properties" : {
@@ -8743,6 +9417,11 @@
           "version" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "serviceIdentityId" : {
+            "type" : "string",
+            "format" : "uuid",
+            "description" : "Register the client for a service identity instead of yourself"
           }
         }
       },
@@ -8811,6 +9490,62 @@
           "revokedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "ownerUserId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ownerName" : {
+            "type" : "string"
+          },
+          "serviceIdentityId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "serviceIdentityName" : {
+            "type" : "string"
+          },
+          "suspendedReason" : {
+            "type" : "string"
+          },
+          "suspendedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiClientScopesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "scopes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 60,
+              "minLength" : 0
+            },
+            "maxItems" : 40,
+            "minItems" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ApiClientOwnerRequest" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
           },
           "version" : {
             "type" : "integer",
@@ -10199,6 +10934,124 @@
         },
         "required" : [ "userId" ]
       },
+      "ServiceIdentityRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "purpose" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "businessCustodianId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "technicalCustodianId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "envelope" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 60,
+              "minLength" : 0
+            },
+            "maxItems" : 40,
+            "minItems" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ServiceIdentityReasonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          }
+        }
+      },
+      "ServiceIdentityRoleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "roleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "ServiceRoleAssignment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "roleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "roleCode" : {
+            "type" : "string"
+          },
+          "roleName" : {
+            "type" : "string"
+          },
+          "scopeType" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "permissions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "outsideEnvelope" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ServiceIdentityVersionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "RoleCreateRequest" : {
         "type" : "object",
         "properties" : {
@@ -10668,6 +11521,16 @@
           "keyExpiresAt" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "ApiClientSuspendRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
           }
         }
       },
@@ -12573,6 +13436,32 @@
           }
         }
       },
+      "ServiceIdentityDetail" : {
+        "type" : "object",
+        "properties" : {
+          "identity" : {
+            "$ref" : "#/components/schemas/ServiceIdentity"
+          },
+          "roles" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ServiceRoleAssignment"
+            }
+          },
+          "clients" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ApiClient"
+            }
+          },
+          "effectivePermissions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "PageResponseRoleSummary" : {
         "type" : "object",
         "properties" : {
@@ -14119,6 +15008,18 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/ApiClientUsageDay"
+            }
+          },
+          "effectiveScopes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "lostScopes" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
             }
           }
         }

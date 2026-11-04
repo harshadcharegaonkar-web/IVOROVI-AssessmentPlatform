@@ -38,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
  * unit; integration, audit and personal-data permissions are never available), optional unit restriction, IP
  * allow-list and expiry. A key is {@code ivk_<keyId>_<secret>}; only a SHA-256 hash of the secret is stored, and the
  * key is shown once at creation or rotation. Rotation keeps the previous secret valid for a grace period.
+ * <p>KI-59: scopes are the registered maximum only. What a client can do is computed on every request from current
+ * authority ({@link ClientAuthorization}); owners' suspension suspends their delegated clients; resumption is manual.
  */
 @Service
 public class ApiClientService {
@@ -56,7 +58,8 @@ public class ApiClientService {
     @Schema(name = "ApiClient")
     public record View(UUID id, String name, String description, List<String> scopes, UUID orgUnitId, String orgUnitName, List<String> allowedIps,
                        String status, Instant expiresAt, Instant lastUsedAt, int activeKeys, long requests30Days, long denied30Days, String createdBy,
-                       Instant createdAt, Instant revokedAt, long version) {}
+                       Instant createdAt, Instant revokedAt, long version, String kind, UUID ownerUserId, String ownerName, UUID serviceIdentityId,
+                       String serviceIdentityName, String suspendedReason, Instant suspendedAt) {}
 
     @Schema(name = "ApiClientKey")
     public record Key(UUID id, String keyId, String hint, String status, Instant createdAt, Instant expiresAt, Instant revokedAt, Instant lastUsedAt) {}
@@ -65,22 +68,32 @@ public class ApiClientService {
     public record UsageDay(LocalDate day, long requests, long denied) {}
 
     @Schema(name = "ApiClientDetail")
-    public record Detail(View client, List<Key> keys, List<UsageDay> usage) {}
+    /** {@code effectiveScopes}: what the client can use right now; {@code lostScopes}: scope → reason it does not work now. */
+    public record Detail(View client, List<Key> keys, List<UsageDay> usage, List<String> effectiveScopes, Map<String, String> lostScopes) {}
 
     /** Returned once: the full key is never retrievable again. */
     @Schema(name = "ApiClientCreated")
     public record Issued(View client, String apiKey, String keyId, Instant keyExpiresAt) {}
 
-    public record Command(String name, String description, List<String> scopes, UUID orgUnitId, List<String> allowedIps, Instant expiresAt, Long version) {}
+    public record Command(String name, String description, List<String> scopes, UUID orgUnitId, List<String> allowedIps, Instant expiresAt, Long version,
+                          UUID serviceIdentityId) {
+        public Command(String name, String description, List<String> scopes, UUID orgUnitId, List<String> allowedIps, Instant expiresAt, Long version) {
+            this(name, description, scopes, orgUnitId, allowedIps, expiresAt, version, null);
+        }
+    }
 
     private final JdbcClient jdbc;
     private final Authz authz;
     private final AuditLog audit;
+    private final ClientAuthorization authorization;
+    private final com.ivorovi.platform.outbox.Outbox outbox;
 
-    ApiClientService(JdbcClient jdbc, Authz authz, AuditLog audit) {
+    ApiClientService(JdbcClient jdbc, Authz authz, AuditLog audit, ClientAuthorization authorization, com.ivorovi.platform.outbox.Outbox outbox) {
         this.jdbc = jdbc;
         this.authz = authz;
         this.audit = audit;
+        this.authorization = authorization;
+        this.outbox = outbox;
     }
 
     static boolean assignable(Permission p) {
@@ -114,29 +127,42 @@ public class ApiClientService {
                 }).list();
         List<UsageDay> usage = jdbc.sql("SELECT day, requests, denied FROM api_client_usage WHERE client_id = ? AND day >= current_date - 29 ORDER BY day")
                 .param(id).query((rs, n) -> new UsageDay(rs.getObject(1, LocalDate.class), rs.getLong(2), rs.getLong(3))).list();
-        return new Detail(v, keys, usage);
+        ClientAuthorization.Effective eff = authorization.evaluate(TenantContext.requireTenantId(), subject(v));
+        return new Detail(v, keys, usage, eff.effectiveScopes(), eff.lostScopes());
     }
 
     @Transactional
     public Issued create(Command c) {
         require(MANAGE);
         String name = name(c.name());
-        List<String> scopes = scopes(c.scopes(), c.orgUnitId());
         List<String> ips = IpRules.normalize(c.allowedIps());
         Instant expires = expiry(c.expiresAt());
+        List<String> scopes;
+        UUID owner = null;
+        if (c.serviceIdentityId() == null) {
+            scopes = scopes(c.scopes(), c.orgUnitId());          // delegated: the creator owns it and must hold every scope
+            owner = actor();
+        } else {
+            scopes = serviceScopes(c.scopes(), c.serviceIdentityId());
+        }
         UUID id = Ids.newId();
         try {
             jdbc.sql("""
-                    INSERT INTO api_client (id, tenant_id, name, description, scopes, org_unit_id, allowed_ips, expires_at, created_by)
-                    VALUES (?, ?, ?, ?, CAST(? AS text[]), ?, CAST(? AS text[]), ?, ?)""")
+                    INSERT INTO api_client (id, tenant_id, name, description, scopes, org_unit_id, allowed_ips, expires_at, created_by, kind, owner_user_id,
+                                            service_identity_id)
+                    VALUES (?, ?, ?, ?, CAST(? AS text[]), ?, CAST(? AS text[]), ?, ?, ?, ?, ?)""")
                     .params(id, TenantContext.requireTenantId(), name, blankToNull(c.description()), scopes.toArray(String[]::new), c.orgUnitId(),
-                            ips.toArray(String[]::new), expires == null ? null : Timestamp.from(expires), actor()).update();
+                            ips.toArray(String[]::new), expires == null ? null : Timestamp.from(expires), actor(), owner == null ? "SERVICE" : "DELEGATED", owner,
+                            c.serviceIdentityId()).update();
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict("name_taken", "Another API client already has this name.");
         }
         NewKey k = newKey(id, expires);
         Map<String, String> d = new LinkedHashMap<>();
         d.put("name", name);
+        d.put("kind", owner == null ? "SERVICE" : "DELEGATED");
+        if (owner != null) d.put("ownerUserId", owner.toString());
+        else d.put("serviceIdentityId", c.serviceIdentityId().toString());
         d.put("scopes", String.join(",", scopes));
         d.put("orgUnitId", c.orgUnitId() == null ? "organization" : c.orgUnitId().toString());
         d.put("allowedIps", String.valueOf(ips.size()));
@@ -144,6 +170,117 @@ public class ApiClientService {
         if (expires != null) d.put("expiresAt", expires.toString());
         audit.recordSuccess("api_client.created", "api_client", id.toString(), d);
         return new Issued(find(id), k.key(), k.keyId(), expires);
+    }
+
+    /** Service clients: scopes must be read-only assignable and inside the identity's approved envelope. */
+    private List<String> serviceScopes(List<String> requested, UUID identityId) {
+        if (requested == null || requested.isEmpty()) throw ApiException.badRequest("scopes_required", "Choose at least one scope.");
+        record I(String status, List<String> envelope) {}
+        I identity = jdbc.sql("SELECT status, scope_envelope FROM service_identity WHERE id = ?").param(identityId)
+                .query((rs, n) -> new I(rs.getString(1), strings(rs.getArray(2)))).optional()
+                .orElseThrow(() -> ApiException.notFound("Service identity"));
+        if (!"ACTIVE".equals(identity.status())) throw ApiException.conflict("service_identity_inactive", "The service identity is not active.");
+        List<String> out = new ArrayList<>();
+        for (String key : requested.stream().distinct().sorted().toList()) {
+            Permission p = Permission.fromKey(key).orElseThrow(() -> ApiException.badRequest("invalid_scope", "Unknown scope " + key + "."));
+            if (!assignable(p)) throw ApiException.badRequest("invalid_scope", "The scope " + key + " cannot be given to an API client.");
+            if (!identity.envelope().contains(key)) throw ApiException.badRequest("scope_outside_envelope", "The scope " + key + " is outside the identity's approved envelope.");
+            out.add(key);
+        }
+        return out;
+    }
+
+    // ================================================================================================ lifecycle (KI-59)
+
+    /** Gives a delegated client to another ACTIVE user, who must hold every registered scope at the client's unit right now. */
+    @Transactional
+    public View reassign(UUID id, UUID newOwner, Long version) {
+        require(MANAGE);
+        View v = find(id);
+        if (!"DELEGATED".equals(v.kind())) throw ApiException.conflict("not_delegated", "Only delegated clients have an owner.");
+        if ("REVOKED".equals(v.status())) throw ApiException.conflict("api_client_revoked", "This API client has been revoked.");
+        if (newOwner == null) throw ApiException.badRequest("owner_required", "Choose the new owner.");
+        ClientAuthorization.Effective eff = authorization.evaluateForOwner(TenantContext.requireTenantId(), subject(v), newOwner);
+        if (eff.denial() != null) throw ApiException.conflict("owner_inactive", "The new owner must be an active user who has signed in.");
+        if (!eff.lostScopes().isEmpty()) {
+            throw ApiException.conflict("owner_lacks_scopes", "The new owner does not hold these scopes at the client's unit: " + String.join(", ", eff.lostScopes().keySet()) + ".");
+        }
+        boolean resume = "SUSPENDED".equals(v.status()) && "owner_inactive".equals(v.suspendedReason());
+        int n = jdbc.sql("""
+                UPDATE api_client SET owner_user_id = ?, status = CASE WHEN ? THEN 'ACTIVE' ELSE status END,
+                    suspended_reason = CASE WHEN ? THEN NULL ELSE suspended_reason END, suspended_at = CASE WHEN ? THEN NULL ELSE suspended_at END,
+                    updated_at = now(), version = version + 1 WHERE id = ? AND version = ?""")
+                .params(newOwner, resume, resume, resume, id, version == null ? v.version() : version).update();
+        if (n == 0) throw ApiException.conflict("concurrent_modification", "This API client was changed by someone else. Reload and try again.");
+        audit.recordSuccess("api_client.owner_changed", "api_client", id.toString(), Map.of("fromOwner", String.valueOf(v.ownerUserId()),
+                "toOwner", newOwner.toString(), "scopesRevalidated", String.join(",", eff.effectiveScopes()), "resumed", String.valueOf(resume)));
+        return find(id);
+    }
+
+    @Transactional
+    public View suspend(UUID id, String reason) {
+        require(MANAGE);
+        View v = find(id);
+        if (!"ACTIVE".equals(v.status())) throw ApiException.conflict("not_active", "Only an active client can be suspended.");
+        String why = blankToNull(reason);
+        if (why == null || why.length() > 300) throw ApiException.badRequest("reason_required", "Give a reason (at most 300 characters).");
+        jdbc.sql("UPDATE api_client SET status = 'SUSPENDED', suspended_reason = 'manual', suspended_at = now(), updated_at = now(), version = version + 1 WHERE id = ?")
+                .param(id).update();
+        audit.recordSuccess("api_client.suspended", "api_client", id.toString(), Map.of("reason", "manual", "note", why));
+        return find(id);
+    }
+
+    /** Resumes a suspended client; never automatic. The owner (or identity) must be active again. */
+    @Transactional
+    public View resume(UUID id) {
+        require(MANAGE);
+        View v = find(id);
+        if (!"SUSPENDED".equals(v.status())) throw ApiException.conflict("not_suspended", "The client is not suspended.");
+        ClientAuthorization.Effective eff = authorization.evaluate(TenantContext.requireTenantId(), subject(v));
+        if (eff.denial() != null) {
+            throw ApiException.conflict(eff.denial(), "SERVICE".equals(v.kind()) ? "The service identity is not active." : "The owner is not active; reassign the client instead.");
+        }
+        jdbc.sql("UPDATE api_client SET status = 'ACTIVE', suspended_reason = NULL, suspended_at = NULL, updated_at = now(), version = version + 1 WHERE id = ?")
+                .param(id).update();
+        audit.recordSuccess("api_client.resumed", "api_client", id.toString(), Map.of("previousReason", String.valueOf(v.suspendedReason()),
+                "effectiveScopes", String.join(",", eff.effectiveScopes())));
+        return find(id);
+    }
+
+    /** Removes scopes (widening needs a new client). */
+    @Transactional
+    public View narrowScopes(UUID id, List<String> scopes, Long version) {
+        require(MANAGE);
+        View v = find(id);
+        if ("REVOKED".equals(v.status())) throw ApiException.conflict("api_client_revoked", "This API client has been revoked.");
+        List<String> keep = scopes == null ? List.of() : scopes.stream().distinct().sorted().toList();
+        if (keep.isEmpty()) throw ApiException.badRequest("scopes_required", "Keep at least one scope, or revoke the client.");
+        if (!v.scopes().containsAll(keep)) throw ApiException.badRequest("scope_widening", "Scopes can only be removed; register a new client for more.");
+        int n = jdbc.sql("UPDATE api_client SET scopes = CAST(? AS text[]), updated_at = now(), version = version + 1 WHERE id = ? AND version = ?")
+                .params(keep.toArray(String[]::new), id, version == null ? v.version() : version).update();
+        if (n == 0) throw ApiException.conflict("concurrent_modification", "This API client was changed by someone else. Reload and try again.");
+        List<String> removed = v.scopes().stream().filter(x -> !keep.contains(x)).toList();
+        audit.recordSuccess("api_client.scopes_changed", "api_client", id.toString(), Map.of("removed", String.join(",", removed)));
+        return find(id);
+    }
+
+    /** Owner suspended or deactivated: suspend every active delegated client of that owner (event-driven; the live check already blocks them). */
+    @Transactional
+    public int suspendForOwner(UUID ownerUserId, String event) {
+        List<Map<String, Object>> rows = jdbc.sql("""
+                UPDATE api_client SET status = 'SUSPENDED', suspended_reason = 'owner_inactive', suspended_at = now(), updated_at = now(), version = version + 1
+                WHERE owner_user_id = ? AND kind = 'DELEGATED' AND status = 'ACTIVE' RETURNING id, name""").param(ownerUserId).query().listOfRows();
+        for (Map<String, Object> r : rows) {
+            String id = r.get("id").toString();
+            audit.record("api_client.suspended", "api_client", id, com.ivorovi.platform.audit.AuditOutcome.SUCCESS,
+                    Map.of("reason", "owner_inactive", "ownerUserId", ownerUserId.toString(), "event", event));
+            outbox.append("api_client", id, "api_client.suspended", Map.of("name", String.valueOf(r.get("name")), "reason", "owner_inactive"));
+        }
+        return rows.size();
+    }
+
+    ClientAuthorization.Subject subject(View v) {
+        return new ClientAuthorization.Subject(v.id(), v.kind(), v.ownerUserId(), v.serviceIdentityId(), v.scopes(), v.orgUnitId());
     }
 
     /** Name, description, IP allow-list and expiry; scopes are fixed for the life of a client (create a new one instead). */
@@ -263,8 +400,10 @@ public class ApiClientService {
                    (SELECT count(*) FROM api_client_secret s WHERE s.client_id = c.id AND s.revoked_at IS NULL AND (s.expires_at IS NULL OR s.expires_at > now())) AS keys,
                    (SELECT coalesce(sum(requests), 0) FROM api_client_usage g WHERE g.client_id = c.id AND g.day >= current_date - 29) AS req,
                    (SELECT coalesce(sum(denied), 0) FROM api_client_usage g WHERE g.client_id = c.id AND g.day >= current_date - 29) AS den,
-                   u.display_name AS creator, c.created_at, c.revoked_at, c.version
-            FROM api_client c LEFT JOIN org_unit ou ON ou.id = c.org_unit_id LEFT JOIN user_account u ON u.id = c.created_by""";
+                   u.display_name AS creator, c.created_at, c.revoked_at, c.version, c.kind, c.owner_user_id, o.display_name AS owner_name,
+                   c.service_identity_id, si.name AS identity_name, c.suspended_reason, c.suspended_at
+            FROM api_client c LEFT JOIN org_unit ou ON ou.id = c.org_unit_id LEFT JOIN user_account u ON u.id = c.created_by
+            LEFT JOIN user_account o ON o.id = c.owner_user_id LEFT JOIN service_identity si ON si.id = c.service_identity_id""";
 
     private View find(UUID id) {
         return jdbc.sql(SELECT + " WHERE c.id = ?").param(id).query(ApiClientService::view).optional().orElseThrow(() -> ApiException.notFound("API client"));
@@ -272,14 +411,16 @@ public class ApiClientService {
 
     private View active(UUID id) {
         View v = find(id);
-        if (!"ACTIVE".equals(v.status())) throw ApiException.conflict("api_client_revoked", "This API client has been revoked.");
+        if ("REVOKED".equals(v.status())) throw ApiException.conflict("api_client_revoked", "This API client has been revoked.");
+        if (!"ACTIVE".equals(v.status())) throw ApiException.conflict("api_client_suspended", "This API client is suspended; resume or reassign it first.");
         return v;
     }
 
     private static View view(ResultSet rs, int n) throws SQLException {
         return new View(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), strings(rs.getArray(4)), rs.getObject(5, UUID.class), rs.getString(6),
                 strings(rs.getArray(7)), rs.getString(8), ts(rs, 9), ts(rs, 10), rs.getInt(11), rs.getLong(12), rs.getLong(13), rs.getString(14), ts(rs, 15),
-                ts(rs, 16), rs.getLong(17));
+                ts(rs, 16), rs.getLong(17), rs.getString(18), rs.getObject(19, UUID.class), rs.getString(20), rs.getObject(21, UUID.class), rs.getString(22),
+                rs.getString(23), ts(rs, 24));
     }
 
     static List<String> strings(Array a) throws SQLException {

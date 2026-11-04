@@ -1,6 +1,6 @@
 # Increment 1.7 — Dashboard and integration improvements
 
-**Status: delivered for review (2026-11-04).** Authorized 2026-11-03 together with the acceptance of increment 1.6.
+**Status: accepted in principle; closure pending final CI of the KI-59 fix (2026-11-04).** Authorized 2026-11-03 together with the acceptance of increment 1.6.
 Not a production-readiness claim: the release blockers in `runbooks/production-readiness.md` remain open.
 
 ## Part A — 1.6 acceptance items (done before 1.7 work)
@@ -77,3 +77,38 @@ Integrations / API Clients / Webhooks.
 
 KI-59 (API client scopes checked at registration), KI-60 (REST sync is connectivity only), KI-61 (health checks per
 instance), KI-62 (at-least-once webhooks), KI-63 (in-app notifications only), KI-64 (outbox lag inherited).
+
+
+## Closure: KI-59 (2026-11-04)
+
+Accepted in principle subject to KI-59, which is now implemented as approved (decision register D-KI59-1…7):
+
+* **Live revalidation:** every API-key request computes effective permissions from current authority:
+  * delegated clients: registered scopes ∩ the owner's current grants (owner must be active);
+  * service clients: scopes ∩ the identity's role grants ∩ approved envelope;
+  * both: read-only, narrowed to the client's unit.
+
+  No key expiry or rotation is involved.
+* **Owner lifecycle:** suspension or deactivation refuses keys immediately and suspends the owner's delegated clients.
+  Clients never resume automatically. Reassignment re-validates the new owner's full coverage.
+* **Service identities:**
+  * business and technical custodians;
+  * envelope approved by a different integration manager;
+  * roles limited to the envelope;
+  * suspension after 30 days without a valid custodian.
+* **Audit:** ownership, scope, approval and lifecycle changes; one `scope_lost` record per client, scope and day.
+
+Evidence:
+
+| Check | Result |
+|---|---|
+| Security tests | `ApiClientAuthorizationIT` 9/9 (permission removal, assignment revocation and expiry, unit narrowing, owner suspension/deactivation, no automatic resume, reassignment, concurrent revocation with 6 parallel clients, service-identity approval/envelope/roles, 30-day custodian rule, isolation and audit); 1.7 `ApiClientIT` 5/5 unchanged |
+| Full backend suite | 66 classes, **251 tests, 0 failures** |
+| Frontend | typecheck, lint, 39 unit tests; bundle 157.7 kB ≤ 180 kB |
+| E2E | full suite incl. new `ki59.spec.ts` (see CI) |
+| Smoke | **99 / 99** (5 new KI-59 checks) |
+| Benchmark | `performance/api-key-authorization-benchmark.md`: +0.6 ms p50 single client; ≈ 75% of bearer throughput at 32 concurrent clients after batching usage counters (finding fixed during the benchmark) |
+| Docs | `architecture/10-api-client-authorization.md` §8, `runbooks/service-identities.md`, register `increment-1.7-known-issues.md` |
+
+Production readiness is **not** claimed. Open blockers: RB-1 scanner, RB-2/RB-3 data-key management and rotation
+tooling, RB-4 (KI-46), RB-5 (KI-48, legal review brief prepared), RB-6 penetration test.

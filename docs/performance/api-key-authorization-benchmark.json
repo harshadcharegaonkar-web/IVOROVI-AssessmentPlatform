@@ -1,0 +1,96 @@
+{
+  "seconds": 20,
+  "endpoint": "GET /api/v1/org-units/tree",
+  "results": [
+    {
+      "threads": 1,
+      "requests": 5674,
+      "errors": 0,
+      "rps": 283.7,
+      "p50_ms": 3.3,
+      "p95_ms": 5.0,
+      "p99_ms": 7.8,
+      "credential": "bearer"
+    },
+    {
+      "threads": 1,
+      "requests": 4825,
+      "errors": 0,
+      "rps": 241.2,
+      "p50_ms": 3.9,
+      "p95_ms": 5.2,
+      "p99_ms": 6.9,
+      "credential": "delegated"
+    },
+    {
+      "threads": 1,
+      "requests": 5178,
+      "errors": 0,
+      "rps": 258.9,
+      "p50_ms": 3.7,
+      "p95_ms": 4.9,
+      "p99_ms": 6.8,
+      "credential": "service"
+    },
+    {
+      "threads": 8,
+      "requests": 22663,
+      "errors": 0,
+      "rps": 1133.2,
+      "p50_ms": 6.7,
+      "p95_ms": 10.9,
+      "p99_ms": 14.1,
+      "credential": "bearer"
+    },
+    {
+      "threads": 8,
+      "requests": 16701,
+      "errors": 0,
+      "rps": 835.0,
+      "p50_ms": 9.1,
+      "p95_ms": 13.8,
+      "p99_ms": 17.5,
+      "credential": "delegated"
+    },
+    {
+      "threads": 8,
+      "requests": 17926,
+      "errors": 0,
+      "rps": 896.3,
+      "p50_ms": 8.5,
+      "p95_ms": 12.7,
+      "p99_ms": 15.7,
+      "credential": "service"
+    },
+    {
+      "threads": 32,
+      "requests": 29642,
+      "errors": 0,
+      "rps": 1482.1,
+      "p50_ms": 20.4,
+      "p95_ms": 35.7,
+      "p99_ms": 44.2,
+      "credential": "bearer"
+    },
+    {
+      "threads": 32,
+      "requests": 21772,
+      "errors": 0,
+      "rps": 1088.6,
+      "p50_ms": 28.2,
+      "p95_ms": 43.8,
+      "p99_ms": 54.4,
+      "credential": "delegated"
+    },
+    {
+      "threads": 32,
+      "requests": 22296,
+      "errors": 0,
+      "rps": 1114.8,
+      "p50_ms": 27.5,
+      "p95_ms": 43.5,
+      "p99_ms": 54.3,
+      "credential": "service"
+    }
+  ]
+}

@@ -132,6 +132,9 @@ ivorovi:
     run-attempts: 3
     failing-threshold: 3
     health-check-interval: ${IVOROVI_INTEGRATIONS_HEALTH_CHECK_INTERVAL:PT15M}
+    # KI-59: suspend delegated API clients when their owner is suspended/deactivated; custodian checks (hourly)
+    lifecycle-consumer-enabled: ${IVOROVI_INTEGRATIONS_LIFECYCLE_CONSUMER_ENABLED:true}
+    custodian-check-cron: "0 17 * * * *"
     webhooks:
       dispatcher-enabled: ${IVOROVI_WEBHOOKS_DISPATCHER_ENABLED:true}
       consumer-enabled: ${IVOROVI_WEBHOOKS_CONSUMER_ENABLED:true}

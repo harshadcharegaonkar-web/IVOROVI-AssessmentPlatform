@@ -34,7 +34,17 @@ class ApiClientController {
 
     @Schema(name = "ApiClientRequest")
     record Request(@Size(max = 100) String name, @Size(max = 300) String description, @Size(max = 40) List<@Size(max = 60) String> scopes, UUID orgUnitId,
-                   @Size(max = 50) List<@Size(max = 50) String> allowedIps, Instant expiresAt, Long version) {}
+                   @Size(max = 50) List<@Size(max = 50) String> allowedIps, Instant expiresAt, Long version,
+                   @Schema(description = "Register the client for a service identity instead of yourself") UUID serviceIdentityId) {}
+
+    @Schema(name = "ApiClientOwnerRequest")
+    record OwnerRequest(UUID userId, Long version) {}
+
+    @Schema(name = "ApiClientScopesRequest")
+    record ScopesRequest(@Size(max = 40) List<@Size(max = 60) String> scopes, Long version) {}
+
+    @Schema(name = "ApiClientSuspendRequest")
+    record SuspendRequest(@Size(max = 300) String reason) {}
 
     @Schema(name = "ApiClientRotateRequest")
     record RotateRequest(@Min(0) @Max(168) int graceHours) {}
@@ -64,7 +74,8 @@ class ApiClientController {
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register an API client; returns the key once")
     ApiClientService.Issued create(@RequestBody Request r) {
-        return service.create(new ApiClientService.Command(r.name(), r.description(), r.scopes(), r.orgUnitId(), r.allowedIps(), r.expiresAt(), null));
+        return service.create(new ApiClientService.Command(r.name(), r.description(), r.scopes(), r.orgUnitId(), r.allowedIps(), r.expiresAt(), null,
+                r.serviceIdentityId()));
     }
 
     @GetMapping("/{id}")
@@ -90,6 +101,30 @@ class ApiClientController {
     ResponseEntity<Void> revokeKey(@PathVariable UUID id, @PathVariable UUID keyId) {
         service.revokeKey(id, keyId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/owner")
+    @Operation(summary = "Reassign a delegated client to another active user who holds every scope now (resumes it if it was suspended because its owner left)")
+    ApiClientService.View reassign(@PathVariable UUID id, @RequestBody OwnerRequest r) {
+        return service.reassign(id, r.userId(), r.version());
+    }
+
+    @PutMapping("/{id}/scopes")
+    @Operation(summary = "Remove scopes (widening needs a new client)")
+    ApiClientService.View scopes(@PathVariable UUID id, @RequestBody ScopesRequest r) {
+        return service.narrowScopes(id, r.scopes(), r.version());
+    }
+
+    @PostMapping("/{id}/suspend")
+    @Operation(summary = "Suspend a client (keys stop working until resumed)")
+    ApiClientService.View suspend(@PathVariable UUID id, @RequestBody SuspendRequest r) {
+        return service.suspend(id, r.reason());
+    }
+
+    @PostMapping("/{id}/resume")
+    @Operation(summary = "Resume a suspended client; never automatic, the owner or service identity must be active")
+    ApiClientService.View resume(@PathVariable UUID id) {
+        return service.resume(id);
     }
 
     @PostMapping("/{id}/revoke")

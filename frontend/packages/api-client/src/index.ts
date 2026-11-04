@@ -93,3 +93,7 @@ export type ApiScope = Schemas["ApiScope"];
 export type WebhookEndpoint = Schemas["WebhookEndpoint"];
 export type WebhookDelivery = Schemas["WebhookDelivery"];
 export type WebhookEventType = Schemas["WebhookEventType"];
+// KI-59
+export type ServiceIdentity = Schemas["ServiceIdentity"];
+export type ServiceIdentityDetail = Schemas["ServiceIdentityDetail"];
+export type ServiceRoleAssignment = Schemas["ServiceRoleAssignment"];

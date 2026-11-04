@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router";
 export const statusTone: Record<string, BadgeTone> = {
   HEALTHY: "success", ACTIVE: "success", SUCCEEDED: "success", DELIVERED: "success", EXPIRING: "warning",
   FAILING: "danger", FAILED: "danger", AUTO_DISABLED: "danger", REVOKED: "neutral", EXPIRED: "neutral",
-  UNKNOWN: "neutral", PAUSED: "warning", PENDING: "info", RUNNING: "info",
+  UNKNOWN: "neutral", PAUSED: "warning", PENDING: "info", RUNNING: "info", SUSPENDED: "warning", PENDING_APPROVAL: "info", DISABLED: "neutral",
 };
 
 export function StatusBadge({ status }: { status?: string | null }) {
@@ -35,10 +35,11 @@ export function SecretOnce({ label, value, children }: { label: string; value: s
 export function IntegrationTabs({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const value = pathname.startsWith("/integrations/api-clients") ? "/integrations/api-clients" : pathname.startsWith("/integrations/webhooks") ? "/integrations/webhooks" : "/integrations";
+  const value = ["/integrations/api-clients", "/integrations/service-identities", "/integrations/webhooks"].find((p) => pathname.startsWith(p)) ?? "/integrations";
   return (
     <Tabs label="Integration areas" value={value} onValueChange={(v) => void navigate(v)}
-      tabs={[{ value: "/integrations", label: "Integrations" }, { value: "/integrations/api-clients", label: "API clients" }, { value: "/integrations/webhooks", label: "Webhooks" }]}>
+      tabs={[{ value: "/integrations", label: "Integrations" }, { value: "/integrations/api-clients", label: "API clients" },
+        { value: "/integrations/service-identities", label: "Service identities" }, { value: "/integrations/webhooks", label: "Webhooks" }]}>
       <TabPanel value={value}>{children}</TabPanel>
     </Tabs>
   );

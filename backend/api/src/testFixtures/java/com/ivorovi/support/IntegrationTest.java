@@ -43,7 +43,9 @@ import org.springframework.test.web.servlet.MockMvc;
         "ivorovi.integrations.webhooks.max-attempts=3",
         "ivorovi.integrations.webhooks.disable-after=3",
         "ivorovi.integrations.webhooks.backoff-base=PT1S",
-        "ivorovi.notifications.consumer-enabled=false"})
+        "ivorovi.notifications.consumer-enabled=false",
+        "ivorovi.integrations.lifecycle-consumer-enabled=false",
+        "ivorovi.integrations.custodian-check-cron=-"})
 public abstract class IntegrationTest {
 
     /** Per-run random field-encryption key (test databases are throw-away). */

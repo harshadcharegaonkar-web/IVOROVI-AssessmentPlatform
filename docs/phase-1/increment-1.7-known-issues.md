@@ -3,15 +3,27 @@
 Severity scale used across the project: **Release blocker** (must be fixed before real data in production),
 **High**, **Medium**, **Low**, **Info**. Summary rows remain in `docs/known-issues.md`.
 
+## Register (updated 2026-11-04)
+
+| Issue | Severity | Status | Business impact (short) | Resolution / target | Owner |
+|---|---|---|---|---|---|
+| KI-59 | High | **Fixed** 2026-11-04 | Machine access could outlive withdrawn authority | Live revalidation, owner-suspension workflow, service identities (see below) | Engineering |
+| KI-60 | Info | Accepted (by design) | No automatic SIS/LMS data exchange yet | Mapping layer + first approved connector: Phase 2 increment 2.14; vendor scope decision pending | Product (scope), Engineering |
+| KI-61 | Low | Open, scheduled | Duplicate read-only health checks with several API instances | Database lease for scheduled checks: increment 2.0 (foundations) | Engineering |
+| KI-62 | Info | Accepted (contract) | Receivers must de-duplicate | Guidance published; per-resource sequence numbers with the Phase 2 event catalogue (2.14) | Engineering |
+| KI-63 | Info | Accepted, change approved | Alerts only in-app | Email channel with preferences: increment 2.0 (decision P2-09 approved with the blueprint) | Engineering |
+| KI-64 | Low | Open, scheduled | Webhooks/notifications lag during bulk operations | Parallel outbox publisher (≥ 2,000 events/s) and summary events: increment 2.0; separate exam-event channel with delivery (2.5) | Engineering |
+
 ## KI-59 — API client scopes are only checked at registration
 
 * **Severity:** High (raised from Low at the 1.7 review: it is an authorization defect, not an inconvenience).
 * **Business impact:** a former administrator's integration, or one whose owner lost a permission, could keep reading
   data the organization intended to withdraw — for example student records after an administrator moved to another
   college. Organizations cannot rely on role changes to cut off machine access.
-* **Proposed resolution:** live permission intersection per request, service identities for long-running
-  integrations, and an owner-suspension workflow — `architecture/10-api-client-authorization.md`. Status: **proposal
-  awaiting approval; Increment 1.7 closes when it is implemented and CI is green.**
+* **Resolution (implemented 2026-11-04):** live permission revalidation on every request, service identities for
+  long-running integrations, and an owner-suspension workflow (`architecture/10-api-client-authorization.md` §8).
+  Evidence: `ApiClientAuthorizationIT` (9 security tests), E2E `ki59.spec.ts`, benchmark
+  `performance/api-key-authorization-benchmark.md`, runbook `runbooks/service-identities.md`.
 
 ## KI-60 — The generic REST adapter's sync checks connectivity only
 
