@@ -59,7 +59,7 @@ Not built (by instruction): vendor-specific connectors, new notification channel
 
 * Backend: 65 test classes, **242 tests, 0 failures, 0 errors** on the final code, including the new suites
   `InsightsIT` 7, `NotificationsIT` 5, `IntegrationsIT` 4, `ApiClientIT` 5, `WebhooksIT` 5, `OutboundGuardTest` 3 and
-  `UploadRefusalAuditIT` 2. CI result: see the commit's GitHub Actions run.
+  `UploadRefusalAuditIT` 2. **CI run 41763456942 green** on all four jobs (security scan, frontend, backend, end-to-end with the compose stack and real Keycloak) for commit `4f7163f`.
 * Frontend: typecheck, lint, 39 unit tests green; production build within the bundle budget.
 * E2E (Playwright, real Keycloak): full suite **100 passed** (including 14 new 1.7 tests on desktop, tablet, mobile).
 * Smoke test: **94 passed, 0 failed** (18 new 1.7 checks, including API-key read-only and SSRF refusal).
