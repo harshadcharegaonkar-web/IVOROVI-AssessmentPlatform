@@ -1092,6 +1092,11 @@ public class StudentImportService {
     /** Records a refused operation in its own transaction (the request's transaction is about to roll back). */
     private void auditFailure(String action, String resourceId, Map<String, String> details) {
         separate.executeWithoutResult(st -> audit.record(action, "student_import", resourceId, AuditOutcome.FAILURE, details));
+        // already recorded with its domain details: the generic upload-refusal record is not added (KI-53)
+        if (org.springframework.web.context.request.RequestContextHolder.getRequestAttributes()
+                instanceof org.springframework.web.context.request.ServletRequestAttributes sra) {
+            sra.getRequest().setAttribute(com.ivorovi.platform.audit.UploadRefusals.AUDITED, Boolean.TRUE);
+        }
     }
 
     static String sha256(byte[] content) {

@@ -1,0 +1,117 @@
+{
+  "organization_students": 36400,
+  "dashboards": {
+    "executive": {
+      "runs": 15,
+      "p50_ms": 121.8,
+      "p95_ms": 586.8,
+      "max_ms": 586.8,
+      "bytes": 529
+    },
+    "academic": {
+      "runs": 15,
+      "p50_ms": 198.6,
+      "p95_ms": 580.6,
+      "max_ms": 580.6,
+      "bytes": 864
+    },
+    "students": {
+      "runs": 15,
+      "p50_ms": 772.0,
+      "p95_ms": 873.3,
+      "max_ms": 873.3,
+      "bytes": 1833
+    },
+    "staff": {
+      "runs": 15,
+      "p50_ms": 14.1,
+      "p95_ms": 36.3,
+      "max_ms": 36.3,
+      "bytes": 312
+    },
+    "imports": {
+      "runs": 15,
+      "p50_ms": 16.8,
+      "p95_ms": 32.7,
+      "max_ms": 32.7,
+      "bytes": 3937
+    }
+  },
+  "reports": {
+    "students first page": {
+      "runs": 15,
+      "p50_ms": 536.5,
+      "p95_ms": 578.3,
+      "max_ms": 578.3,
+      "bytes": 5447
+    },
+    "students last page": {
+      "runs": 15,
+      "p50_ms": 557.6,
+      "p95_ms": 636.7,
+      "max_ms": 636.7,
+      "bytes": 860
+    },
+    "students filtered (status, sort)": {
+      "runs": 15,
+      "p50_ms": 434.6,
+      "p95_ms": 458.1,
+      "max_ms": 458.1,
+      "bytes": 5442
+    },
+    "enrolments": {
+      "runs": 15,
+      "p50_ms": 871.6,
+      "p95_ms": 1040.6,
+      "max_ms": 1040.6,
+      "bytes": 4824
+    },
+    "imports": {
+      "runs": 15,
+      "p50_ms": 14.5,
+      "p95_ms": 21.1,
+      "max_ms": 21.1,
+      "bytes": 3134
+    }
+  },
+  "exports": {
+    "CSV": {
+      "runs": 3,
+      "p50_ms": 606.0,
+      "p95_ms": 649.6,
+      "max_ms": 649.6,
+      "bytes": 5753635
+    },
+    "XLSX": {
+      "runs": 3,
+      "p50_ms": 920.4,
+      "p95_ms": 1022.4,
+      "max_ms": 1022.4,
+      "bytes": 2261991
+    }
+  },
+  "api_key_auth": {
+    "bearer": {
+      "runs": 200,
+      "p50_ms": 10.7,
+      "p95_ms": 15.0,
+      "max_ms": 25.0,
+      "bytes": 505
+    },
+    "api_key": {
+      "runs": 200,
+      "p50_ms": 11.8,
+      "p95_ms": 15.8,
+      "max_ms": 28.0,
+      "bytes": 505
+    }
+  },
+  "webhooks": {
+    "queued": 1000,
+    "delivered_with_valid_signature": 1000,
+    "invalid_signatures": 0,
+    "seconds_until_last": 35.7,
+    "deliveries_per_second": 28.0,
+    "note": "includes up to one dispatcher poll interval (5 s) of waiting before the first batch"
+  }
+}

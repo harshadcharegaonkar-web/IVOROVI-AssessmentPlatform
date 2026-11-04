@@ -66,6 +66,13 @@ public enum Permission {
     AUDIT_READ("audit.read", "View the audit trail", "View and verify the tamper-evident audit trail",
             Domain.AUDIT, Level.READ, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
 
+    REPORT_READ("report.read", "View and export operational reports", "Run and export reports; every report only contains records the holder may already see",
+            Domain.RESULTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    INTEGRATION_READ("integration.read", "View integrations", "View integrations, API clients, webhooks, their status and history",
+            Domain.INTEGRATIONS, Level.READ, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
+    INTEGRATION_MANAGE("integration.manage", "Manage integrations and API access", "Configure integrations, create, rotate and revoke API credentials, manage webhooks",
+            Domain.INTEGRATIONS, Level.MANAGE, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
+
     // Catalogued for later modules: listed in the catalogue, not grantable until the module ships.
     STUDENT_READ("student.read", "View students", "View student profiles, admissions, enrolments and history (personal details need a separate permission)",
             Domain.STUDENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
@@ -126,6 +133,7 @@ public enum Permission {
         RESULTS("Results and reporting"),
         PLACEMENT("Placement"),
         AI("AI capabilities"),
+        INTEGRATIONS("Integrations and API access"),
         AUDIT("Audit and administration"),
         PLATFORM("Platform administration");
 

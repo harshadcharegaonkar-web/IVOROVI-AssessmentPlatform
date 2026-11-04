@@ -79,3 +79,22 @@ layer. The main open risks before any production use are SA-01 (abuse and availa
 security scans (SA-07), and the absence of DAST and penetration testing (C20). For student data, the ClamAV deployment
 and release test (KI-23) and the legal review of DPDP obligations (KI-48) must be completed before real student records
 or documents are accepted.
+
+## Increment 1.7 — dashboards, reports, integrations, API clients, webhooks
+
+| Area | Threat | Control | Evidence |
+|---|---|---|---|
+| Dashboards and reports | Aggregates revealing records outside the viewer's scope | Every figure filtered by the viewer's grant roots (ltree) for the record's permission, on top of RLS; sections without permission omitted; subtree filter intersected with scope | `InsightsIT` (scoped totals, subtree outside scope = 0, other organization invisible) |
+| Reports | Bulk extraction of personal data | `report.read` + record permission; personal columns only on request with `student.personal.read`, per-row unit check, audited; export ≤ 50,000 rows, audited with filters and row count, `no-store`, formula neutralisation | `InsightsIT.personalColumnsNeedPermissionAndAreAudited`, `exportsAreScopedAndAudited` |
+| API keys | Key theft from storage or logs | Secret stored only as SHA-256, shown once; constant-time comparison; logs carry the key id only; audit records key ids, never secrets | `ApiClientIT.keyIsShownOnceStoredHashedAndGrantsOnlyItsScopes` |
+| API keys | Privilege escalation through a client | READ scopes only, subset of the creator's permissions at the client's unit; `integration.*`, `audit.read`, `student.personal.read` excluded; GET/HEAD only; IP allow-list; expiry; rotation with grace; revocation; suspended organizations rejected | `ApiClientIT.scopesAreLimitedAndCannotEscalate`, `ipAllowListExpiryRotationAndRevocation`, `keysNeverReachAnotherOrganization` |
+| API keys | Organization resolution before authentication | `api_key_tenant()` security-definer function returns only the organization id; secret verified inside that organization's RLS context | migration `V202611071000` |
+| Outbound calls | SSRF to internal services or cloud metadata | `OutboundGuard` on save and on every call: HTTPS, no credentials, no private/loopback/CGNAT/multicast/unique-local, link-local always refused, optional allow-list, no redirects; development relaxations refuse to start outside DEVELOPMENT/TEST | `OutboundGuardTest`, smoke check “webhook to a cloud metadata address is refused” |
+| Webhooks | Cross-organization event leakage | Organization taken from the outbox row, endpoints read in that organization's RLS context | `WebhooksIT.pausedEndpointsHoldDeliveriesAndEventsNeverCrossOrganizations` |
+| Webhooks | Personal data in payloads | Whitelisted fields only; identifiers only with opt-in; names, emails, birth dates and free-text reasons never sent | `WebhooksIT.signedTestPingAndMinimalStudentPayload`, `identifiersOnlyWithOptIn` |
+| Webhooks | Forged or replayed deliveries at the receiver | HMAC-SHA256 signature over timestamp and body; documented timestamp tolerance; delivery and event ids for de-duplication | `WebhooksIT` signature verification |
+| Integrations | Secrets exposed through the API | Adapter secrets AES-GCM encrypted (`integration.secret`), write-only (`secretSet` flag), never audited | `IntegrationsIT.configurationIsValidatedAndTheSecretIsWriteOnly` |
+| Availability | Slow or failing external systems | 5-second timeouts, attempts bounded, outbound work outside DB transactions, bounded pools, endpoints auto-disabled after 10 consecutive failures | `IntegrationsIT`, `WebhooksIT.failuresAreRetriedThenFailedAndTheEndpointIsDisabledThenReplayed` |
+
+Not claimed: these controls are technical; they do not by themselves establish compliance with any law or contract
+(see `runbooks/production-readiness.md`).

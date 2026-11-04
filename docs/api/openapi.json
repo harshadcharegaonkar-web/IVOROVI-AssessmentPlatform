@@ -9,11 +9,132 @@
     "bearer" : [ ]
   } ],
   "paths" : {
+    "/api/v1/webhooks/{id}" : {
+      "get" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Endpoint details",
+        "operationId" : "get",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookEndpoint"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Change name, URL, event types or identifier opt-in",
+        "operationId" : "update",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebhookEndpointRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookEndpoint"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Delete an endpoint and its delivery history",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/status" : {
+      "put" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Pause or resume (resume also re-enables an automatically disabled endpoint)",
+        "operationId" : "status",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebhookStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookEndpoint"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tenant/settings" : {
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Organization settings: entity display labels, time zone and academic calendar rules (all signed-in users)",
-        "operationId" : "get",
+        "operationId" : "get_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -30,7 +151,7 @@
       "put" : {
         "tags" : [ "Organization" ],
         "summary" : "Update organization settings (requires tenant.settings.manage)",
-        "operationId" : "update",
+        "operationId" : "update_1",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -255,7 +376,7 @@
       "put" : {
         "tags" : [ "Staff" ],
         "summary" : "Update a staff profile (optimistic version required)",
-        "operationId" : "update_1",
+        "operationId" : "update_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -282,6 +403,127 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/StaffDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/{id}" : {
+      "get" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Integration with adapter details, recent runs and 30-day run counts",
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IntegrationDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Change name, description, configuration or secret (optimistic version check)",
+        "operationId" : "update_3",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IntegrationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Integration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Delete a disabled integration and its run history",
+        "operationId" : "delete_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/{id}/enabled" : {
+      "put" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Enable or disable an integration",
+        "operationId" : "enabled",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IntegrationEnabledRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Integration"
                 }
               }
             }
@@ -359,11 +601,219 @@
         }
       }
     },
+    "/api/v1/api-clients/{id}" : {
+      "get" : {
+        "tags" : [ "API clients" ],
+        "summary" : "API client with its keys (id and last four characters only) and daily usage",
+        "operationId" : "get_3",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClientDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Change name, description, IP allow-list or expiry (scopes are fixed)",
+        "operationId" : "update_4",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClient"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks" : {
+      "get" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Webhook endpoints with status and 30-day delivery counts",
+        "operationId" : "list",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebhookEndpoint"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Create an endpoint (HTTPS, SSRF-checked); returns the signing secret once",
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WebhookEndpointRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookEndpointCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/test" : {
+      "post" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Send a signed webhook.ping now and return the outcome",
+        "operationId" : "test",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookTestResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/rotate-secret" : {
+      "post" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Replace the signing secret; returns the new secret once",
+        "operationId" : "rotate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/deliveries/{deliveryId}/replay" : {
+      "post" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Queue the same payload again as a new delivery",
+        "operationId" : "replay",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "deliveryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookDelivery"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users" : {
       "get" : {
         "tags" : [ "Users" ],
         "summary" : "List users visible to the caller (search, filters, sort, pagination)",
-        "operationId" : "list",
+        "operationId" : "list_1",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -459,7 +909,7 @@
       "post" : {
         "tags" : [ "Users" ],
         "summary" : "Create a user (status INVITED) with a primary organizational assignment; optionally email an invitation",
-        "operationId" : "create",
+        "operationId" : "create_1",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -488,7 +938,7 @@
       "post" : {
         "tags" : [ "Users" ],
         "summary" : "Suspend, reactivate, deactivate or activate an account (also enables/disables the login)",
-        "operationId" : "status",
+        "operationId" : "status_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -899,7 +1349,7 @@
       "post" : {
         "tags" : [ "Students" ],
         "summary" : "Create a student profile (prospective); the student ID is generated or validated by the institution's rule",
-        "operationId" : "create_1",
+        "operationId" : "create_2",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -1067,7 +1517,7 @@
       "get" : {
         "tags" : [ "Student documents" ],
         "summary" : "Documents of the student with scan and verification state",
-        "operationId" : "list_1",
+        "operationId" : "list_2",
         "parameters" : [ {
           "name" : "studentId",
           "in" : "path",
@@ -1425,7 +1875,7 @@
       "post" : {
         "tags" : [ "Students" ],
         "summary" : "Change the lifecycle status (only valid transitions; reason required; history kept)",
-        "operationId" : "status_1",
+        "operationId" : "status_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1951,7 +2401,7 @@
       "get" : {
         "tags" : [ "Staff" ],
         "summary" : "List staff profiles visible to the caller",
-        "operationId" : "list_2",
+        "operationId" : "list_3",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -2046,7 +2496,7 @@
       "post" : {
         "tags" : [ "Staff" ],
         "summary" : "Create a staff profile (no login account required)",
-        "operationId" : "create_2",
+        "operationId" : "create_3",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2205,7 +2655,7 @@
       "get" : {
         "tags" : [ "Roles" ],
         "summary" : "System and custom roles (search, type and status filters, sort, pagination)",
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "name" : "q",
           "in" : "query",
@@ -2285,7 +2735,7 @@
       "post" : {
         "tags" : [ "Roles" ],
         "summary" : "Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope",
-        "operationId" : "create_3",
+        "operationId" : "create_4",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2314,7 +2764,7 @@
       "post" : {
         "tags" : [ "Roles" ],
         "summary" : "Activate or deactivate a custom role; deactivation suspends all of its assignments at once",
-        "operationId" : "status_2",
+        "operationId" : "status_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -2403,7 +2853,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "List organization units visible to the caller (search, filters, sort, pagination)",
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "name" : "type",
           "in" : "query",
@@ -2491,7 +2941,7 @@
       "post" : {
         "tags" : [ "Organization" ],
         "summary" : "Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units)",
-        "operationId" : "create_4",
+        "operationId" : "create_5",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -2630,6 +3080,27 @@
         }
       }
     },
+    "/api/v1/notifications/{id}/unread" : {
+      "post" : {
+        "tags" : [ "Notifications" ],
+        "summary" : "Mark one of my notifications as unread",
+        "operationId" : "unread",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/v1/notifications/{id}/read" : {
       "post" : {
         "tags" : [ "Notifications" ],
@@ -2681,6 +3152,301 @@
         "operationId" : "revoke",
         "parameters" : [ {
           "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/integrations" : {
+      "get" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Integrations with connection status, last check, last success and last sync",
+        "operationId" : "list_6",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Integration"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked",
+        "operationId" : "create_6",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/IntegrationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Integration"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/{id}/test" : {
+      "post" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Run a connection test now (with retries); the run is recorded",
+        "operationId" : "test_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IntegrationRun"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/{id}/sync" : {
+      "post" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Run a sync now (enabled integrations whose adapter supports it)",
+        "operationId" : "sync",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IntegrationRun"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/{id}/runs/{runId}/retry" : {
+      "post" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Retry a failed run",
+        "operationId" : "retry_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "runId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IntegrationRun"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients" : {
+      "get" : {
+        "tags" : [ "API clients" ],
+        "summary" : "API clients with status, last use and 30-day usage",
+        "operationId" : "list_7",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ApiClient"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Register an API client; returns the key once",
+        "operationId" : "create_7",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClientCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/rotate" : {
+      "post" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Issue a new key; existing keys stay valid for the grace period (0-168 hours); returns the new key once",
+        "operationId" : "rotate_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientRotateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClientCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/revoke" : {
+      "post" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Revoke the client and all its keys (permanent)",
+        "operationId" : "revoke_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApiClientRevokeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApiClient"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/{id}/keys/{keyId}/revoke" : {
+      "post" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Revoke one key immediately",
+        "operationId" : "revokeKey",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "keyId",
           "in" : "path",
           "required" : true,
           "schema" : {
@@ -4045,7 +4811,7 @@
       "patch" : {
         "tags" : [ "Users" ],
         "summary" : "Edit profile fields (email only before the first sign-in)",
-        "operationId" : "update_2",
+        "operationId" : "update_5",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4231,7 +4997,7 @@
       "delete" : {
         "tags" : [ "Students" ],
         "summary" : "Delete a profile created in error (prospective or cancelled, without academic records)",
-        "operationId" : "delete",
+        "operationId" : "delete_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4258,7 +5024,7 @@
       "patch" : {
         "tags" : [ "Students" ],
         "summary" : "Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged)",
-        "operationId" : "update_3",
+        "operationId" : "update_6",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4348,7 +5114,7 @@
       "patch" : {
         "tags" : [ "Roles" ],
         "summary" : "Edit a custom role (system roles are protected); changes apply to every holder immediately",
-        "operationId" : "update_4",
+        "operationId" : "update_7",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4386,7 +5152,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Unit details with ancestors (breadcrumb), child counts and dependents",
-        "operationId" : "get_1",
+        "operationId" : "get_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4412,7 +5178,7 @@
       "delete" : {
         "tags" : [ "Organization" ],
         "summary" : "Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead)",
-        "operationId" : "delete_1",
+        "operationId" : "delete_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4439,7 +5205,7 @@
       "patch" : {
         "tags" : [ "Organization" ],
         "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
-        "operationId" : "update_5",
+        "operationId" : "update_8",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -4840,6 +5606,121 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AcademicTerm"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/deliveries" : {
+      "get" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Delivery history (newest first), optionally by status",
+        "operationId" : "deliveries",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "PENDING|DELIVERED|FAILED"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseWebhookDelivery"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/{id}/deliveries/{deliveryId}" : {
+      "get" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "One delivery with its payload",
+        "operationId" : "delivery",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "deliveryId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebhookDelivery"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/event-types" : {
+      "get" : {
+        "tags" : [ "Webhooks" ],
+        "summary" : "Subscribable event types",
+        "operationId" : "eventTypes",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/WebhookEventType"
+                  }
                 }
               }
             }
@@ -5443,11 +6324,302 @@
         }
       }
     },
+    "/api/v1/reports" : {
+      "get" : {
+        "tags" : [ "Reports" ],
+        "summary" : "Reports the caller may run, with their columns, filters and sort keys",
+        "operationId" : "catalogue",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReportDefinition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{key}" : {
+      "get" : {
+        "tags" : [ "Reports" ],
+        "summary" : "Run a report (one page)",
+        "operationId" : "run",
+        "parameters" : [ {
+          "name" : "key",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "academicYearId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "programId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "courseId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "batchId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "includePersonal",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "maximum" : 100000,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 25,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{key}/export" : {
+      "get" : {
+        "tags" : [ "Reports" ],
+        "summary" : "Export every matching row (at most 50,000) as CSV or XLSX; audited",
+        "operationId" : "export",
+        "parameters" : [ {
+          "name" : "key",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "academicYearId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "programId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "courseId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "batchId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "includePersonal",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "name" : "sort",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "direction",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "asc"
+          }
+        }, {
+          "name" : "format",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "CSV"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/permissions" : {
       "get" : {
         "tags" : [ "Roles" ],
         "summary" : "Permission catalogue grouped by functional domain (planned permissions are listed but not grantable)",
-        "operationId" : "catalogue",
+        "operationId" : "catalogue_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -5556,8 +6728,8 @@
     "/api/v1/notifications" : {
       "get" : {
         "tags" : [ "Notifications" ],
-        "summary" : "List my notifications (newest first)",
-        "operationId" : "list_5",
+        "summary" : "List my notifications (newest first); state ALL, UNREAD or READ; optional category",
+        "operationId" : "list_8",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -5565,6 +6737,23 @@
           "schema" : {
             "type" : "boolean",
             "default" : false
+          }
+        }, {
+          "name" : "state",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "ALL|UNREAD|READ"
+          }
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0
           }
         }, {
           "name" : "page",
@@ -5646,7 +6835,7 @@
       "get" : {
         "tags" : [ "Invitations" ],
         "summary" : "Invitations of users visible to the caller",
-        "operationId" : "list_6",
+        "operationId" : "list_9",
         "parameters" : [ {
           "name" : "status",
           "in" : "query",
@@ -5691,6 +6880,224 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/PageResponseInvitation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/{id}/runs" : {
+      "get" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Execution history (newest first)",
+        "operationId" : "runs",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseIntegrationRun"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrations/adapters" : {
+      "get" : {
+        "tags" : [ "Integrations" ],
+        "summary" : "Built-in, vendor-neutral adapters with their configuration fields",
+        "operationId" : "adapters",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/IntegrationAdapterInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insights/students" : {
+      "get" : {
+        "tags" : [ "Dashboards" ],
+        "summary" : "Student totals, lifecycle states, admission/enrolment/progression trends and distributions (student.read)",
+        "operationId" : "students",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StudentInsights"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insights/staff" : {
+      "get" : {
+        "tags" : [ "Dashboards" ],
+        "summary" : "Staff totals, distribution by category, department, campus and employment type, faculty assignment summary (staff.read)",
+        "operationId" : "staff",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/StaffDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insights/imports" : {
+      "get" : {
+        "tags" : [ "Dashboards" ],
+        "summary" : "Import operations: outcomes, records processed and rejected, durations and recent jobs (student.import)",
+        "operationId" : "imports",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "from",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        }, {
+          "name" : "to",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "date"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ImportOperations"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insights/executive" : {
+      "get" : {
+        "tags" : [ "Dashboards" ],
+        "summary" : "Organization-wide key figures (organization, academics, students, staff, people, imports), each permission-scoped",
+        "operationId" : "executive",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExecutiveDashboard"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insights/academic" : {
+      "get" : {
+        "tags" : [ "Dashboards" ],
+        "summary" : "Program, course, subject and batch distributions, enrolment by academic year and semester, faculty assignment overview (academics.read)",
+        "operationId" : "academic",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AcademicDashboard"
                 }
               }
             }
@@ -5851,6 +7258,28 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/AuditVerification"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/api-clients/scopes" : {
+      "get" : {
+        "tags" : [ "API clients" ],
+        "summary" : "Scopes the caller can give an API client (read permissions they hold; never personal, audit or integration data)",
+        "operationId" : "scopes",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ApiScope"
+                  }
                 }
               }
             }
@@ -6224,6 +7653,107 @@
   },
   "components" : {
     "schemas" : {
+      "WebhookEndpointRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "url" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "eventTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 60,
+              "minLength" : 0
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          },
+          "includeIdentifiers" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "WebhookEndpoint" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          },
+          "eventTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "includeIdentifiers" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "consecutiveFailures" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lastDeliveryAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSuccessAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "delivered30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "failed30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "pending" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "WebhookStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "status" : {
+            "type" : "string",
+            "pattern" : "ACTIVE|PAUSED"
+          }
+        },
+        "required" : [ "status" ]
+      },
       "TenantSettingsUpdateRequest" : {
         "type" : "object",
         "properties" : {
@@ -6995,6 +8525,126 @@
           }
         }
       },
+      "IntegrationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "SIS_ERP", "LMS", "EMAIL", "APPLICATION" ]
+          },
+          "adapter" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          },
+          "config" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "secret" : {
+            "type" : "string",
+            "description" : "Write-only. Omit to keep, empty string to remove",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Integration" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "kind" : {
+            "type" : "string",
+            "enum" : [ "SIS_ERP", "LMS", "EMAIL", "APPLICATION" ]
+          },
+          "adapter" : {
+            "type" : "string"
+          },
+          "adapterLabel" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "config" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "secretSet" : {
+            "type" : "boolean"
+          },
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "connectionStatus" : {
+            "type" : "string"
+          },
+          "lastCheckedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSuccessAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSyncAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastError" : {
+            "type" : "string"
+          },
+          "consecutiveFailures" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "IntegrationEnabledRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "enabled" ]
+      },
       "OverrideRequest" : {
         "type" : "object",
         "properties" : {
@@ -7046,6 +8696,204 @@
           },
           "source" : {
             "type" : "string"
+          }
+        }
+      },
+      "ApiClientRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          },
+          "scopes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 60,
+              "minLength" : 0
+            },
+            "maxItems" : 40,
+            "minItems" : 0
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "allowedIps" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 50,
+              "minLength" : 0
+            },
+            "maxItems" : 50,
+            "minItems" : 0
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ApiClient" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "scopes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "allowedIps" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastUsedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "activeKeys" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requests30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "denied30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "revokedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "WebhookEndpointCreated" : {
+        "type" : "object",
+        "properties" : {
+          "endpoint" : {
+            "$ref" : "#/components/schemas/WebhookEndpoint"
+          },
+          "signingSecret" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebhookDelivery" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "endpointId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "eventId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "eventType" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nextAttemptAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastStatusCode" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lastError" : {
+            "type" : "string"
+          },
+          "lastDurationMs" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deliveredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "replayOf" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "payload" : {
+            "type" : "string"
+          }
+        }
+      },
+      "WebhookTestResult" : {
+        "type" : "object",
+        "properties" : {
+          "delivered" : {
+            "type" : "boolean"
+          },
+          "delivery" : {
+            "$ref" : "#/components/schemas/WebhookDelivery"
           }
         }
       },
@@ -8755,6 +10603,95 @@
         },
         "required" : [ "version" ]
       },
+      "IntegrationRun" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "integrationId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "operation" : {
+            "type" : "string",
+            "enum" : [ "CONNECTION_TEST", "SYNC" ]
+          },
+          "trigger" : {
+            "type" : "string",
+            "enum" : [ "MANUAL", "SCHEDULED", "RETRY" ]
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "durationMs" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "retryOf" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "startedBy" : {
+            "type" : "string"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiClientCreated" : {
+        "type" : "object",
+        "properties" : {
+          "client" : {
+            "$ref" : "#/components/schemas/ApiClient"
+          },
+          "apiKey" : {
+            "type" : "string"
+          },
+          "keyId" : {
+            "type" : "string"
+          },
+          "keyExpiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiClientRotateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "graceHours" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 168,
+            "minimum" : 0
+          }
+        }
+      },
+      "ApiClientRevokeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          }
+        }
+      },
       "SubjectRequest" : {
         "type" : "object",
         "properties" : {
@@ -9943,6 +11880,50 @@
         },
         "required" : [ "version" ]
       },
+      "PageResponseWebhookDelivery" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WebhookDelivery"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "WebhookEventType" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "mayIncludeIdentifiers" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "PageResponseUserSummary" : {
         "type" : "object",
         "properties" : {
@@ -10810,12 +12791,115 @@
           }
         }
       },
+      "ReportColumn" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "personal" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ReportDefinition" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "permission" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportColumn"
+            }
+          },
+          "filters" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "sorts" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "dateLabel" : {
+            "type" : "string"
+          },
+          "personalAvailable" : {
+            "type" : "boolean"
+          },
+          "statuses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ReportResult" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "columns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ReportColumn"
+            }
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "type" : "array",
+              "items" : {
+                "type" : "string"
+              }
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "personalIncluded" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "PermissionDomain" : {
         "type" : "object",
         "properties" : {
           "domain" : {
             "type" : "string",
-            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "ACADEMICS", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "AUDIT", "PLATFORM" ]
+            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "ACADEMICS", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "INTEGRATIONS", "AUDIT", "PLATFORM" ]
           },
           "label" : {
             "type" : "string"
@@ -10842,7 +12926,7 @@
           },
           "domain" : {
             "type" : "string",
-            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "ACADEMICS", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "AUDIT", "PLATFORM" ]
+            "enum" : [ "ORGANIZATION", "INSTITUTIONS", "USERS", "STAFF", "ROLES", "ACADEMICS", "STUDENTS", "ADMISSIONS", "ASSESSMENTS", "EXAMINATIONS", "EVALUATION", "RESULTS", "PLACEMENT", "AI", "INTEGRATIONS", "AUDIT", "PLATFORM" ]
           },
           "domainLabel" : {
             "type" : "string"
@@ -11062,6 +13146,21 @@
           "readAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "eventType" : {
+            "type" : "string"
+          },
+          "resourceType" : {
+            "type" : "string"
+          },
+          "resourceId" : {
+            "type" : "string"
+          },
+          "channel" : {
+            "type" : "string"
+          },
+          "deliveryStatus" : {
+            "type" : "string"
           }
         }
       },
@@ -11093,6 +13192,13 @@
           "unread" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "unreadByCategory" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
           }
         }
       },
@@ -11187,6 +13293,701 @@
           "totalPages" : {
             "type" : "integer",
             "format" : "int32"
+          }
+        }
+      },
+      "IntegrationAdapterInfo" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "kinds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "enum" : [ "SIS_ERP", "LMS", "EMAIL", "APPLICATION" ]
+            }
+          },
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/IntegrationConfigField"
+            }
+          },
+          "secretLabel" : {
+            "type" : "string"
+          },
+          "secretRequired" : {
+            "type" : "boolean"
+          },
+          "supportsSync" : {
+            "type" : "boolean"
+          },
+          "syncDescription" : {
+            "type" : "string"
+          }
+        }
+      },
+      "IntegrationConfigField" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "help" : {
+            "type" : "string"
+          }
+        }
+      },
+      "IntegrationDetail" : {
+        "type" : "object",
+        "properties" : {
+          "integration" : {
+            "$ref" : "#/components/schemas/Integration"
+          },
+          "adapter" : {
+            "$ref" : "#/components/schemas/IntegrationAdapterInfo"
+          },
+          "recentRuns" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/IntegrationRun"
+            }
+          },
+          "runsLast30Days" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        }
+      },
+      "PageResponseIntegrationRun" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/IntegrationRun"
+            }
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalElements" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalPages" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "InsightGroup" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "InsightPoint" : {
+        "type" : "object",
+        "properties" : {
+          "period" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StudentInsights" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "active" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "prospective" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "admitted" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "suspended" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "withdrawn" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "graduated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "alumni" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "cancelled" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "newAdmissions30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "admissionsByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightPoint"
+            }
+          },
+          "enrolmentsByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightPoint"
+            }
+          },
+          "progressionsByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightPoint"
+            }
+          },
+          "progressionByType" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "byProgram" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "byCourse" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "byBatch" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "bySemester" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "FacultyAssignmentSummary" : {
+        "type" : "object",
+        "properties" : {
+          "facultyActive" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "facultyTeaching" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "facultyWithoutAssignment" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeAssignments" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "primaryAssignments" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "StaffDashboard" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "active" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "onLeave" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "separated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "linkedAccounts" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "byCategory" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "byDepartment" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "byCampus" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "byEmploymentType" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "assignments" : {
+            "$ref" : "#/components/schemas/FacultyAssignmentSummary"
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ImportDashboardJob" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "institutionName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "totalRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "imported" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "finishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "durationSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ImportOperations" : {
+        "type" : "object",
+        "properties" : {
+          "totalJobs" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "completed" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "partiallyCompleted" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "cancelled" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "inProgress" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "awaitingAction" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recordsProcessed" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recordsImported" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recordsUpdated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "recordsRejected" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "averageDurationSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "medianDurationSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "p95DurationSeconds" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "averageRowsPerSecond" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "jobsByMonth" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightPoint"
+            }
+          },
+          "recent" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ImportDashboardJob"
+            }
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ExecutiveAcademics" : {
+        "type" : "object",
+        "properties" : {
+          "programs" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "courses" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "subjects" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeAcademicYears" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeBatches" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExecutiveDashboard" : {
+        "type" : "object",
+        "properties" : {
+          "organization" : {
+            "$ref" : "#/components/schemas/ExecutiveOrganization"
+          },
+          "academics" : {
+            "$ref" : "#/components/schemas/ExecutiveAcademics"
+          },
+          "students" : {
+            "$ref" : "#/components/schemas/ExecutiveStudents"
+          },
+          "staff" : {
+            "$ref" : "#/components/schemas/ExecutiveStaff"
+          },
+          "people" : {
+            "$ref" : "#/components/schemas/ExecutivePeople"
+          },
+          "imports" : {
+            "$ref" : "#/components/schemas/ExecutiveImports"
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ExecutiveImports" : {
+        "type" : "object",
+        "properties" : {
+          "jobs30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "inProgress" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "awaitingAction" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "completed30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "failed30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "rowsImported30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExecutiveOrganization" : {
+        "type" : "object",
+        "properties" : {
+          "universities" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "colleges" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "campuses" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departments" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExecutivePeople" : {
+        "type" : "object",
+        "properties" : {
+          "activeUsers" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "pendingInvitations" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExecutiveStaff" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "active" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "faculty" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExecutiveStudents" : {
+        "type" : "object",
+        "properties" : {
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "active" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "admissionRecords" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "newAdmissions30Days" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AcademicDashboard" : {
+        "type" : "object",
+        "properties" : {
+          "programsByLevel" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "programsByInstitution" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "coursesByProgram" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "subjectsByCategory" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "batchesByStatus" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "batchesByAcademicYear" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "enrolmentByAcademicYear" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "enrolmentBySemester" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
+          },
+          "faculty" : {
+            "$ref" : "#/components/schemas/FacultyOverview"
+          },
+          "generatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "FacultyOverview" : {
+        "type" : "object",
+        "properties" : {
+          "offerings" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "offeringsWithFaculty" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "offeringsWithoutFaculty" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "activeAssignments" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "staffTeaching" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "withoutFacultyByDepartment" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InsightGroup"
+            }
           }
         }
       },
@@ -11299,6 +14100,94 @@
           "firstInvalidSeq" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "ApiClientDetail" : {
+        "type" : "object",
+        "properties" : {
+          "client" : {
+            "$ref" : "#/components/schemas/ApiClient"
+          },
+          "keys" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ApiClientKey"
+            }
+          },
+          "usage" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ApiClientUsageDay"
+            }
+          }
+        }
+      },
+      "ApiClientKey" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "keyId" : {
+            "type" : "string"
+          },
+          "hint" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "revokedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastUsedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ApiClientUsageDay" : {
+        "type" : "object",
+        "properties" : {
+          "day" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "requests" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "denied" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ApiScope" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "domain" : {
+            "type" : "string"
           }
         }
       },

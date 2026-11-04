@@ -22,3 +22,4 @@ frontend/apps/web/playwright-report/
 *.pfx
 *.jks
 !gradle/wrapper/*.jar
+__pycache__/

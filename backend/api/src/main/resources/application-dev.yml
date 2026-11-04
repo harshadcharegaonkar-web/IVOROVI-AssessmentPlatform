@@ -15,6 +15,10 @@ ivorovi:
   storage:
     endpoint: ${IVOROVI_S3_ENDPOINT:http://localhost:8333}
     create-bucket: true
+  # local development only: lets integrations reach Mailpit and local webhook receivers (never in production)
+  integrations:
+    allow-private-networks: true
+    allow-insecure-http: true
 logging:
   level:
     com.ivorovi: DEBUG

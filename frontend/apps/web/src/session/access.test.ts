@@ -37,9 +37,9 @@ describe("access mirror", () => {
 
   it("derives navigation from grants", () => {
     expect(visibleNav(orgAdmin).map((n) => n.label)).toEqual(["Dashboard", "Organization Hierarchy", "Universities", "Colleges", "Campuses", "Departments",
-      "Feature Settings", "Audit Logs", "System Settings", "My Access"]);
-    expect(visibleNav(instAdmin).map((n) => n.label)).toEqual(["Dashboard", "Feature Settings", "My Access"]);
-    expect(visibleNav(student).map((n) => n.label)).toEqual(["Dashboard", "My Access"]);
+      "Feature Settings", "Audit Logs", "System Settings", "Notifications", "My Access"]);
+    expect(visibleNav(instAdmin).map((n) => n.label)).toEqual(["Dashboard", "Feature Settings", "Notifications", "My Access"]);
+    expect(visibleNav(student).map((n) => n.label)).toEqual(["Dashboard", "Notifications", "My Access"]);
   });
 
   it("hides navigation groups that have no permitted items", () => {

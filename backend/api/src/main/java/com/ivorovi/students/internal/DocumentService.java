@@ -70,8 +70,9 @@ public class DocumentService {
     private final TransactionTemplate tx;
     private final boolean scanOnUpload;
     private final int retentionDays;
+    private final com.ivorovi.platform.audit.UploadRefusals refusals;
 
-    DocumentService(JdbcClient jdbc, StudentAccess access, StudentOptions options, ObjectStorage storage, ObjectProvider<MalwareScanner> scanner,
+    DocumentService(com.ivorovi.platform.audit.UploadRefusals refusals, JdbcClient jdbc, StudentAccess access, StudentOptions options, ObjectStorage storage, ObjectProvider<MalwareScanner> scanner,
                     DeploymentProperties deployment, AuditLog audit, TransactionTemplate tx,
                     @Value("${ivorovi.scanning.scan-on-upload:true}") boolean scanOnUpload,
                     @Value("${ivorovi.retention.document-days:30}") int retentionDays) {
@@ -85,6 +86,7 @@ public class DocumentService {
         this.tx = tx;
         this.scanOnUpload = scanOnUpload;
         this.retentionDays = retentionDays;
+        this.refusals = refusals;
     }
 
     private static final String SELECT = """
@@ -115,22 +117,35 @@ public class DocumentService {
 
     @Transactional
     public UUID upload(UUID studentId, String category, String title, String originalName, byte[] content) {
-        StudentAccess.StudentRef s = access.readable(studentId);
-        access.require(StudentAccess.DOC_MANAGE, s);
-        if (!s.active()) throw conflict("student_inactive", "This student profile is deactivated.");
-        if (!uploadsAllowed(deployment.environment(), scanner.getIfAvailable() != null)) {
-            audit.record("student.document.upload_refused", "student", studentId.toString(), AuditOutcome.FAILURE, Map.of("reason", "no_malware_scanner"));
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "document_scanning_unavailable",
-                    "Document uploads are disabled until the malware scanning service is available.");
+        // every refusal is audited in its own transaction (this one rolls back) with institution and reason (KI-53)
+        String[] detected = {null};
+        StudentAccess.StudentRef[] who = {null};
+        try {
+            StudentAccess.StudentRef s = access.readable(studentId);
+            who[0] = s;
+            access.require(StudentAccess.DOC_MANAGE, s);
+            if (!s.active()) throw conflict("student_inactive", "This student profile is deactivated.");
+            if (!uploadsAllowed(deployment.environment(), scanner.getIfAvailable() != null)) {
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "document_scanning_unavailable",
+                        "Document uploads are disabled until the malware scanning service is available.");
+            }
+            options.require(OptionKind.DOCUMENT_CATEGORY, category, "category");
+            if (content == null || content.length == 0) throw ApiException.badRequest("empty_file", "Choose a file.");
+            if (content.length > MAX_BYTES) throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "file_too_large", "Files can be at most 5 MB.");
+            detected[0] = sniff(content);
+            if (detected[0] == null) throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", "Upload a PDF, JPEG or PNG file.");
+            if ("PHOTOGRAPH".equals(category) && "application/pdf".equals(detected[0])) {
+                throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", "A photograph must be a JPEG or PNG image.");
+            }
+        } catch (ApiException e) {
+            refused(studentId, who[0], category, content, detected[0], e.status().value(), e.code());
+            throw e;
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            refused(studentId, who[0], category, content, detected[0], 403, "forbidden");
+            throw e;
         }
-        options.require(OptionKind.DOCUMENT_CATEGORY, category, "category");
-        if (content == null || content.length == 0) throw ApiException.badRequest("empty_file", "Choose a file.");
-        if (content.length > MAX_BYTES) throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "file_too_large", "Files can be at most 5 MB.");
-        String type = sniff(content);
-        if (type == null) throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", "Upload a PDF, JPEG or PNG file.");
-        if ("PHOTOGRAPH".equals(category) && "application/pdf".equals(type)) {
-            throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", "A photograph must be a JPEG or PNG image.");
-        }
+        StudentAccess.StudentRef s = who[0];
+        String type = detected[0];
         String name = safeName(originalName, type);
         String docTitle = StudentService.optional(title, 200);
         UUID id = Ids.newId();
@@ -153,6 +168,25 @@ public class DocumentService {
             });
         }
         return id;
+    }
+
+    private void refused(UUID studentId, StudentAccess.StudentRef s, String category, byte[] content, String detectedType, int status, String reason) {
+        Map<String, String> d = new java.util.LinkedHashMap<>();
+        d.put("studentId", studentId.toString());
+        if (s != null) {
+            d.put("studentNo", s.studentNo());
+            d.put("institutionId", s.institutionId().toString());
+        }
+        if (category != null) d.put("category", category.length() > 40 ? category.substring(0, 40) : category);
+        d.put("sizeBytes", String.valueOf(content == null ? 0 : content.length));
+        if (detectedType != null) d.put("detectedType", detectedType);
+        if (status == 503) d.put("scanner", "unavailable");
+        refusals.refusedByService(currentRequest(), "student.document.upload_refused", "student", studentId.toString(), status, reason, d);
+    }
+
+    private static jakarta.servlet.http.HttpServletRequest currentRequest() {
+        return org.springframework.web.context.request.RequestContextHolder.getRequestAttributes()
+                instanceof org.springframework.web.context.request.ServletRequestAttributes sra ? sra.getRequest() : null;
     }
 
     /** Streams a CLEAN document; quarantined, infected or failed documents are never served. Every download is audited. */

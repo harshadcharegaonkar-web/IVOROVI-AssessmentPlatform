@@ -116,6 +116,14 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 |---|---|---|---|---|---|
 | `result.read` | View results and reports | READ | UNIT | PLANNED | View results, analytics and reports |
 | `result.publish` | Approve and publish results | MANAGE | UNIT | PLANNED | Approve and publish results |
+| `report.read` | View and export operational reports | READ | UNIT | AVAILABLE | Run and export reports (1.7); every report also needs the read permission of its records and contains only records the holder may already see; personal columns additionally need `student.personal.read` and are audited. Granted to ORG_ADMIN, INSTITUTION_ADMIN, MANAGEMENT, DEPARTMENT_HEAD, ADMISSION_OFFICER |
+
+## Integrations and API access
+
+| Code | Name | Level | Scope | Availability | Description |
+|---|---|---|---|---|---|
+| `integration.read` | View integrations | READ | ORGANIZATION | AVAILABLE | View integrations, API clients, webhooks, their status and history (1.7). Granted to ORG_ADMIN |
+| `integration.manage` | Manage integrations and API access | MANAGE | ORGANIZATION | AVAILABLE | Configure integrations, register/rotate/revoke API clients, manage webhooks (1.7). Granted to ORG_ADMIN. API clients can never hold `integration.*`, `audit.read` or `student.personal.read` |
 
 ## Placement
 
@@ -142,7 +150,14 @@ MANAGEMENT, EVALUATOR, PLACEMENT_OFFICER and ASSESSMENT_DESIGNER hold `academics
 Since increment 1.5 (migration `V202611041000`): ORG_ADMIN and INSTITUTION_ADMIN hold all six student permissions;
 ADMISSION_OFFICER holds read, personal, manage and both document permissions (not account creation) plus `academics.read`;
 DEPARTMENT_HEAD holds read, personal and document read; CAMPUS_ADMIN, FACULTY, EXAM_CONTROLLER and MANAGEMENT hold
-`student.read`. The STUDENT role holds none. The catalogue now has 41 permissions: 26 available, 14 planned, 1 platform-only.
+`student.read`. The STUDENT role holds none.
+Since increment 1.7 (migration `V202611071000`): ORG_ADMIN holds `integration.read`, `integration.manage` and `report.read`;
+INSTITUTION_ADMIN, MANAGEMENT, DEPARTMENT_HEAD and ADMISSION_OFFICER hold `report.read`. The catalogue now has
+44 permissions: 29 available, 14 planned, 1 platform-only.
+
+**API clients (1.7)** are not roles: an API client's key carries an explicit list of READ scopes chosen from the
+available read permissions that the registering administrator holds at the client's unit (no escalation), never
+`integration.*`, `audit.read` or `student.personal.read`, and only for GET/HEAD requests.
 
 Adding a permission: add the enum entry with its metadata, grant it to system roles in a Flyway migration, and keep
 `PermissionCatalogConsistencyIT` and `RoleManagementIT.Catalogue` green.

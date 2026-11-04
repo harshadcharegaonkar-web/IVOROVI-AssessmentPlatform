@@ -1,6 +1,6 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
 import type { TerminologyKey } from "../session/useOrgLabels";
-import { BadgeCheck, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { Activity, BadgeCheck, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -9,11 +9,20 @@ export interface NavGroup { id: string; label: string | null; items: NavItem[] }
 
 /**
  * Navigation model (design system §3). Only implemented screens are listed: groups gain items as increments
- * deliver them (People 1.2; Access 1.3; Academics 1.4; Students 1.5).
+ * deliver them (People 1.2; Access 1.3; Academics 1.4; Students 1.5; Insights and Integrations 1.7).
  * Visibility mirrors server permissions for convenience only; the API enforces every permission.
  */
 export const NAV_GROUPS: NavGroup[] = [
   { id: "home", label: null, items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, visible: () => true }] },
+  {
+    id: "insights", label: "Insights",
+    items: [
+      { to: "/dashboards/academic", label: "Academic Dashboard", icon: ChartColumn, visible: (a) => a.hasAnywhere("academics.read") },
+      { to: "/dashboards/staff", label: "Staff Dashboard", icon: ChartBar, visible: (a) => a.hasAnywhere("staff.read") },
+      { to: "/dashboards/imports", label: "Import Operations", icon: Activity, visible: (a) => a.hasAnywhere("student.import") },
+      { to: "/reports", label: "Reports", icon: FileText, visible: (a) => a.hasAnywhere("report.read") },
+    ],
+  },
   {
     id: "organization", label: "Organization",
     items: [
@@ -66,13 +75,19 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "configuration", label: "Configuration",
     items: [
       { to: "/settings/features", label: "Feature Settings", icon: SlidersHorizontal, visible: (a) => a.hasAnywhere("feature.read") },
+      { to: "/integrations", label: "Integrations", icon: Plug, visible: (a) => a.has("integration.read") },
+      { to: "/integrations/api-clients", label: "API Clients", icon: KeySquare, visible: (a) => a.has("integration.read") },
+      { to: "/integrations/webhooks", label: "Webhooks", icon: Webhook, visible: (a) => a.has("integration.read") },
       { to: "/audit", label: "Audit Logs", icon: ScrollText, visible: (a) => a.has("audit.read") },
       { to: "/settings/system", label: "System Settings", icon: Settings2, visible: (a) => a.has("tenant.settings.manage") },
     ],
   },
 ];
 
-export const FOOTER_ITEMS: NavItem[] = [{ to: "/me", label: "My Access", icon: UserRound, visible: () => true }];
+export const FOOTER_ITEMS: NavItem[] = [
+  { to: "/notifications", label: "Notifications", icon: Bell, visible: () => true },
+  { to: "/me", label: "My Access", icon: UserRound, visible: () => true },
+];
 
 export function visibleGroups(access: Access): NavGroup[] {
   return NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => i.visible(access)) })).filter((g) => g.items.length > 0);

@@ -363,6 +363,7 @@ public class StudentImportWorker {
             c.forEach((k, v) -> d.put(k, String.valueOf(v)));
             d.put("durationMs", String.valueOf(ms));
             audit.recordSuccess("student.import.validated", "student_import", jobId.toString(), d);
+            outbox.append("student_import", jobId.toString(), "student.import.validated", Map.of("jobId", jobId.toString(), "rows", seen[0]));
         });
     }
 
@@ -695,6 +696,7 @@ public class StudentImportWorker {
             if (failureKind != null) d.put("failureKind", failureKind);
             audit.record(status.equals("CANCELLED") ? "student.import.cancelled" : "student.import.failed", "student_import", jobId.toString(),
                     status.equals("CANCELLED") ? AuditOutcome.SUCCESS : AuditOutcome.FAILURE, d);
+            outbox.append("student_import", jobId.toString(), "student.import.finished", Map.of("jobId", jobId.toString(), "status", status));
             if (mode == Mode.ALL_OR_NOTHING && compensated > 0) {
                 audit.recordSuccess("student.import.rolled_back", "student_import", jobId.toString(), Map.of("rows", String.valueOf(compensated)));
                 outbox.append("student_import", jobId.toString(), "student.import.rolled_back", Map.of("jobId", jobId.toString(), "rows", compensated));

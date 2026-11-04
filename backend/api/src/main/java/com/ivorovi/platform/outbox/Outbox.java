@@ -1,6 +1,7 @@
 package com.ivorovi.platform.outbox;
 
 import com.ivorovi.platform.ids.Ids;
+import com.ivorovi.platform.security.CurrentUser;
 import com.ivorovi.platform.tenancy.TenantContext;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -29,10 +30,10 @@ public class Outbox {
     public UUID append(String aggregateType, String aggregateId, String eventType, Object payload) {
         UUID id = Ids.newId();
         jdbc.sql("""
-                INSERT INTO outbox_event (id, tenant_id, aggregate_type, aggregate_id, event_type, payload)
-                VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb))""")
+                INSERT INTO outbox_event (id, tenant_id, aggregate_type, aggregate_id, event_type, payload, actor_id)
+                VALUES (?, ?, ?, ?, ?, CAST(? AS jsonb), ?)""")
                 .params(id, TenantContext.currentTenantId().orElse(null), aggregateType, aggregateId, eventType,
-                        json.writeValueAsString(payload))
+                        json.writeValueAsString(payload), CurrentUser.get().map(u -> u.userId()).orElse(null))
                 .update();
         return id;
     }

@@ -30,7 +30,20 @@ import org.springframework.test.web.servlet.MockMvc;
         // scans run when a test calls the scan worker, so quarantine states can be asserted deterministically
         "ivorovi.scanning.scan-on-upload=false",
         // import jobs run when a test calls StudentImportWorker.runPending (no listener, no sweeper)
-        "ivorovi.imports.worker-enabled=false"})
+        "ivorovi.imports.worker-enabled=false",
+        // integrations: tests talk to local receivers (127.0.0.1, plain HTTP); background work runs when a test calls it
+        "ivorovi.integrations.allow-private-networks=true",
+        "ivorovi.integrations.allow-insecure-http=true",
+        "ivorovi.integrations.run-attempts=2",
+        "ivorovi.integrations.failing-threshold=2",
+        "ivorovi.integrations.request-timeout=PT2S",
+        "ivorovi.integrations.health-check-interval=PT24H",
+        "ivorovi.integrations.webhooks.dispatcher-enabled=false",
+        "ivorovi.integrations.webhooks.consumer-enabled=false",
+        "ivorovi.integrations.webhooks.max-attempts=3",
+        "ivorovi.integrations.webhooks.disable-after=3",
+        "ivorovi.integrations.webhooks.backoff-base=PT1S",
+        "ivorovi.notifications.consumer-enabled=false"})
 public abstract class IntegrationTest {
 
     /** Per-run random field-encryption key (test databases are throw-away). */

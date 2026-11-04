@@ -45,7 +45,10 @@ export function NotificationCenter({ buttonClassName }: { buttonClassName?: stri
     )}>
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <p className="font-semibold">Notifications</p>
-        <Button variant="ghost" size="sm" disabled={!unread} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all as read</Button>
+        <span className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" disabled={!unread} loading={markAll.isPending} onClick={() => markAll.mutate()}>Mark all as read</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setOpen(false); void navigate("/notifications"); }}>View all</Button>
+        </span>
       </div>
       <div className="max-h-96 overflow-y-auto">
         {list.isPending ? <div className="space-y-3 p-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></div>

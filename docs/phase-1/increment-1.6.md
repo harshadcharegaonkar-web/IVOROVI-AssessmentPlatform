@@ -1,6 +1,6 @@
 # Increment 1.6: student bulk import and data migration
 
-* Status: **Implemented and verified; awaiting product-owner review** (authorized 2026-11-03 with the 1.5 acceptance).
+* Status: **Accepted** (2026-11-03; KI-53 fixed at acceptance). Previously: implemented and verified; awaiting product-owner review (authorized 2026-11-03 with the 1.5 acceptance).
   Increment 1.7 not started.
 * Depends on: 1.5 (accepted; follow-ups recorded in `increment-1.5.md`).
 * Design: `docs/architecture/08-student-import.md`; operations: `docs/runbooks/student-import.md`; benchmark:
@@ -132,3 +132,14 @@ Migrations: `V202611051000__student_import.sql` (tables, RLS, permission grants,
 
 Evidence: `docs/design/evidence/1.6/` (screenshots at 1440×900, 1024×768 and 390×844 from the Meridian demonstration
 organization; synthetic data only); sample files `docs/samples/student-import/`.
+
+## Acceptance notes (2026-11-03)
+
+* **Malware scanning of import files:** automated tests use a *simulated* scanner (`FakeMalwareScanner`); development,
+  the demonstration, the benchmark and the browser tests run *without* a scanner (files marked `NOT_SCANNED`). The
+  production ClamAV adapter has never been run against a real clamd. This is not evidence of production malware
+  protection. A real scanner deployment and successful staging verification remain a **release blocker for student
+  documents and bulk-import files** (KI-23, `runbooks/production-readiness.md`).
+* **KI-53** fixed (see the register).
+* Still outstanding before production: `IVOROVI_DATA_KEY` backup/recovery/rotation validation (KI-51), rotation tooling
+  (KI-49), KI-46 implementation, KI-48. Production readiness is not claimed.

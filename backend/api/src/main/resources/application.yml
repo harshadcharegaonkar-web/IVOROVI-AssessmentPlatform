@@ -122,6 +122,25 @@ ivorovi:
     concurrency: ${IVOROVI_IMPORT_CONCURRENCY:2}
   # Malware scanning (ADR-0006): set IVOROVI_SCANNING_CLAMD_HOST (and _PORT) to enable the ClamAV adapter. Without a
   # scanner, documents stay quarantined; in STAGING/PRODUCTION uploads are refused (fail closed).
+  # Integrations, API clients and webhooks (increment 1.7). Outbound calls are SSRF-guarded: HTTPS to public hosts only,
+  # unless explicitly relaxed for local development.
+  integrations:
+    allow-private-networks: ${IVOROVI_INTEGRATIONS_ALLOW_PRIVATE_NETWORKS:false}
+    allow-insecure-http: ${IVOROVI_INTEGRATIONS_ALLOW_INSECURE_HTTP:false}
+    allowed-hosts: ${IVOROVI_INTEGRATIONS_ALLOWED_HOSTS:}
+    request-timeout: PT5S
+    run-attempts: 3
+    failing-threshold: 3
+    health-check-interval: ${IVOROVI_INTEGRATIONS_HEALTH_CHECK_INTERVAL:PT15M}
+    webhooks:
+      dispatcher-enabled: ${IVOROVI_WEBHOOKS_DISPATCHER_ENABLED:true}
+      consumer-enabled: ${IVOROVI_WEBHOOKS_CONSUMER_ENABLED:true}
+      max-attempts: 8
+      disable-after: 10
+      backoff-base: PT30S
+      concurrency: 4
+  notifications:
+    consumer-enabled: ${IVOROVI_NOTIFICATIONS_CONSUMER_ENABLED:true}
   outbox:
     exchange: ivorovi.events
     batch-size: 100

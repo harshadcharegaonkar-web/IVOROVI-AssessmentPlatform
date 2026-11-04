@@ -1,18 +1,19 @@
 import { unwrap } from "@ivorovi/api-client";
 import { Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState, ErrorState, KpiCard, Link, PageHeader, Skeleton } from "@ivorovi/ui";
 import { useQuery } from "@tanstack/react-query";
-import { BadgeCheck, Bell, CheckCircle2, Landmark, MailPlus, MapPin, Network, School, UserCheck, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, UserRound, Users, XCircle } from "lucide-react";
+import { BadgeCheck, Bell, BookOpen, CalendarRange, CheckCircle2, Contact, FileText, FileUp, GitBranch, GraduationCap, Landmark, Layers, Loader, MailPlus, MapPin, Network, School, ScrollText, ShieldAlert, SlidersHorizontal, Sparkles, UserPlus, UserRound, Users, XCircle } from "lucide-react";
 import { errorInfo, useApi } from "../api/ApiProvider";
 import { formatNumber, formatRelative, humanize } from "../lib/format";
 import { useInstitutionContext } from "../session/InstitutionContext";
 import { useSession } from "../session/SessionProvider";
 import { useOrgLabels } from "../session/useOrgLabels";
+import { kpi } from "./insights/Charts";
 import { OrgDistributionCard } from "./organization/OrgDistributionCard";
 
 /**
- * Administration dashboard (design system §5). Shows the metrics that exist today (organization structure since
- * increment 1.1, people since 1.2); academic and student KPIs are added as later increments deliver their data.
- * Every value comes from the API.
+ * Executive dashboard (increment 1.7): organization, academic, student, staff, people and import key figures from
+ * /insights/executive, each limited server-side to what the viewer may see (sections without permission are not
+ * shown). Every value comes from the API.
  */
 export function DashboardPage() {
   const api = useApi();
@@ -31,17 +32,9 @@ export function DashboardPage() {
     enabled: canSeeOrg,
     queryFn: async () => unwrap(await api.GET("/api/v1/org-units/summary")),
   });
-  const orgKpi = (type: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT") => {
-    const inactive = org.data?.inactive?.[type] ?? 0;
-    return { value: formatNumber(org.data?.active?.[type] ?? 0), secondary: inactive ? `${formatNumber(inactive)} inactive` : "All active" };
-  };
-  const canSeeUsers = access.hasAnywhere("user.read");
-  const activeUsers = useQuery({ queryKey: ["users", "kpi", "active"], enabled: canSeeUsers,
-    queryFn: async () => unwrap(await api.GET("/api/v1/users", { params: { query: { status: "ACTIVE", size: 1 } } })) });
-  const pendingInvites = useQuery({ queryKey: ["invitations", "kpi", "pending"], enabled: canSeeUsers,
-    queryFn: async () => unwrap(await api.GET("/api/v1/invitations", { params: { query: { status: "PENDING", size: 1 } } })) });
-  const staff = useQuery({ queryKey: ["staff", "kpi"], enabled: access.hasAnywhere("staff.read"),
-    queryFn: async () => unwrap(await api.GET("/api/v1/staff", { params: { query: { status: "ACTIVE", size: 1 } } })) });
+  // every section is scoped server-side to the viewer's permissions; a missing section means "not permitted", not zero
+  const exec = useQuery({ queryKey: ["insights", "executive"], queryFn: async () => unwrap(await api.GET("/api/v1/insights/executive")) });
+  const x = exec.data;
   const notifications = useQuery({
     queryKey: ["notifications"],
     queryFn: async () => unwrap(await api.GET("/api/v1/notifications", { params: { query: { size: 10 } } })),
@@ -63,22 +56,42 @@ export function DashboardPage() {
         actions={access.hasAnywhere("feature.read") ? <ButtonLink to="/settings/features"><SlidersHorizontal aria-hidden className="h-4 w-4" /> Feature settings</ButtonLink> : undefined}
       />
       <h2 className="sr-only">Key figures</h2>
-      {canSeeOrg && (
+      {exec.isError && <Card className="mb-6"><ErrorState message={errorInfo(exec.error).message} onRetry={() => void exec.refetch()} /></Card>}
+      {(exec.isPending || x?.organization) && (
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-4 xl:gap-6" data-testid="org-kpis">
-          <KpiCard icon={Landmark} label={labels.plural("UNIVERSITY")} to="/organization/universities" testId="kpi-universities" loading={org.isPending} {...orgKpi("UNIVERSITY")} />
-          <KpiCard icon={School} label={labels.plural("COLLEGE")} to="/organization/colleges" testId="kpi-colleges" loading={org.isPending} {...orgKpi("COLLEGE")} />
-          <KpiCard icon={MapPin} label={labels.plural("CAMPUS")} to="/organization/campuses" testId="kpi-campuses" loading={org.isPending} {...orgKpi("CAMPUS")} />
-          <KpiCard icon={Users} label={labels.plural("DEPARTMENT")} to="/organization/departments" testId="kpi-departments" loading={org.isPending} {...orgKpi("DEPARTMENT")} />
+          <KpiCard icon={Landmark} label={labels.plural("UNIVERSITY")} to="/organization/universities" testId="kpi-universities" loading={exec.isPending} value={kpi(x?.organization?.universities)} />
+          <KpiCard icon={School} label={labels.plural("COLLEGE")} to="/organization/colleges" testId="kpi-colleges" loading={exec.isPending} value={kpi(x?.organization?.colleges)} />
+          <KpiCard icon={MapPin} label={labels.plural("CAMPUS")} to="/organization/campuses" testId="kpi-campuses" loading={exec.isPending} value={kpi(x?.organization?.campuses)} />
+          <KpiCard icon={Users} label={labels.plural("DEPARTMENT")} to="/organization/departments" testId="kpi-departments" loading={exec.isPending} value={kpi(x?.organization?.departments)} />
         </div>
       )}
-      {(canSeeUsers || access.hasAnywhere("staff.read")) && (
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-3 xl:gap-6" data-testid="people-kpis">
-          {canSeeUsers && <KpiCard icon={UserCheck} label="Active users" to="/people/users?status=ACTIVE" testId="kpi-active-users"
-            loading={activeUsers.isPending} value={formatNumber(activeUsers.data?.totalElements)} secondary="Can sign in" />}
-          {canSeeUsers && <KpiCard icon={MailPlus} label="Pending invitations" to="/people/invitations?status=PENDING" testId="kpi-pending-invitations"
-            loading={pendingInvites.isPending} value={formatNumber(pendingInvites.data?.totalElements)} secondary="Not yet accepted" />}
-          {access.hasAnywhere("staff.read") && <KpiCard icon={BadgeCheck} label="Active staff" to="/people/staff?status=ACTIVE" testId="kpi-staff"
-            loading={staff.isPending} value={formatNumber(staff.data?.totalElements)} secondary="With or without a login" />}
+      {x?.academics && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-5 xl:gap-6" data-testid="academic-kpis">
+          <KpiCard icon={GraduationCap} label={labels.plural("PROGRAM")} to="/academics/programs" testId="kpi-programs" value={kpi(x.academics.programs)} secondary="Active" />
+          <KpiCard icon={GitBranch} label={labels.plural("COURSE")} to="/academics/courses" testId="kpi-courses" value={kpi(x.academics.courses)} secondary="Active" />
+          <KpiCard icon={BookOpen} label={labels.plural("SUBJECT")} to="/academics/subjects" testId="kpi-subjects" value={kpi(x.academics.subjects)} secondary="Active" />
+          <KpiCard icon={CalendarRange} label="Active academic years" to="/academics/calendar" testId="kpi-years" value={kpi(x.academics.activeAcademicYears)} />
+          <KpiCard icon={Layers} label={`Active ${labels.plural("BATCH").toLowerCase()}`} to="/academics/batches" testId="kpi-batches" value={kpi(x.academics.activeBatches)} />
+        </div>
+      )}
+      {(x?.students || x?.staff || x?.people) && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-4 xl:gap-6" data-testid="people-kpis">
+          {x?.students && <KpiCard icon={Contact} label="Students" to="/students" testId="kpi-students" value={kpi(x.students.total)}
+            secondary={`${kpi(x.students.active)} active · ${kpi(x.students.newAdmissions30Days)} admitted in 30 days`} />}
+          {x?.students && <KpiCard icon={FileText} label="Admission records" to="/reports/students" testId="kpi-admissions" value={kpi(x.students.admissionRecords)} secondary="Not cancelled" />}
+          {x?.staff && <KpiCard icon={BadgeCheck} label="Faculty and staff" to="/dashboards/staff" testId="kpi-staff" value={kpi(x.staff.total)}
+            secondary={`${kpi(x.staff.active)} active · ${kpi(x.staff.faculty)} faculty`} />}
+          {x?.people && <KpiCard icon={MailPlus} label="Pending invitations" to="/people/invitations?status=PENDING" testId="kpi-pending-invitations"
+            value={kpi(x.people.pendingInvitations)} secondary={`${kpi(x.people.activeUsers)} active users`} />}
+        </div>
+      )}
+      {x?.imports && (
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:mb-6 xl:grid-cols-4 xl:gap-6" data-testid="import-kpis">
+          <KpiCard icon={FileUp} label="Imports (30 days)" to="/students/imports" testId="kpi-imports" value={kpi(x.imports.jobs30Days)}
+            secondary={`${kpi(x.imports.completed30Days)} completed · ${kpi(x.imports.failed30Days)} failed`} />
+          <KpiCard icon={Loader} label="Imports in progress" to="/students/imports/history" value={kpi(x.imports.inProgress)} secondary={`${kpi(x.imports.awaitingAction)} awaiting action`} />
+          <KpiCard icon={UserPlus} label="Rows imported (30 days)" to="/dashboards/imports" value={kpi(x.imports.rowsImported30Days)} />
+          <KpiCard icon={Bell} label="Unread notifications" to="/notifications" loading={notifications.isPending} value={formatNumber(notifications.data?.unread)} />
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-6">
@@ -87,7 +100,7 @@ export function DashboardPage() {
           secondary={modules.filter((m) => m.enabled).map((m) => humanize(m.key?.replace("module.", ""))).join(" · ") || "None enabled"} />
         <KpiCard icon={Sparkles} label="AI capabilities enabled" loading={features.isPending}
           value={`${ai.filter((a) => a.enabled).length} / ${ai.length}`} secondary="Off by default; human approval required" />
-        <KpiCard icon={Bell} label="Unread notifications" loading={notifications.isPending} value={formatNumber(notifications.data?.unread)} />
+        {!x?.imports && <KpiCard icon={Bell} label="Unread notifications" to="/notifications" loading={notifications.isPending} value={formatNumber(notifications.data?.unread)} />}
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -135,6 +148,7 @@ export function DashboardPage() {
           <Card>
             <CardHeader title="Quick actions" />
             <CardBody className="grid grid-cols-1 gap-2">
+              {access.hasAnywhere("report.read") && <ButtonLink to="/reports" className="w-full justify-start"><FileText aria-hidden className="h-4 w-4" /> Reports</ButtonLink>}
               {canSeeOrg && <ButtonLink to="/organization" className="w-full justify-start"><Network aria-hidden className="h-4 w-4" /> Organization hierarchy</ButtonLink>}
               {access.hasAnywhere("feature.manage") && <ButtonLink to="/settings/features" className="w-full justify-start"><SlidersHorizontal aria-hidden className="h-4 w-4" /> Configure features</ButtonLink>}
               {access.has("audit.read") && <ButtonLink to="/audit" className="w-full justify-start"><ScrollText aria-hidden className="h-4 w-4" /> Review audit log</ButtonLink>}

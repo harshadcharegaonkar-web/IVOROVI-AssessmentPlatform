@@ -213,11 +213,16 @@ public class InvitationService {
             log.warn("Invitation email {} could not be sent: {}", issued.invitationId(), e.getClass().getSimpleName());
             status = "FAILED";
         }
-        jdbc.sql("UPDATE user_invitation SET delivery_status = ? WHERE id = ?").params(status, issued.invitationId()).update();
-        if ("FAILED".equals(status)) {
-            audit.record("user.invitation.delivery_failed", "user_invitation", issued.invitationId().toString(),
-                    com.ivorovi.platform.audit.AuditOutcome.FAILURE, Map.of("invitationId", issued.invitationId().toString()));
-        }
+        String outcome = status;
+        tx.executeWithoutResult(t -> {
+            jdbc.sql("UPDATE user_invitation SET delivery_status = ? WHERE id = ?").params(outcome, issued.invitationId()).update();
+            if ("FAILED".equals(outcome)) {
+                Map<String, String> d = Map.of("invitationId", issued.invitationId().toString());
+                audit.record("user.invitation.delivery_failed", "user_invitation", issued.invitationId().toString(),
+                        com.ivorovi.platform.audit.AuditOutcome.FAILURE, d);
+                outbox.append("user_invitation", issued.invitationId().toString(), "user.invitation.delivery_failed", d);
+            }
+        });
     }
 
     // ---------------------------------------------------------------------------------------- public acceptance

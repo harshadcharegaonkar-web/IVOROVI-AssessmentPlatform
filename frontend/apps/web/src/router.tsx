@@ -60,6 +60,8 @@ const READ_ACADEMICS = (a: Access) => a.hasAnywhere("academics.read");
 const loadStudentEditorPage = () => import("./routes/students/StudentEditorPage");
 const READ_STUDENTS = (a: Access) => a.hasAnywhere("student.read");
 const IMPORT_STUDENTS = (a: Access) => a.hasAnywhere("student.import");
+const REPORTS = (a: Access) => a.hasAnywhere("report.read");
+const INTEGRATIONS = (a: Access) => a.has("integration.read");
 
 export const routes: RouteObject[] = [
   { path: CALLBACK_PATH, element: <AuthCallback /> },
@@ -162,6 +164,28 @@ export const routes: RouteObject[] = [
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
         { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },
         { path: "audit", handle: { crumb: "Audit Logs" }, ...page(() => import("./routes/AuditPage"), (a) => a.has("audit.read")) },
+        { path: "dashboards", handle: { crumb: "Dashboards" }, children: [
+          { path: "academic", handle: { crumb: "Academic" }, ...page(() => import("./routes/insights/AcademicDashboardPage"), (a) => a.hasAnywhere("academics.read")) },
+          { path: "staff", handle: { crumb: "Staff" }, ...page(() => import("./routes/insights/StaffDashboardPage"), (a) => a.hasAnywhere("staff.read")) },
+          { path: "imports", handle: { crumb: "Import operations" }, ...page(() => import("./routes/insights/ImportOperationsPage"), IMPORT_STUDENTS) },
+        ] },
+        { path: "reports", handle: { crumb: "Reports" }, children: [
+          { index: true, ...page(() => import("./routes/reports/ReportsPage"), REPORTS) },
+          { path: ":key", handle: { crumb: "Report" }, ...page(() => import("./routes/reports/ReportPage"), REPORTS) },
+        ] },
+        { path: "notifications", handle: { crumb: "Notifications" }, ...page(() => import("./routes/NotificationsPage")) },
+        { path: "integrations", handle: { crumb: "Integrations" }, children: [
+          { index: true, ...page(() => import("./routes/integrations/IntegrationsPage"), INTEGRATIONS) },
+          { path: "api-clients", handle: { crumb: "API clients" }, children: [
+            { index: true, ...page(() => import("./routes/integrations/ApiClientsPage"), INTEGRATIONS) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/integrations/ApiClientDetailPage"), INTEGRATIONS) },
+          ] },
+          { path: "webhooks", handle: { crumb: "Webhooks" }, children: [
+            { index: true, ...page(() => import("./routes/integrations/WebhooksPage"), INTEGRATIONS) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/integrations/WebhookDetailPage"), INTEGRATIONS) },
+          ] },
+          { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/integrations/IntegrationDetailPage"), INTEGRATIONS) },
+        ] },
         { path: "me", handle: { crumb: "My Access" }, ...page(() => import("./routes/MyAccessPage")) },
         { path: "*", element: <NotFoundPage /> },
       ] },

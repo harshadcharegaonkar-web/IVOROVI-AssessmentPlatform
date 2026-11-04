@@ -164,6 +164,32 @@ IMP_STUDENT=$(json 'd["items"][0]["id"]')
 check "cancel the imported smoke student"                200 "$INES"  POST "/api/v1/students/$IMP_STUDENT/status" '{"status":"CANCELLED","reason":"smoke test","version":0}'
 
 
+echo "Increment 1.7: dashboards, reports, notifications, integrations, API clients, webhooks ..."
+check "executive dashboard (org admin)"                  200 "$ALICE" GET /api/v1/insights/executive
+check "academic dashboard"                               200 "$ALICE" GET /api/v1/insights/academic
+check "student dashboard (institution admin)"            200 "$INES"  GET /api/v1/insights/students
+check "import dashboard denied to faculty"               403 "$ARUN"  GET /api/v1/insights/imports
+check "report catalogue denied to faculty"               403 "$ARUN"  GET /api/v1/reports
+check "students report (paged)"                          200 "$INES"  GET "/api/v1/reports/students?size=5"
+check "students report CSV export"                       200 "$INES"  GET "/api/v1/reports/students/export?format=CSV"
+check "notifications with category filter"               200 "$ALICE" GET "/api/v1/notifications?category=imports"
+check "integrations denied to institution admin"         403 "$INES"  GET /api/v1/integrations
+check "integration adapters (org admin)"                 200 "$ALICE" GET /api/v1/integrations/adapters
+check "webhook event catalogue"                          200 "$ALICE" GET /api/v1/webhooks/event-types
+check "webhook to a cloud metadata address is refused"   400 "$ALICE" POST /api/v1/webhooks '{"name":"smoke ssrf","url":"http://169.254.169.254/latest","eventTypes":["student.created"]}'
+check "API client registration (read scope)"             201 "$ALICE" POST /api/v1/api-clients "{\"name\":\"Smoke $SMK_ID\",\"scopes\":[\"org_unit.read\"]}"
+SMK_KEY=$(json 'd["apiKey"]'); SMK_CLIENT=$(json 'd["client"]["id"]')
+key_check() {
+  local desc=$1 expected=$2 method=$3 path=$4 got
+  got=$(curl -s -o /dev/null -w '%{http_code}' -X "$method" -H "X-Api-Key: $SMK_KEY" -H 'Content-Type: application/json' "$API_URL$path")
+  if [[ $got == "$expected" ]]; then pass=$((pass+1)); echo "  PASS  $desc ($got)"; else fail=$((fail+1)); echo "  FAIL  $desc: expected $expected, got $got"; fi
+}
+key_check "API key reads within its scope"                200 GET  /api/v1/org-units
+key_check "API key outside its scope"                     403 GET  /api/v1/users
+key_check "API key cannot write"                          403 POST /api/v1/org-units
+check "revoke the smoke API client"                      200 "$ALICE" POST "/api/v1/api-clients/$SMK_CLIENT/revoke" '{"reason":"smoke test"}'
+key_check "revoked API key is rejected"                   401 GET  /api/v1/org-units
+
 echo "Provisioning service account is least-privilege (real Keycloak) ..."
 PROV=$(curl -s -X POST "$KEYCLOAK_URL/realms/ivorovi/protocol/openid-connect/token" -d grant_type=client_credentials \
   -d client_id=ivorovi-provisioner --data-urlencode "client_secret=$KEYCLOAK_PROVISIONER_SECRET" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("access_token",""))')

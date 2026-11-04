@@ -125,3 +125,21 @@ and mobile (Playwright `imports.spec.ts`).
 Automation (re-planned): Playwright captures the three viewports for every screen into `frontend/apps/web/e2e/__screenshots__`
 and runs `toHaveScreenshot` against approved baselines in CI (built into Playwright; no new tool). Baselines are
 updated only through a reviewed PR.
+
+
+## Increment 1.7 screens
+
+Captured from the Meridian demonstration organization in `evidence/1.7/` (desktop 1440 × 900 for all 14 screens;
+tablet 1024 × 768 and mobile 390 × 844 for the executive dashboard, student dashboard, students report, notifications
+and integrations). Automated: axe WCAG 2.1 AA (no serious/critical findings) and no horizontal page scroll in
+`e2e/insights.spec.ts` on all three viewports.
+
+| Screen | B1 header | B3 cards | B5 tables | B6 filters in URL | B7 states | Charts: single hue, value as text, table view |
+|---|---|---|---|---|---|---|
+| Executive dashboard | ✓ | ✓ | — | — | ✓ (sections omitted without permission) | — |
+| Academic / Staff dashboards | ✓ | ✓ | — | institution selector | ✓ | ✓ bar lists |
+| Student dashboard (trends) | ✓ | ✓ | — | institution selector | ✓ | ✓ columns + table view |
+| Import operations | ✓ | ✓ | — | date range | ✓ | ✓ |
+| Reports / report | ✓ | ✓ | ✓ server paging and sorting | ✓ | ✓ | — |
+| Notifications | ✓ | ✓ | list | ✓ state and category | ✓ | — |
+| Integrations, API clients, webhooks (list + detail) | ✓ | ✓ | ✓ | status filter (deliveries) | ✓ incl. secret-shown-once panel | — |

@@ -27,20 +27,45 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private final AuditLog audit;
+    private final com.ivorovi.platform.audit.UploadRefusals uploadRefusals;
 
-    GlobalExceptionHandler(AuditLog audit) {
+    GlobalExceptionHandler(AuditLog audit, com.ivorovi.platform.audit.UploadRefusals uploadRefusals) {
         this.audit = audit;
+        this.uploadRefusals = uploadRefusals;
+    }
+
+    private static jakarta.servlet.http.HttpServletRequest servlet(WebRequest request) {
+        return request instanceof ServletWebRequest swr ? swr.getRequest() : null;
+    }
+
+    /** Refused uploads are audited even though the request's transaction rolls back (KI-53). */
+    private void uploadRefused(WebRequest request, int status, String reason) {
+        jakarta.servlet.http.HttpServletRequest r = servlet(request);
+        if (com.ivorovi.platform.audit.UploadRefusals.isUpload(r)) uploadRefusals.refusedByFramework(r, status, reason);
     }
 
     @ExceptionHandler(ApiException.class)
-    ProblemDetail handleApi(ApiException ex) {
+    ProblemDetail handleApi(ApiException ex, WebRequest request) {
+        if (ex.status().is4xxClientError() || ex.status().is5xxServerError()) uploadRefused(request, ex.status().value(), ex.code());
         return ProblemResponses.problem(ex.status(), ex.code(), ex.getMessage());
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(org.springframework.web.multipart.MaxUploadSizeExceededException ex,
+                                                                           HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        uploadRefused(request, HttpStatus.CONTENT_TOO_LARGE.value(), "file_too_large");
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(ProblemResponses.problem(HttpStatus.CONTENT_TOO_LARGE, "file_too_large",
+                "The file is larger than the upload limit."));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     ProblemDetail handleDenied(AccessDeniedException ex, WebRequest request) {
         String path = request instanceof ServletWebRequest swr ? swr.getRequest().getRequestURI() : "";
         String method = request instanceof ServletWebRequest swr ? swr.getRequest().getMethod() : "";
+        if (com.ivorovi.platform.audit.UploadRefusals.isUpload(servlet(request))) {
+            uploadRefused(request, 403, "forbidden");
+            return ProblemResponses.problem(HttpStatus.FORBIDDEN, "forbidden", "You do not have permission for this action.");
+        }
         audit.recordDenied("security.access_denied", Map.of("method", method, "path", path));
         return ProblemResponses.problem(HttpStatus.FORBIDDEN, "forbidden", "You do not have permission for this action.");
     }
@@ -52,13 +77,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler({ConstraintViolationException.class, MethodArgumentTypeMismatchException.class})
-    ProblemDetail handleBadParam(Exception ex) {
+    ProblemDetail handleBadParam(Exception ex, WebRequest request) {
+        uploadRefused(request, 400, "invalid_parameter");
         return ProblemResponses.problem(HttpStatus.BAD_REQUEST, "invalid_parameter", "One or more request parameters are invalid.");
     }
 
     @ExceptionHandler(Exception.class)
-    ProblemDetail handleUnexpected(Exception ex) {
+    ProblemDetail handleUnexpected(Exception ex, WebRequest request) {
         log.error("Unhandled exception", ex);
+        uploadRefused(request, 500, "internal_error");
         return ProblemResponses.problem(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error",
                 "An unexpected error occurred. Quote the traceId when contacting support.");
     }
@@ -100,6 +127,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             case BAD_REQUEST -> "malformed_request";
             default -> "request_error";
         };
+        uploadRefused(request, status.value(), code);
         String detail = status == HttpStatus.BAD_REQUEST ? "The request could not be read." : status.getReasonPhrase();
         return ResponseEntity.status(status).headers(headers).body(ProblemResponses.problem(status, code, detail));
     }

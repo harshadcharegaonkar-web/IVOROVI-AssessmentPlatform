@@ -4,15 +4,21 @@ import { useQuery } from "@tanstack/react-query";
 import { FileClock, GraduationCap, Pause, Plus, UserCheck, UserMinus, UserPlus, Users } from "lucide-react";
 import { errorInfo, useApi } from "../../api/ApiProvider";
 import { formatNumber } from "../../lib/format";
+import { useInstitutionContext } from "../../session/InstitutionContext";
 import { useSession } from "../../session/SessionProvider";
+import { BarList, MonthlyColumns, SectionTitle } from "../insights/Charts";
 import { useOrgLabels } from "../../session/useOrgLabels";
 
-/** Student dashboard: KPIs and distributions from the caller's authorized students. */
+/** Student dashboard: KPIs, distributions, 12-month trends and progression indicators from the caller's authorized students. */
 export function StudentDashboardPage() {
   const api = useApi();
   const labels = useOrgLabels();
   const { access } = useSession();
   const q = useQuery({ queryKey: ["students", "overview"], queryFn: async () => unwrap(await api.GET("/api/v1/students/overview")) });
+  const { selectedId } = useInstitutionContext();
+  // trends, progression and semester distribution (increment 1.7), scoped like the overview
+  const t = useQuery({ queryKey: ["insights", "students", selectedId], queryFn: async () =>
+    unwrap(await api.GET("/api/v1/insights/students", { params: { query: selectedId ? { orgUnitId: selectedId } : {} } })) });
   const k = q.data;
   const loading = q.isPending;
   const n = (v: number | undefined) => formatNumber(v ?? 0);
@@ -40,6 +46,20 @@ export function StudentDashboardPage() {
             <Distribution title={`By ${labels.singular("COURSE").toLowerCase()}`} rows={k?.byCourse} loading={loading} filter="courseId" />
             <Distribution title={`By ${labels.singular("BATCH").toLowerCase()}`} rows={k?.byBatch} loading={loading} filter="batchId" />
             <Distribution title="By academic year" rows={k?.byAcademicYear} loading={loading} filter="academicYearId" />
+          </div>
+          <SectionTitle>Trends (last 12 months)</SectionTitle>
+          {t.isError ? <Card><ErrorState message={errorInfo(t.error).message} onRetry={() => void t.refetch()} /></Card> : (
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+              <MonthlyColumns title="New admissions" points={t.data?.admissionsByMonth} loading={t.isPending} testId="trend-admissions" />
+              <MonthlyColumns title="Initial enrolments" points={t.data?.enrolmentsByMonth} loading={t.isPending} testId="trend-enrolments" />
+              <MonthlyColumns title="Progressions and promotions" points={t.data?.progressionsByMonth} loading={t.isPending} testId="trend-progressions" />
+            </div>
+          )}
+          <SectionTitle>Progression indicators</SectionTitle>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <BarList title="Enrolment changes in the last year" description="Progressions, promotions, transfers and other changes after the initial enrolment"
+              rows={t.data?.progressionByType} loading={t.isPending} emptyTitle="No enrolment changes in the last year" />
+            <BarList title={`Current enrolment by ${labels.singular("TERM").toLowerCase()}`} rows={t.data?.bySemester} loading={t.isPending} emptyTitle="No enrolments yet" />
           </div>
         </>
       )}

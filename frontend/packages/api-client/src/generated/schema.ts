@@ -4,6 +4,42 @@
  */
 
 export interface paths {
+    "/api/v1/webhooks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Endpoint details */
+        get: operations["get"];
+        /** Change name, URL, event types or identifier opt-in */
+        put: operations["update"];
+        post?: never;
+        /** Delete an endpoint and its delivery history */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Pause or resume (resume also re-enables an automatically disabled endpoint) */
+        put: operations["status"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenant/settings": {
         parameters: {
             query?: never;
@@ -12,9 +48,9 @@ export interface paths {
             cookie?: never;
         };
         /** Organization settings: entity display labels, time zone and academic calendar rules (all signed-in users) */
-        get: operations["get"];
+        get: operations["get_1"];
         /** Update organization settings (requires tenant.settings.manage) */
-        put: operations["update"];
+        put: operations["update_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -100,7 +136,43 @@ export interface paths {
         };
         get: operations["detail"];
         /** Update a staff profile (optimistic version required) */
-        put: operations["update_1"];
+        put: operations["update_2"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Integration with adapter details, recent runs and 30-day run counts */
+        get: operations["get_2"];
+        /** Change name, description, configuration or secret (optimistic version check) */
+        put: operations["update_3"];
+        post?: never;
+        /** Delete a disabled integration and its run history */
+        delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{id}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Enable or disable an integration */
+        put: operations["enabled"];
         post?: never;
         delete?: never;
         options?: never;
@@ -126,6 +198,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/api-clients/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API client with its keys (id and last four characters only) and daily usage */
+        get: operations["get_3"];
+        /** Change name, description, IP allow-list or expiry (scopes are fixed) */
+        put: operations["update_4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Webhook endpoints with status and 30-day delivery counts */
+        get: operations["list"];
+        put?: never;
+        /** Create an endpoint (HTTPS, SSRF-checked); returns the signing secret once */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a signed webhook.ping now and return the outcome */
+        post: operations["test"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/{id}/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace the signing secret; returns the new secret once */
+        post: operations["rotate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/{id}/deliveries/{deliveryId}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue the same payload again as a new delivery */
+        post: operations["replay"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -134,10 +293,10 @@ export interface paths {
             cookie?: never;
         };
         /** List users visible to the caller (search, filters, sort, pagination) */
-        get: operations["list"];
+        get: operations["list_1"];
         put?: never;
         /** Create a user (status INVITED) with a primary organizational assignment; optionally email an invitation */
-        post: operations["create"];
+        post: operations["create_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -154,7 +313,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Suspend, reactivate, deactivate or activate an account (also enables/disables the login) */
-        post: operations["status"];
+        post: operations["status_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -257,7 +416,7 @@ export interface paths {
         get: operations["search"];
         put?: never;
         /** Create a student profile (prospective); the student ID is generated or validated by the institution's rule */
-        post: operations["create_1"];
+        post: operations["create_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -307,7 +466,7 @@ export interface paths {
             cookie?: never;
         };
         /** Documents of the student with scan and verification state */
-        get: operations["list_1"];
+        get: operations["list_2"];
         put?: never;
         /** Upload a PDF, JPEG or PNG (max 5 MB) into quarantine; it becomes downloadable only after a clean malware scan */
         post: operations["upload"];
@@ -413,7 +572,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Change the lifecycle status (only valid transitions; reason required; history kept) */
-        post: operations["status_1"];
+        post: operations["status_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -601,10 +760,10 @@ export interface paths {
             cookie?: never;
         };
         /** List staff profiles visible to the caller */
-        get: operations["list_2"];
+        get: operations["list_3"];
         put?: never;
         /** Create a staff profile (no login account required) */
-        post: operations["create_2"];
+        post: operations["create_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -684,10 +843,10 @@ export interface paths {
             cookie?: never;
         };
         /** System and custom roles (search, type and status filters, sort, pagination) */
-        get: operations["list_3"];
+        get: operations["list_4"];
         put?: never;
         /** Create a custom role (or clone one with clonedFromRoleId); only permissions you hold at its scope */
-        post: operations["create_3"];
+        post: operations["create_4"];
         delete?: never;
         options?: never;
         head?: never;
@@ -704,7 +863,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Activate or deactivate a custom role; deactivation suspends all of its assignments at once */
-        post: operations["status_2"];
+        post: operations["status_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -753,10 +912,10 @@ export interface paths {
             cookie?: never;
         };
         /** List organization units visible to the caller (search, filters, sort, pagination) */
-        get: operations["list_4"];
+        get: operations["list_5"];
         put?: never;
         /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
-        post: operations["create_4"];
+        post: operations["create_5"];
         delete?: never;
         options?: never;
         head?: never;
@@ -814,6 +973,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/{id}/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark one of my notifications as unread */
+        post: operations["unread"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/{id}/read": {
         parameters: {
             query?: never;
@@ -859,6 +1035,144 @@ export interface paths {
         put?: never;
         /** Revoke an open invitation; its link stops working immediately */
         post: operations["revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Integrations with connection status, last check, last success and last sync */
+        get: operations["list_6"];
+        put?: never;
+        /** Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked */
+        post: operations["create_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a connection test now (with retries); the run is recorded */
+        post: operations["test_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run a sync now (enabled integrations whose adapter supports it) */
+        post: operations["sync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{id}/runs/{runId}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed run */
+        post: operations["retry_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** API clients with status, last use and 30-day usage */
+        get: operations["list_7"];
+        put?: never;
+        /** Register an API client; returns the key once */
+        post: operations["create_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/rotate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a new key; existing keys stay valid for the grace period (0-168 hours); returns the new key once */
+        post: operations["rotate_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke the client and all its keys (permanent) */
+        post: operations["revoke_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/{id}/keys/{keyId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke one key immediately */
+        post: operations["revokeKey"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1204,7 +1518,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit profile fields (email only before the first sign-in) */
-        patch: operations["update_2"];
+        patch: operations["update_5"];
         trace?: never;
     };
     "/api/v1/students/{studentId}/guardians/{guardianId}": {
@@ -1251,11 +1565,11 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete a profile created in error (prospective or cancelled, without academic records) */
-        delete: operations["delete"];
+        delete: operations["delete_2"];
         options?: never;
         head?: never;
         /** Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged) */
-        patch: operations["update_3"];
+        patch: operations["update_6"];
         trace?: never;
     };
     "/api/v1/roles/{id}": {
@@ -1273,7 +1587,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a custom role (system roles are protected); changes apply to every holder immediately */
-        patch: operations["update_4"];
+        patch: operations["update_7"];
         trace?: never;
     };
     "/api/v1/org-units/{id}": {
@@ -1284,15 +1598,15 @@ export interface paths {
             cookie?: never;
         };
         /** Unit details with ancestors (breadcrumb), child counts and dependents */
-        get: operations["get_1"];
+        get: operations["get_4"];
         put?: never;
         post?: never;
         /** Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead) */
-        delete: operations["delete_1"];
+        delete: operations["delete_3"];
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_5"];
+        patch: operations["update_8"];
         trace?: never;
     };
     "/api/v1/academics/subjects/{id}": {
@@ -1391,6 +1705,57 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["updateTerm"];
+        trace?: never;
+    };
+    "/api/v1/webhooks/{id}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Delivery history (newest first), optionally by status */
+        get: operations["deliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/{id}/deliveries/{deliveryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One delivery with its payload */
+        get: operations["delivery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/webhooks/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subscribable event types */
+        get: operations["eventTypes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/users/{id}/access": {
@@ -1682,6 +2047,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Reports the caller may run, with their columns, filters and sort keys */
+        get: operations["catalogue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Run a report (one page) */
+        get: operations["run"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/{key}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export every matching row (at most 50,000) as CSV or XLSX; audited */
+        get: operations["export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/permissions": {
         parameters: {
             query?: never;
@@ -1690,7 +2106,7 @@ export interface paths {
             cookie?: never;
         };
         /** Permission catalogue grouped by functional domain (planned permissions are listed but not grantable) */
-        get: operations["catalogue"];
+        get: operations["catalogue_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1757,8 +2173,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List my notifications (newest first) */
-        get: operations["list_5"];
+        /** List my notifications (newest first); state ALL, UNREAD or READ; optional category */
+        get: operations["list_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1809,7 +2225,126 @@ export interface paths {
             cookie?: never;
         };
         /** Invitations of users visible to the caller */
-        get: operations["list_6"];
+        get: operations["list_9"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/{id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Execution history (newest first) */
+        get: operations["runs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrations/adapters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Built-in, vendor-neutral adapters with their configuration fields */
+        get: operations["adapters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/students": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Student totals, lifecycle states, admission/enrolment/progression trends and distributions (student.read) */
+        get: operations["students"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Staff totals, distribution by category, department, campus and employment type, faculty assignment summary (staff.read) */
+        get: operations["staff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import operations: outcomes, records processed and rejected, durations and recent jobs (student.import) */
+        get: operations["imports"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/executive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Organization-wide key figures (organization, academics, students, staff, people, imports), each permission-scoped */
+        get: operations["executive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insights/academic": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Program, course, subject and batch distributions, enrolment by academic year and semester, faculty assignment overview (academics.read) */
+        get: operations["academic"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1878,6 +2413,23 @@ export interface paths {
         };
         /** Verify the integrity of the tenant's hash-chained audit trail */
         get: operations["verify_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-clients/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Scopes the caller can give an API client (read permissions they hold; never personal, audit or integration data) */
+        get: operations["scopes"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2056,6 +2608,42 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        WebhookEndpointRequest: {
+            name?: string;
+            url?: string;
+            eventTypes?: string[];
+            includeIdentifiers?: boolean;
+            /** Format: int64 */
+            version?: number;
+        };
+        WebhookEndpoint: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            url?: string;
+            eventTypes?: string[];
+            includeIdentifiers?: boolean;
+            status?: string;
+            /** Format: int32 */
+            consecutiveFailures?: number;
+            /** Format: date-time */
+            lastDeliveryAt?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            /** Format: int64 */
+            delivered30Days?: number;
+            /** Format: int64 */
+            failed30Days?: number;
+            /** Format: int64 */
+            pending?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        WebhookStatusRequest: {
+            status: string;
+        };
         TenantSettingsUpdateRequest: {
             labels?: {
                 [key: string]: components["schemas"]["UnitTypeLabel"];
@@ -2349,6 +2937,54 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        IntegrationRequest: {
+            /** @enum {string} */
+            kind?: "SIS_ERP" | "LMS" | "EMAIL" | "APPLICATION";
+            adapter?: string;
+            name?: string;
+            description?: string;
+            config?: {
+                [key: string]: string;
+            };
+            /** @description Write-only. Omit to keep, empty string to remove */
+            secret?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        Integration: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "SIS_ERP" | "LMS" | "EMAIL" | "APPLICATION";
+            adapter?: string;
+            adapterLabel?: string;
+            name?: string;
+            description?: string;
+            config?: {
+                [key: string]: string;
+            };
+            secretSet?: boolean;
+            enabled?: boolean;
+            connectionStatus?: string;
+            /** Format: date-time */
+            lastCheckedAt?: string;
+            /** Format: date-time */
+            lastSuccessAt?: string;
+            /** Format: date-time */
+            lastSyncAt?: string;
+            lastError?: string;
+            /** Format: int32 */
+            consecutiveFailures?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        IntegrationEnabledRequest: {
+            enabled: boolean;
+        };
         OverrideRequest: {
             /** Format: uuid */
             orgUnitId?: string;
@@ -2367,6 +3003,81 @@ export interface components {
             inheritedSource?: string;
             enabled?: boolean;
             source?: string;
+        };
+        ApiClientRequest: {
+            name?: string;
+            description?: string;
+            scopes?: string[];
+            /** Format: uuid */
+            orgUnitId?: string;
+            allowedIps?: string[];
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ApiClient: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            description?: string;
+            scopes?: string[];
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            allowedIps?: string[];
+            status?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+            /** Format: int32 */
+            activeKeys?: number;
+            /** Format: int64 */
+            requests30Days?: number;
+            /** Format: int64 */
+            denied30Days?: number;
+            createdBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        WebhookEndpointCreated: {
+            endpoint?: components["schemas"]["WebhookEndpoint"];
+            signingSecret?: string;
+        };
+        WebhookDelivery: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            endpointId?: string;
+            /** Format: uuid */
+            eventId?: string;
+            eventType?: string;
+            status?: string;
+            /** Format: int32 */
+            attempts?: number;
+            /** Format: date-time */
+            nextAttemptAt?: string;
+            /** Format: int32 */
+            lastStatusCode?: number;
+            lastError?: string;
+            /** Format: int32 */
+            lastDurationMs?: number;
+            /** Format: date-time */
+            deliveredAt?: string;
+            /** Format: uuid */
+            replayOf?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            payload?: string;
+        };
+        WebhookTestResult: {
+            delivered?: boolean;
+            delivery?: components["schemas"]["WebhookDelivery"];
         };
         UserCreateRequest: {
             email: string;
@@ -3006,6 +3717,43 @@ export interface components {
             version: number;
             reason?: string;
         };
+        IntegrationRun: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            integrationId?: string;
+            /** @enum {string} */
+            operation?: "CONNECTION_TEST" | "SYNC";
+            /** @enum {string} */
+            trigger?: "MANUAL" | "SCHEDULED" | "RETRY";
+            status?: string;
+            /** Format: int32 */
+            attempts?: number;
+            message?: string;
+            /** Format: int32 */
+            durationMs?: number;
+            /** Format: uuid */
+            retryOf?: string;
+            startedBy?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+        };
+        ApiClientCreated: {
+            client?: components["schemas"]["ApiClient"];
+            apiKey?: string;
+            keyId?: string;
+            /** Format: date-time */
+            keyExpiresAt?: string;
+        };
+        ApiClientRotateRequest: {
+            /** Format: int32 */
+            graceHours?: number;
+        };
+        ApiClientRevokeRequest: {
+            reason?: string;
+        };
         SubjectRequest: {
             code?: string;
             name?: string;
@@ -3475,6 +4223,23 @@ export interface components {
                 [key: string]: string;
             };
         };
+        PageResponseWebhookDelivery: {
+            items?: components["schemas"]["WebhookDelivery"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        WebhookEventType: {
+            key?: string;
+            label?: string;
+            description?: string;
+            mayIncludeIdentifiers?: boolean;
+        };
         PageResponseUserSummary: {
             items?: components["schemas"]["UserSummary"][];
             /** Format: int32 */
@@ -3811,9 +4576,40 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
         };
+        ReportColumn: {
+            key?: string;
+            label?: string;
+            personal?: boolean;
+        };
+        ReportDefinition: {
+            key?: string;
+            title?: string;
+            description?: string;
+            permission?: string;
+            columns?: components["schemas"]["ReportColumn"][];
+            filters?: string[];
+            sorts?: string[];
+            dateLabel?: string;
+            personalAvailable?: boolean;
+            statuses?: string[];
+        };
+        ReportResult: {
+            key?: string;
+            columns?: components["schemas"]["ReportColumn"][];
+            rows?: string[][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+            personalIncluded?: boolean;
+        };
         PermissionDomain: {
             /** @enum {string} */
-            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "ACADEMICS" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
+            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "ACADEMICS" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "INTEGRATIONS" | "AUDIT" | "PLATFORM";
             label?: string;
             permissions?: components["schemas"]["PermissionInfo"][];
         };
@@ -3822,7 +4618,7 @@ export interface components {
             name?: string;
             description?: string;
             /** @enum {string} */
-            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "ACADEMICS" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "AUDIT" | "PLATFORM";
+            domain?: "ORGANIZATION" | "INSTITUTIONS" | "USERS" | "STAFF" | "ROLES" | "ACADEMICS" | "STUDENTS" | "ADMISSIONS" | "ASSESSMENTS" | "EXAMINATIONS" | "EVALUATION" | "RESULTS" | "PLACEMENT" | "AI" | "INTEGRATIONS" | "AUDIT" | "PLATFORM";
             domainLabel?: string;
             /** @enum {string} */
             level?: "READ" | "WRITE" | "MANAGE";
@@ -3918,6 +4714,11 @@ export interface components {
             createdAt?: string;
             /** Format: date-time */
             readAt?: string;
+            eventType?: string;
+            resourceType?: string;
+            resourceId?: string;
+            channel?: string;
+            deliveryStatus?: string;
         };
         NotificationPage: {
             items?: components["schemas"]["Notification"][];
@@ -3931,6 +4732,9 @@ export interface components {
             totalPages?: number;
             /** Format: int64 */
             unread?: number;
+            unreadByCategory?: {
+                [key: string]: number;
+            };
         };
         GrantView: {
             permission?: string;
@@ -3967,6 +4771,272 @@ export interface components {
             totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+        };
+        IntegrationAdapterInfo: {
+            key?: string;
+            label?: string;
+            description?: string;
+            kinds?: ("SIS_ERP" | "LMS" | "EMAIL" | "APPLICATION")[];
+            fields?: components["schemas"]["IntegrationConfigField"][];
+            secretLabel?: string;
+            secretRequired?: boolean;
+            supportsSync?: boolean;
+            syncDescription?: string;
+        };
+        IntegrationConfigField: {
+            key?: string;
+            label?: string;
+            type?: string;
+            required?: boolean;
+            options?: string[];
+            help?: string;
+        };
+        IntegrationDetail: {
+            integration?: components["schemas"]["Integration"];
+            adapter?: components["schemas"]["IntegrationAdapterInfo"];
+            recentRuns?: components["schemas"]["IntegrationRun"][];
+            runsLast30Days?: {
+                [key: string]: number;
+            };
+        };
+        PageResponseIntegrationRun: {
+            items?: components["schemas"]["IntegrationRun"][];
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        InsightGroup: {
+            id?: string;
+            label?: string;
+            /** Format: int64 */
+            count?: number;
+        };
+        InsightPoint: {
+            period?: string;
+            /** Format: int64 */
+            count?: number;
+        };
+        StudentInsights: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            prospective?: number;
+            /** Format: int64 */
+            admitted?: number;
+            /** Format: int64 */
+            suspended?: number;
+            /** Format: int64 */
+            withdrawn?: number;
+            /** Format: int64 */
+            graduated?: number;
+            /** Format: int64 */
+            alumni?: number;
+            /** Format: int64 */
+            cancelled?: number;
+            /** Format: int64 */
+            newAdmissions30Days?: number;
+            admissionsByMonth?: components["schemas"]["InsightPoint"][];
+            enrolmentsByMonth?: components["schemas"]["InsightPoint"][];
+            progressionsByMonth?: components["schemas"]["InsightPoint"][];
+            progressionByType?: components["schemas"]["InsightGroup"][];
+            byProgram?: components["schemas"]["InsightGroup"][];
+            byCourse?: components["schemas"]["InsightGroup"][];
+            byBatch?: components["schemas"]["InsightGroup"][];
+            bySemester?: components["schemas"]["InsightGroup"][];
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        FacultyAssignmentSummary: {
+            /** Format: int64 */
+            facultyActive?: number;
+            /** Format: int64 */
+            facultyTeaching?: number;
+            /** Format: int64 */
+            facultyWithoutAssignment?: number;
+            /** Format: int64 */
+            activeAssignments?: number;
+            /** Format: int64 */
+            primaryAssignments?: number;
+        };
+        StaffDashboard: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            onLeave?: number;
+            /** Format: int64 */
+            separated?: number;
+            /** Format: int64 */
+            linkedAccounts?: number;
+            byCategory?: components["schemas"]["InsightGroup"][];
+            byDepartment?: components["schemas"]["InsightGroup"][];
+            byCampus?: components["schemas"]["InsightGroup"][];
+            byEmploymentType?: components["schemas"]["InsightGroup"][];
+            assignments?: components["schemas"]["FacultyAssignmentSummary"];
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        ImportDashboardJob: {
+            /** Format: uuid */
+            id?: string;
+            fileName?: string;
+            institutionName?: string;
+            status?: string;
+            mode?: string;
+            /** Format: int32 */
+            totalRows?: number;
+            /** Format: int32 */
+            imported?: number;
+            /** Format: int32 */
+            failed?: number;
+            /** Format: int32 */
+            skipped?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** Format: int64 */
+            durationSeconds?: number;
+        };
+        ImportOperations: {
+            /** Format: int64 */
+            totalJobs?: number;
+            /** Format: int64 */
+            completed?: number;
+            /** Format: int64 */
+            partiallyCompleted?: number;
+            /** Format: int64 */
+            failed?: number;
+            /** Format: int64 */
+            cancelled?: number;
+            /** Format: int64 */
+            inProgress?: number;
+            /** Format: int64 */
+            awaitingAction?: number;
+            /** Format: int64 */
+            recordsProcessed?: number;
+            /** Format: int64 */
+            recordsImported?: number;
+            /** Format: int64 */
+            recordsUpdated?: number;
+            /** Format: int64 */
+            recordsRejected?: number;
+            /** Format: double */
+            averageDurationSeconds?: number;
+            /** Format: double */
+            medianDurationSeconds?: number;
+            /** Format: double */
+            p95DurationSeconds?: number;
+            /** Format: double */
+            averageRowsPerSecond?: number;
+            jobsByMonth?: components["schemas"]["InsightPoint"][];
+            recent?: components["schemas"]["ImportDashboardJob"][];
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        ExecutiveAcademics: {
+            /** Format: int64 */
+            programs?: number;
+            /** Format: int64 */
+            courses?: number;
+            /** Format: int64 */
+            subjects?: number;
+            /** Format: int64 */
+            activeAcademicYears?: number;
+            /** Format: int64 */
+            activeBatches?: number;
+        };
+        ExecutiveDashboard: {
+            organization?: components["schemas"]["ExecutiveOrganization"];
+            academics?: components["schemas"]["ExecutiveAcademics"];
+            students?: components["schemas"]["ExecutiveStudents"];
+            staff?: components["schemas"]["ExecutiveStaff"];
+            people?: components["schemas"]["ExecutivePeople"];
+            imports?: components["schemas"]["ExecutiveImports"];
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        ExecutiveImports: {
+            /** Format: int64 */
+            jobs30Days?: number;
+            /** Format: int64 */
+            inProgress?: number;
+            /** Format: int64 */
+            awaitingAction?: number;
+            /** Format: int64 */
+            completed30Days?: number;
+            /** Format: int64 */
+            failed30Days?: number;
+            /** Format: int64 */
+            rowsImported30Days?: number;
+        };
+        ExecutiveOrganization: {
+            /** Format: int64 */
+            universities?: number;
+            /** Format: int64 */
+            colleges?: number;
+            /** Format: int64 */
+            campuses?: number;
+            /** Format: int64 */
+            departments?: number;
+        };
+        ExecutivePeople: {
+            /** Format: int64 */
+            activeUsers?: number;
+            /** Format: int64 */
+            pendingInvitations?: number;
+        };
+        ExecutiveStaff: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            faculty?: number;
+        };
+        ExecutiveStudents: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: int64 */
+            active?: number;
+            /** Format: int64 */
+            admissionRecords?: number;
+            /** Format: int64 */
+            newAdmissions30Days?: number;
+        };
+        AcademicDashboard: {
+            programsByLevel?: components["schemas"]["InsightGroup"][];
+            programsByInstitution?: components["schemas"]["InsightGroup"][];
+            coursesByProgram?: components["schemas"]["InsightGroup"][];
+            subjectsByCategory?: components["schemas"]["InsightGroup"][];
+            batchesByStatus?: components["schemas"]["InsightGroup"][];
+            batchesByAcademicYear?: components["schemas"]["InsightGroup"][];
+            enrolmentByAcademicYear?: components["schemas"]["InsightGroup"][];
+            enrolmentBySemester?: components["schemas"]["InsightGroup"][];
+            faculty?: components["schemas"]["FacultyOverview"];
+            /** Format: date-time */
+            generatedAt?: string;
+        };
+        FacultyOverview: {
+            /** Format: int64 */
+            offerings?: number;
+            /** Format: int64 */
+            offeringsWithFaculty?: number;
+            /** Format: int64 */
+            offeringsWithoutFaculty?: number;
+            /** Format: int64 */
+            activeAssignments?: number;
+            /** Format: int64 */
+            staffTeaching?: number;
+            withoutFacultyByDepartment?: components["schemas"]["InsightGroup"][];
         };
         EffectiveFeature: {
             key?: string;
@@ -4013,6 +5083,40 @@ export interface components {
             eventsChecked?: number;
             /** Format: int64 */
             firstInvalidSeq?: number;
+        };
+        ApiClientDetail: {
+            client?: components["schemas"]["ApiClient"];
+            keys?: components["schemas"]["ApiClientKey"][];
+            usage?: components["schemas"]["ApiClientUsageDay"][];
+        };
+        ApiClientKey: {
+            /** Format: uuid */
+            id?: string;
+            keyId?: string;
+            hint?: string;
+            status?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** Format: date-time */
+            lastUsedAt?: string;
+        };
+        ApiClientUsageDay: {
+            /** Format: date */
+            day?: string;
+            /** Format: int64 */
+            requests?: number;
+            /** Format: int64 */
+            denied?: number;
+        };
+        ApiScope: {
+            key?: string;
+            name?: string;
+            description?: string;
+            domain?: string;
         };
         AcademicTree: {
             programs?: components["schemas"]["AcademicTreeProgram"][];
@@ -4191,6 +5295,100 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookEndpoint"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookEndpointRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookEndpoint"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookEndpoint"];
+                };
+            };
+        };
+    };
+    get_1: {
+        parameters: {
+            query?: never;
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -4207,7 +5405,7 @@ export interface operations {
             };
         };
     };
-    update: {
+    update_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4377,7 +5575,7 @@ export interface operations {
             };
         };
     };
-    update_1: {
+    update_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4399,6 +5597,100 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["StaffDetail"];
+                };
+            };
+        };
+    };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntegrationDetail"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Integration"];
+                };
+            };
+        };
+    };
+    delete_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    enabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Integration"];
                 };
             };
         };
@@ -4453,7 +5745,168 @@ export interface operations {
             };
         };
     };
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClientDetail"];
+                };
+            };
+        };
+    };
+    update_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"];
+                };
+            };
+        };
+    };
     list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookEndpoint"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookEndpointRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookEndpointCreated"];
+                };
+            };
+        };
+    };
+    test: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookTestResult"];
+                };
+            };
+        };
+    };
+    rotate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
+    replay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookDelivery"];
+                };
+            };
+        };
+    };
+    list_1: {
         parameters: {
             query?: {
                 q?: string;
@@ -4483,7 +5936,7 @@ export interface operations {
             };
         };
     };
-    create: {
+    create_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4507,7 +5960,7 @@ export interface operations {
             };
         };
     };
-    status: {
+    status_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4733,7 +6186,7 @@ export interface operations {
             };
         };
     };
-    create_1: {
+    create_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4853,7 +6306,7 @@ export interface operations {
             };
         };
     };
-    list_1: {
+    list_2: {
         parameters: {
             query?: {
                 includeRemoved?: boolean;
@@ -5061,7 +6514,7 @@ export interface operations {
             };
         };
     };
-    status_1: {
+    status_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5409,7 +6862,7 @@ export interface operations {
             };
         };
     };
-    list_2: {
+    list_3: {
         parameters: {
             query?: {
                 q?: string;
@@ -5439,7 +6892,7 @@ export interface operations {
             };
         };
     };
-    create_2: {
+    create_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5558,7 +7011,7 @@ export interface operations {
             };
         };
     };
-    list_3: {
+    list_4: {
         parameters: {
             query?: {
                 q?: string;
@@ -5586,7 +7039,7 @@ export interface operations {
             };
         };
     };
-    create_3: {
+    create_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -5610,7 +7063,7 @@ export interface operations {
             };
         };
     };
-    status_2: {
+    status_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -5682,7 +7135,7 @@ export interface operations {
             };
         };
     };
-    list_4: {
+    list_5: {
         parameters: {
             query?: {
                 type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
@@ -5711,7 +7164,7 @@ export interface operations {
             };
         };
     };
-    create_4: {
+    create_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -5813,6 +7266,26 @@ export interface operations {
             };
         };
     };
+    unread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     read: {
         parameters: {
             query?: never;
@@ -5861,6 +7334,234 @@ export interface operations {
             header?: never;
             path: {
                 id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Integration"][];
+                };
+            };
+        };
+    };
+    create_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntegrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Integration"];
+                };
+            };
+        };
+    };
+    test_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntegrationRun"];
+                };
+            };
+        };
+    };
+    sync: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntegrationRun"];
+                };
+            };
+        };
+    };
+    retry_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntegrationRun"];
+                };
+            };
+        };
+    };
+    list_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"][];
+                };
+            };
+        };
+    };
+    create_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClientCreated"];
+                };
+            };
+        };
+    };
+    rotate_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientRotateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClientCreated"];
+                };
+            };
+        };
+    };
+    revoke_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApiClientRevokeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiClient"];
+                };
+            };
+        };
+    };
+    revokeKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                keyId: string;
             };
             cookie?: never;
         };
@@ -6603,7 +8304,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -6726,7 +8427,7 @@ export interface operations {
             };
         };
     };
-    delete: {
+    delete_2: {
         parameters: {
             query: {
                 version: number;
@@ -6748,7 +8449,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -6818,7 +8519,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -6844,7 +8545,7 @@ export interface operations {
             };
         };
     };
-    get_1: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -6866,7 +8567,7 @@ export interface operations {
             };
         };
     };
-    delete_1: {
+    delete_3: {
         parameters: {
             query: {
                 version: number;
@@ -6888,7 +8589,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -7198,6 +8899,75 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AcademicTerm"];
+                };
+            };
+        };
+    };
+    deliveries: {
+        parameters: {
+            query?: {
+                status?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseWebhookDelivery"];
+                };
+            };
+        };
+    };
+    delivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                deliveryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookDelivery"];
+                };
+            };
+        };
+    };
+    eventTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WebhookEventType"][];
                 };
             };
         };
@@ -7601,6 +9371,97 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
+                    "*/*": components["schemas"]["ReportDefinition"][];
+                };
+            };
+        };
+    };
+    run: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                orgUnitId?: string;
+                academicYearId?: string;
+                programId?: string;
+                courseId?: string;
+                batchId?: string;
+                status?: string;
+                includePersonal?: boolean;
+                sort?: string;
+                direction?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReportResult"];
+                };
+            };
+        };
+    };
+    export: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+                orgUnitId?: string;
+                academicYearId?: string;
+                programId?: string;
+                courseId?: string;
+                batchId?: string;
+                status?: string;
+                includePersonal?: boolean;
+                sort?: string;
+                direction?: string;
+                format?: string;
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    catalogue_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
                     "*/*": components["schemas"]["PermissionDomain"][];
                 };
             };
@@ -7671,10 +9532,12 @@ export interface operations {
             };
         };
     };
-    list_5: {
+    list_8: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
+                state?: string;
+                category?: string;
                 page?: number;
                 size?: number;
             };
@@ -7737,7 +9600,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_9: {
         parameters: {
             query?: {
                 status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
@@ -7758,6 +9621,161 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PageResponseInvitation"];
+                };
+            };
+        };
+    };
+    runs: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PageResponseIntegrationRun"];
+                };
+            };
+        };
+    };
+    adapters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IntegrationAdapterInfo"][];
+                };
+            };
+        };
+    };
+    students: {
+        parameters: {
+            query?: {
+                orgUnitId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StudentInsights"];
+                };
+            };
+        };
+    };
+    staff: {
+        parameters: {
+            query?: {
+                orgUnitId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StaffDashboard"];
+                };
+            };
+        };
+    };
+    imports: {
+        parameters: {
+            query?: {
+                orgUnitId?: string;
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ImportOperations"];
+                };
+            };
+        };
+    };
+    executive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExecutiveDashboard"];
+                };
+            };
+        };
+    };
+    academic: {
+        parameters: {
+            query?: {
+                orgUnitId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AcademicDashboard"];
                 };
             };
         };
@@ -7850,6 +9868,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AuditVerification"];
+                };
+            };
+        };
+    };
+    scopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiScope"][];
                 };
             };
         };

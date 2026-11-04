@@ -347,6 +347,7 @@ def seed():
     prog_of = {c: prog[PROGRAM_OF_COURSE[c]] for c in course}
     seed_students(t, key, course, batch, year)
     seed_imports(t)
+    seed_integrations(t)
     print("Demonstration data created.")
 
 
@@ -430,6 +431,23 @@ def seed_imports(t):
             job = import_wait(t, job["id"], {"COMPLETED", "PARTIALLY_COMPLETED", "FAILED"})
             if job["status"] != "COMPLETED":
                 sys.exit(f"demonstration import ended {job['status']}: {job.get('failureMessage')}")
+
+
+def seed_integrations(t):
+    """Increment 1.7: integrations that work locally (Mailpit relay, the API's own health endpoint) and a read-only API client.
+    The API key is printed once and not stored anywhere by this script."""
+    smtp = ok(http("POST", f"{API}/api/v1/integrations", {"kind": "EMAIL", "adapter": "smtp", "name": "Campus mail relay (Mailpit)",
+              "description": "Local development relay", "config": {"host": "localhost", "port": "1025", "security": "NONE"}}, token=t), 201)
+    rest = ok(http("POST", f"{API}/api/v1/integrations", {"kind": "SIS_ERP", "adapter": "generic-rest", "name": "Student information system (sandbox)",
+              "description": "Connectivity check against a local endpoint; no data is exchanged",
+              "config": {"baseUrl": f"{API}/actuator", "healthPath": "/health", "syncPath": "/health", "authType": "NONE"}}, token=t), 201)
+    for i in (smtp, rest):
+        ok(http("PUT", f"{API}/api/v1/integrations/{i['id']}/enabled", {"enabled": True}, token=t), 200)
+        ok(http("POST", f"{API}/api/v1/integrations/{i['id']}/test", None, token=t), 200)
+    ok(http("POST", f"{API}/api/v1/integrations/{rest['id']}/sync", None, token=t), 200)
+    client = ok(http("POST", f"{API}/api/v1/api-clients", {"name": "Timetable service (read-only)", "description": "Reads the academic structure nightly",
+                "scopes": ["academics.read", "org_unit.read"]}, token=t), 201)
+    print(f"  API client created; its key was shown once and discarded (key id {client['keyId']}).")
 
 
 def verify():

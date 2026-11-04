@@ -34,9 +34,17 @@ public class SecurityConfiguration {
 
     @Bean
     SecurityFilterChain api(HttpSecurity http, IvoroviJwtAuthenticationConverter converter,
-                            ProblemResponses problems, RateLimiter rateLimiter, RateLimitProperties rateLimits)
+                            ProblemResponses problems, RateLimiter rateLimiter, RateLimitProperties rateLimits,
+                            com.ivorovi.platform.audit.UploadRefusals uploadRefusals,
+                            org.springframework.beans.factory.ObjectProvider<ApiKeyAuthenticator> apiKeys)
             throws Exception {
         AuthenticationEntryPoint entryPoint = (request, response, ex) -> {
+            if (com.ivorovi.platform.audit.UploadRefusals.isUpload(request)) {
+                // refused before any tenant is known: recorded in the platform security-event log (KI-53)
+                String reason = ex instanceof TenantAccessDeniedException ? "tenant_access_denied"
+                        : request.getHeader("Authorization") == null ? "missing_token" : "invalid_token";
+                uploadRefusals.refusedByFramework(request, ex instanceof TenantAccessDeniedException ? 403 : 401, reason);
+            }
             if (ex instanceof TenantAccessDeniedException tad) {
                 problems.write(response, HttpStatus.FORBIDDEN, "tenant_access_denied",
                         "Your account does not have access to this organization (" + tad.reason() + ").");
@@ -46,8 +54,10 @@ public class SecurityConfiguration {
                         "A valid access token is required.");
             }
         };
-        AccessDeniedHandler denied = (request, response, ex) ->
-                problems.write(response, HttpStatus.FORBIDDEN, "forbidden", "You do not have permission for this action.");
+        AccessDeniedHandler denied = (request, response, ex) -> {
+            if (com.ivorovi.platform.audit.UploadRefusals.isUpload(request)) uploadRefusals.refusedByFramework(request, 403, "forbidden");
+            problems.write(response, HttpStatus.FORBIDDEN, "forbidden", "You do not have permission for this action.");
+        };
 
         http
             .csrf(c -> c.disable()) // stateless bearer-token API, no cookies → CSRF not applicable
@@ -71,6 +81,11 @@ public class SecurityConfiguration {
                     BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new RateLimitFilters.Authenticated(rateLimiter, rateLimits, problems),
                     BearerTokenAuthenticationFilter.class);
+        ApiKeyAuthenticator keys = apiKeys.getIfAvailable();
+        if (keys != null) {
+            // API clients (read-only machine credentials): after the failed-authentication limiter, before bearer tokens
+            http.addFilterBefore(new ApiKeyAuthenticationFilter(keys, problems), BearerTokenAuthenticationFilter.class);
+        }
         return http.build();
     }
 

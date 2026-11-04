@@ -39,8 +39,8 @@ Plan approved with Amendment 1 and design system.
 | 1.3 Custom roles and permission management | ✅ accepted 2026-11-03 after scope and college-administrator verification (`RoleManagementIT.AcceptanceVerification`; CI run 41578791577); evidence `design/evidence/1.3/` | `phase-1/increment-1.3.md` |
 | 1.4 Academic structure management | ✅ accepted 2026-11-03 (CI runs 41604859356, 41605967946); follow-ups done: bundle 178.0 → 154.2 kB (`architecture/05-frontend-performance.md`), demonstration dataset (`runbooks/demo-data.md`), restructuring design (`architecture/06-controlled-restructuring.md`) | `phase-1/increment-1.4.md` |
 | 1.5 Student lifecycle management | ✅ accepted 2026-11-03 (follow-ups: KI-23, KI-46–KI-49, KI-51); evidence `design/evidence/1.5/` | `phase-1/increment-1.5.md` |
-| 1.6 Student bulk import and data migration | 🟨 implemented and verified; awaiting product-owner review; evidence `design/evidence/1.6/`, benchmark `performance/student-import-benchmark.md` | `phase-1/increment-1.6.md` |
-| 1.7 | ⬜ not started; needs authorization after 1.6 review | |
+| 1.6 Student bulk import and data migration | ✅ accepted 2026-11-03 (KI-53 fixed; scanner release blocker for documents and imports); evidence `design/evidence/1.6/`, benchmark `performance/student-import-benchmark.md` | `phase-1/increment-1.6.md` |
+| 1.7 Dashboard and integration improvements | 🟦 delivered for review 2026-11-04; evidence `design/evidence/1.7/`, benchmark `performance/insights-integrations-benchmark.md` | `phase-1/increment-1.7.md` |
 | Later | Students and enrolment, admissions, assessments (renumbered after 1.4) | `phase-1/plan.md` |
 
 Open decisions: XLSX library (fastexcel) to be requested before the student import increment.

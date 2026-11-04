@@ -27,7 +27,7 @@ public class OutboxPublisher {
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
 
     private record Pending(UUID id, UUID tenantId, String aggregateType, String aggregateId, String eventType,
-                           String payload, int attempts) {}
+                           String payload, int attempts, UUID actorId, java.time.Instant createdAt) {}
 
     private final JdbcClient jdbc;
     private final RabbitTemplate rabbit;
@@ -50,13 +50,14 @@ public class OutboxPublisher {
     public int publishPending() {
         Integer n = TenantContext.callAsPlatform(() -> tx.execute(status -> {
             List<Pending> batch = jdbc.sql("""
-                    SELECT id, tenant_id, aggregate_type, aggregate_id, event_type, payload::text AS payload, attempts
+                    SELECT id, tenant_id, aggregate_type, aggregate_id, event_type, payload::text AS payload, attempts, actor_id, created_at
                     FROM outbox_event WHERE published_at IS NULL AND available_at <= now()
                     ORDER BY created_at LIMIT ? FOR UPDATE SKIP LOCKED""")
                     .param(props.batchSize())
                     .query((rs, i) -> new Pending(rs.getObject("id", UUID.class), rs.getObject("tenant_id", UUID.class),
                             rs.getString("aggregate_type"), rs.getString("aggregate_id"), rs.getString("event_type"),
-                            rs.getString("payload"), rs.getInt("attempts")))
+                            rs.getString("payload"), rs.getInt("attempts"),
+                            rs.getObject("actor_id", UUID.class), rs.getTimestamp("created_at").toInstant()))
                     .list();
             int published = 0;
             for (Pending p : batch) {
@@ -89,6 +90,8 @@ public class OutboxPublisher {
                 .setHeader("tenant_id", p.tenantId() == null ? null : p.tenantId().toString())
                 .setHeader("aggregate_type", p.aggregateType())
                 .setHeader("aggregate_id", p.aggregateId())
+                .setHeader("actor_id", p.actorId() == null ? null : p.actorId().toString())
+                .setHeader("occurred_at", p.createdAt().toString())
                 .build();
         Duration timeout = props.confirmTimeout();
         rabbit.invoke(ops -> {

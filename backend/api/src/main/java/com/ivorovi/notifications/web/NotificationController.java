@@ -5,6 +5,8 @@ import com.ivorovi.platform.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 class NotificationController {
 
     record NotificationPage(java.util.List<NotificationService.Notification> items, int page, int size,
-                            long totalElements, int totalPages, long unread) {}
+                            long totalElements, int totalPages, long unread, Map<String, Long> unreadByCategory) {}
 
     private final NotificationService service;
 
@@ -33,13 +35,15 @@ class NotificationController {
     }
 
     @GetMapping
-    @Operation(summary = "List my notifications (newest first)")
+    @Operation(summary = "List my notifications (newest first); state ALL, UNREAD or READ; optional category")
     NotificationPage list(@RequestParam(defaultValue = "false") boolean unreadOnly,
+                          @RequestParam(required = false) @Pattern(regexp = "ALL|UNREAD|READ") String state,
+                          @RequestParam(required = false) @Size(max = 30) String category,
                           @RequestParam(defaultValue = "0") @Min(0) int page,
                           @RequestParam(defaultValue = "20") int size) {
         int s = PageResponse.clampSize(size);
-        var p = service.mine(unreadOnly, page, s);
-        return new NotificationPage(p.items(), page, s, p.total(), (int) Math.ceil(p.total() / (double) s), p.unread());
+        var p = service.mine(state != null ? state : unreadOnly ? "UNREAD" : "ALL", category, page, s);
+        return new NotificationPage(p.items(), page, s, p.total(), (int) Math.ceil(p.total() / (double) s), p.unread(), service.unreadByCategory());
     }
 
     @GetMapping("/unread-count")
@@ -52,6 +56,13 @@ class NotificationController {
     @Operation(summary = "Mark one of my notifications as read")
     ResponseEntity<Void> read(@PathVariable UUID id) {
         service.markRead(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/unread")
+    @Operation(summary = "Mark one of my notifications as unread")
+    ResponseEntity<Void> unread(@PathVariable UUID id) {
+        service.markUnread(id);
         return ResponseEntity.noContent().build();
     }
 
