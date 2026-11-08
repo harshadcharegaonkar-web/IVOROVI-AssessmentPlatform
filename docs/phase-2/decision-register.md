@@ -62,6 +62,12 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | Q-2.2-5 | Warn when a pool is smaller than 3 × the requested selection; block publication of ADMISSION assessments in that case | **Decided** 2026-11-08 |
 | Q-2.2-6 | Faculty may author only INTERNAL and PRACTICE assessments | **Decided** 2026-11-08 |
 | D-2.2-MVP | Delivery changed to a seven-day MVP (`increment-2.2-mvp.md`); the full plan's advanced features are deferred; KI-79 fix approved; KI-75 fix prepared without delaying the MVP | **Decided** 2026-11-08 |
+| D-1 | Contractual scope matrix to be confirmed against the signed contract (`delivery-baseline.md` §1); no contractually committed functionality is removed | **Decided** 2026-11-08; matrix awaiting product-owner confirmation |
+| D-2 | Day-7 objective-question examination platform approved as the first integrated milestone; not acceptance of the full scope | **Decided** 2026-11-08 |
+| D-3 | Daily reviews, same-day decisions, integrated builds; security requirements unchanged | **Decided** 2026-11-08 |
+| D-4 | Two additional Claude sessions; primary session owns architecture and integration (`delivery-baseline.md` §6) | **Decided** 2026-11-08 |
+| D-5 | External dependency and resource plan (`delivery-baseline.md` §5) | **Decided** 2026-11-08; owners to be named |
+| D-6 | Candidate enrolment for Day 7 by bulk upload and invitation; the full admission cycle stays in scope | **Decided** 2026-11-08 |
 | P2-09 | Email notifications | **Approved** 2026-11-04, implemented in 2.0 |
 | P2-10 | Payments deferred | Not yet decided (recommendation: defer) |
 | P2-11 | Legal review | Approved: start immediately |
