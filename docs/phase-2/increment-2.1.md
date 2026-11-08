@@ -1,7 +1,10 @@
 # Increment 2.1 — Question bank: implementation record
 
-Status: **implementation complete, awaiting product-owner acceptance.** CI run and commit references are added to
-this record after the push. Authorized 2026-11-08: plan `increment-2.1-plan.md`, final approval with KaTeX,
+Status: **implementation complete, awaiting product-owner acceptance.** Commit `b83aa42`; CI run **42466656418**
+all jobs green (backend 407 tests; frontend; security scan; end-to-end: web suite 115/115 including the mathematics
+test in Chromium desktop, Firefox, WebKit/Safari, Edge, mobile Chrome and mobile Safari; exam app 7 passed plus 1
+existing 2.0 test flaky, passing on retry). Follow-up commit: visible labels for three checkboxes in the editor,
+taxonomy and import screens. Authorized 2026-11-08: plan `increment-2.1-plan.md`, final approval with KaTeX,
 image, governance, numeric, versioning and security-testing requirements, and the permission-conflict resolution P2-08
 (Option 2).
 
@@ -52,7 +55,7 @@ Phase 1 and 2.0 code was changed only where a documented dependency required it:
 | Frontend unit | 92 tests (content renderer 31, web 39, ui 11, exam 8, api-client 3). Lint and typecheck clean |
 | Bundles | Web initial 159.5 kB gzip (≤ 180). KaTeX lazy chunk 74.6 kB (own limit ≤ 80, L-2.1-2 pending); never in the initial payload. Exam app 88.0 kB (≤ 120); boundary check clean |
 | E2E (local, Chromium desktop and Pixel 7) | `questions.spec.ts` 9/9: demo items 1–7 and 9–11, plus `@math` on desktop and mobile. Full suite 109 passed. Two existing Phase 1 tests failed locally because of years of accumulated E2E data in the local database (students: academic years now reach 2122; people: a slow page that passes on rerun). CI runs on a fresh stack and is authoritative |
-| E2E cross-browser (CI only) | `@math` in Firefox, WebKit (Safari engine), Edge, mobile Chrome and mobile Safari (new Playwright projects; screenshots uploaded as `math-rendering-screenshots`) |
+| E2E cross-browser (CI run 42466656418) | `@math` passed in Firefox, WebKit (Safari engine), Edge, mobile Chrome and mobile Safari (screenshots in the `math-rendering-screenshots` artifact). The two Phase 1 tests that failed locally passed in CI on a fresh stack |
 
 ## 4. Security evidence (per approval §6)
 
@@ -86,7 +89,7 @@ See `../performance/question-bank-benchmark.md`.
 
 ## 7. Known issues
 
-- New: KI-74 (permission-matrix regression; resolved by P2-08, Open until CI passes), KI-75 (search under RLS),
+- New: KI-74 (permission-matrix regression; Fixed by P2-08, verified in CI run 42466656418), KI-75 (search under RLS),
   KI-76 (math font), KI-77 (manual screen-reader testing), KI-78 (real Safari devices).
 - All production blockers remain open.
 

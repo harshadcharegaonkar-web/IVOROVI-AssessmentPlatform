@@ -1,5 +1,5 @@
 import { unwrap, type QuestionImportRow } from "@ivorovi/api-client";
-import { Alert, Badge, Button, Card, CardBody, CardHeader, DataTable, PageHeader, Switch, type BadgeTone, type Column } from "@ivorovi/ui";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, DataTable, PageHeader, type BadgeTone, type Column } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { useState } from "react";
@@ -65,7 +65,7 @@ export function QuestionImportPage() {
               <dt className="text-muted">Near duplicates</dt><dd>{i.nearDuplicateRows}</dd><dt className="text-muted">Created</dt><dd>{i.createdRows}</dd>
             </dl>}
             {i?.status === "PREVIEWED" && <>
-              <Switch label="Also create near duplicates" checked={near} onCheckedChange={setNear} />
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={near} onChange={(e) => setNear(e.target.checked)} />Also create near duplicates</label>
               {commit.isError && <Alert tone="danger">{errorInfo(commit.error).message}</Alert>}
               <Button variant="primary" loading={commit.isPending} disabled={(i.validRows ?? 0) + (near ? i.nearDuplicateRows ?? 0 : 0) === 0} onClick={() => commit.mutate()}>Create drafts</Button>
             </>}

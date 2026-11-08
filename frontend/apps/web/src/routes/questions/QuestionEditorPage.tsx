@@ -1,6 +1,6 @@
 import { unwrap, type QuestionVersion } from "@ivorovi/api-client";
 import { CONTENT_FORMAT, fromSource, texProblem, toSource, type Block, type ContentDoc } from "@ivorovi/content";
-import { Alert, Button, Card, CardBody, CardHeader, ErrorState, Field, Input, PageHeader, Select, Skeleton, Switch, TextArea } from "@ivorovi/ui";
+import { Alert, Button, Card, CardBody, CardHeader, ErrorState, Field, Input, PageHeader, Select, Skeleton, TextArea } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -152,7 +152,7 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
                     onClick={() => { setImages([...images, imageDecorative ? { type: "image", asset: imageId, decorative: true } : { type: "image", asset: imageId, alt: imageAlt.trim() }]); setImageId(""); setImageAlt(""); }}>
                     <Plus aria-hidden className="h-4 w-4" /> Add</Button>
                 </div>
-                <Switch label="Decorative (no description needed)" checked={imageDecorative} onCheckedChange={setImageDecorative} />
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={imageDecorative} onChange={(e) => setImageDecorative(e.target.checked)} />Decorative (no description needed)</label>
               </fieldset>
             </CardBody>
           </Card>

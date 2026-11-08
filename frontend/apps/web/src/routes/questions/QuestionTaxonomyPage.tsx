@@ -1,5 +1,5 @@
 import { unwrap } from "@ivorovi/api-client";
-import { Alert, Badge, Button, Card, CardBody, CardHeader, Field, Input, PageHeader, Select, Switch } from "@ivorovi/ui";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, Field, Input, PageHeader, Select } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { errorInfo, useApi } from "../../api/ApiProvider";
@@ -129,7 +129,7 @@ export function QuestionTaxonomyPage() {
                 <Input aria-label="Field label" placeholder="Label" value={attrLabel} maxLength={100} onChange={(e) => setAttrLabel(e.target.value)} />
                 <Select aria-label="Field type" value={attrType} onChange={(e) => setAttrType(e.target.value)}>{["TEXT", "NUMBER", "BOOLEAN", "CHOICE", "DATE"].map((x) => <option key={x}>{x}</option>)}</Select>
                 {attrType === "CHOICE" && <Input aria-label="Allowed values" placeholder="Comma-separated values" value={attrValues} onChange={(e) => setAttrValues(e.target.value)} />}
-                <Switch label="Required for submission" checked={attrRequired} onCheckedChange={setAttrRequired} />
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={attrRequired} onChange={(e) => setAttrRequired(e.target.checked)} />Required for submission</label>
                 <Button variant="secondary" disabled={!attrKey || !attrLabel} onClick={() => add.mutate("attributes")}>Add field</Button>
               </div>}
               {manage && <Field label="Note">{() => <p className="text-xs text-muted">Keys use lower-case letters, digits and underscores.</p>}</Field>}
