@@ -72,7 +72,8 @@ public class RecoveryGuard {
         for (CandidateMfa.PasswordReset r : resets) {
             if (handled.putIfAbsent(r.subject() + "@" + r.at().toEpochMilli(), r.at()) != null) continue;
             if (!r.otherSessionsSignedOut()) {
-                idp.signOutEverywhere(r.subject());
+                // KI-79: sessions that existed before the reset end; the session the reset itself signed in stays
+                idp.signOutSessionsBefore(r.subject(), r.at(), r.resetSessionId());
                 n++;
             }
             List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant WHERE status IN ('ACTIVE', 'TRIAL')").query(UUID.class).list());

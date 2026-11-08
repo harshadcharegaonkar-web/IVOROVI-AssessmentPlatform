@@ -115,7 +115,8 @@ class KeycloakCandidateMfa implements CandidateMfa {
                 case "UPDATE_PASSWORD" -> {
                     Long req = resetRequested.remove(user);
                     if (req != null && t - req < Duration.ofHours(1).toMillis() && t > since.toEpochMilli()) {
-                        out.add(new PasswordReset(user, Instant.ofEpochMilli(t), loggedOut.remove(user) != null));
+                        Object sid = e.get("sessionId");
+                        out.add(new PasswordReset(user, Instant.ofEpochMilli(t), loggedOut.remove(user) != null, sid == null ? null : String.valueOf(sid)));
                     }
                 }
                 default -> { }
@@ -128,6 +129,41 @@ class KeycloakCandidateMfa implements CandidateMfa {
     public void signOutEverywhere(String subject) {
         try {
             http.post().uri("/admin/realms/{realm}/users/{id}/logout", cfg.realm(), subject).headers(h -> h.setBearerAuth(accessToken())).retrieve().toBodilessEntity();
+        } catch (RestClientException e) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "identity_provider_unavailable", "Sign-in service unavailable.");
+        }
+    }
+
+    /** Sessions to end after a reset: started before the reset and not the reset flow's own session (pure; unit-tested). */
+    static List<String> sessionsToEnd(List<Map<String, Object>> sessions, Instant resetAt, String keepSessionId) {
+        List<String> out = new java.util.ArrayList<>();
+        for (Map<String, Object> s : sessions == null ? List.<Map<String, Object>>of() : sessions) {
+            String id = String.valueOf(s.get("id"));
+            if (id.equals(keepSessionId)) continue;
+            Object start = s.get("start");
+            // unknown start time: end it (fail safe)
+            if (!(start instanceof Number n) || n.longValue() < resetAt.toEpochMilli()) out.add(id);
+        }
+        return out;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void signOutSessionsBefore(String subject, Instant resetAt, String keepSessionId) {
+        try {
+            List<Map<String, Object>> sessions = http.get().uri("/admin/realms/{realm}/users/{id}/sessions", cfg.realm(), subject)
+                    .headers(h -> h.setBearerAuth(accessToken())).retrieve().body(List.class);
+            for (String sid : sessionsToEnd(sessions, resetAt, keepSessionId)) {
+                http.delete().uri("/admin/realms/{realm}/sessions/{sid}", cfg.realm(), sid).headers(h -> h.setBearerAuth(accessToken()))
+                        .retrieve().toBodilessEntity();
+            }
+            // offline sessions (refresh tokens kept by apps) never survive a reset
+            List<Map<String, Object>> clients = http.get().uri("/admin/realms/{realm}/users/{id}/consents", cfg.realm(), subject)
+                    .headers(h -> h.setBearerAuth(accessToken())).retrieve().body(List.class);
+            for (Map<String, Object> c : clients == null ? List.<Map<String, Object>>of() : clients) {
+                http.delete().uri("/admin/realms/{realm}/users/{id}/consents/{client}", cfg.realm(), subject, c.get("clientId"))
+                        .headers(h -> h.setBearerAuth(accessToken())).retrieve().toBodilessEntity();
+            }
         } catch (RestClientException e) {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "identity_provider_unavailable", "Sign-in service unavailable.");
         }

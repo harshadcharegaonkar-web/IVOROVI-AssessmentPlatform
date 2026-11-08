@@ -113,6 +113,10 @@ test.describe("candidate accounts, MFA, session codes and boundaries (C-1, C-4)"
       await device2.getByRole("button", { name: "Sign in" }).click();
       await expect(device2.locator("#username")).toBeVisible({ timeout: 3000 });
     }).toPass({ timeout: 45_000 });
+    // KI-79 (deterministic): the guard has now run (the other device was signed out); the device that performed the reset
+    // keeps its new session — it is still signed in after a reload
+    await page.reload();
+    await expect(page.getByText(email)).toBeVisible();
     await other.close();
 
     // the same candidate on another organization's portal: a different, empty account; this organization's code is refused there

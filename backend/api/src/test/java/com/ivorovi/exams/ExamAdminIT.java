@@ -146,10 +146,14 @@ class ExamAdminIT extends IntegrationTest {
         UUID id = UUID.randomUUID();
         ownerJdbc().sql("INSERT INTO candidate_account (id, tenant_id, subject, email_enc, display_name, portal_id) VALUES (?, ?, ?, ?, ?, ?)")
                 .params(id, org.tenant, forgot, encrypt("f@cand.test"), "Forgot", portal).update();
-        mfa.passwordResets.add(new CandidateMfa.PasswordReset(forgot, Instant.now(), false));   // did not tick "sign out other devices"
+        Instant resetAt = Instant.now();
+        mfa.passwordResets.add(new CandidateMfa.PasswordReset(forgot, resetAt, false, "reset-session-1"));   // did not tick "sign out other devices"
         mfa.passwordResets.add(new CandidateMfa.PasswordReset(kept, Instant.now(), true));      // did
         assertThat(guard.enforce()).isEqualTo(1);
         assertThat(mfa.signedOut).containsExactly(forgot);
+        // KI-79: only sessions older than the reset end; the session the reset flow signed in is kept
+        assertThat(mfa.signedOutBefore).containsExactly(new com.ivorovi.support.FakeCandidateMfa.SignOutBefore(forgot, resetAt, "reset-session-1"));
+        mfa.signedOutBefore.clear();
         assertThat(guard.enforce()).isZero();                                                  // handled once
         assertThat(ownerJdbc().sql("SELECT details->>'sessionsEnded' FROM audit_event WHERE tenant_id = ? AND action = 'exam.candidate.recovered' AND resource_id = ?")
                 .params(org.tenant, id.toString()).query(String.class).single()).isEqualTo("enforced");

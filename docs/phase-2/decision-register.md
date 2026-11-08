@@ -55,6 +55,13 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | P2-06 | New MODERATOR system role | Not yet decided (needed for 2.8) |
 | P2-07 | Refine placeholder permissions | **Decided** 2026-11-08: distinct permissions for exam administration, candidate check-in, incident management, compensation proposal and compensation approval; no broad exam permissions where not needed. Question bank: distinct read, author, review, approve and bank-management permissions (2.1). The exam split is applied in work package R (it changes 2.0 grants) |
 | P2-08 | Support access through tenant-approved, time-boxed grants | Not yet decided (needed before production support) |
+| Q-2.2-1 | `assessment.publish` is a privileged permission (P2-08 four-eyes delegation) | **Decided** 2026-11-08 |
+| Q-2.2-2 | Governance per purpose: ADMISSION always high-stakes (three people); SEMESTER, PLACEMENT, APTITUDE high-stakes by default, relaxed only through independent approval; INTERNAL and PRACTICE standard | **Decided** 2026-11-08 (MVP: relaxation not offered yet, so these purposes stay high-stakes) |
+| Q-2.2-3 | Retiring a question never changes a published assessment; administrative warning; a new assessment version is required for changes | **Decided** 2026-11-08 |
+| Q-2.2-4 | Securely generated random seeds stored with generated papers, together with question and option order | **Decided** 2026-11-08 |
+| Q-2.2-5 | Warn when a pool is smaller than 3 × the requested selection; block publication of ADMISSION assessments in that case | **Decided** 2026-11-08 |
+| Q-2.2-6 | Faculty may author only INTERNAL and PRACTICE assessments | **Decided** 2026-11-08 |
+| D-2.2-MVP | Delivery changed to a seven-day MVP (`increment-2.2-mvp.md`); the full plan's advanced features are deferred; KI-79 fix approved; KI-75 fix prepared without delaying the MVP | **Decided** 2026-11-08 |
 | P2-09 | Email notifications | **Approved** 2026-11-04, implemented in 2.0 |
 | P2-10 | Payments deferred | Not yet decided (recommendation: defer) |
 | P2-11 | Legal review | Approved: start immediately |

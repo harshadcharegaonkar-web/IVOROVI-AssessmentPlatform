@@ -11,6 +11,9 @@ public class FakeCandidateMfa implements CandidateMfa {
     public final Set<String> resets = ConcurrentHashMap.newKeySet();
     public final java.util.List<PasswordReset> passwordResets = new java.util.concurrent.CopyOnWriteArrayList<>();
     public final java.util.List<String> signedOut = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** Calls of {@link #signOutSessionsBefore}: subject, reset time and the kept session. */
+    public record SignOutBefore(String subject, java.time.Instant resetAt, String keptSession) {}
+    public final java.util.List<SignOutBefore> signedOutBefore = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @Override
     public java.util.List<PasswordReset> passwordResetsSince(java.time.Instant since) {
@@ -20,6 +23,12 @@ public class FakeCandidateMfa implements CandidateMfa {
     @Override
     public void signOutEverywhere(String subject) {
         signedOut.add(subject);
+    }
+
+    @Override
+    public void signOutSessionsBefore(String subject, java.time.Instant resetAt, String keepSessionId) {
+        signedOut.add(subject);
+        signedOutBefore.add(new SignOutBefore(subject, resetAt, keepSessionId));
     }
 
     @Override
