@@ -65,7 +65,7 @@ quality depends on the installed math font (`font-family: math`; no web font is 
 
 - A small, auditable surface: one renderer package (`@ivorovi/content`) shared by the staff app and, from 2.5, the exam
   app.
-- KaTeX's lazy chunk is 74.6 kB gzip. It has its own budget of ≤ 80 kB (pending approval, L-2.1-2) instead of the
+- KaTeX's lazy chunk is 74.6 kB gzip. It has its own budget of ≤ 80 kB (approved 2026-11-08, L-2.1-2; any increase needs separate approval) instead of the
   general 40 kB lazy-chunk limit.
 - Visual quality varies with the platform's math font. Accessibility relies on native MathML support in screen readers
   (VoiceOver, NVDA with MathCAT, JAWS, TalkBack). Automated checks cover the accessibility tree and axe; manual

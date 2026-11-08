@@ -88,7 +88,7 @@ These are technical choices made inside the authorized scope; none of them decid
 | # | Item | Status |
 |---|---|---|
 | L-2.1-1 | New frontend library **KaTeX 0.16 (MIT)** for mathematical notation, MathML output only, `trust: false` (plan §6.3, ADR-0010 proposal) | **Approved** 2026-11-08 (final 2.1 approval): MathML only, no HTML output; links, images, HTML commands and unsafe extensions disabled; pinned (0.16.47) and self-hosted, no CDN; exam CSP preserved; no new CSP exception for KaTeX without approval; cross-browser, accessibility and screen-reader testing; documented fallback |
-| L-2.1-2 | Bundle budget exception: the lazily loaded KaTeX chunk (74.6 kB gzip, question pages only) gets its own limit of **≤ 80 kB gzip** instead of the general 40 kB per lazy chunk; KaTeX may never enter the initial payload (enforced). The initial-payload budget (180 kB) is unchanged (159.5 kB) | **Needs approval** (the 1.0 budget was approved by the product owner) |
+| L-2.1-2 | Separate budget for the KaTeX chunk: **≤ 80 kB gzip** | **Approved** 2026-11-08 with conditions: KaTeX stays lazy-loaded, never in the main bundle, loaded only where mathematics is rendered; main application budget 180 kB and exam application budget 120 kB unchanged; KaTeX size tracked independently (budget script, named chunk); any increase beyond 80 kB needs separate approval |
 
 ## Increment 2.1 decisions
 

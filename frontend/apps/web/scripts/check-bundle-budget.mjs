@@ -17,7 +17,7 @@ const INITIAL_BUDGET_KB = 180;
 const LAZY_CHUNK_BUDGET_KB = 40;
 // Named library chunks with their own budget, loaded only by the screens that need them (never initial).
 // katex: KaTeX 0.16 (approved L-2.1-1), one non-tree-shakeable module, loaded on question pages only. The 80 kB limit is
-// pending approval (decision register, L-2.1-2).
+// approved 2026-11-08 (decision register, L-2.1-2); any increase needs separate approval.
 const LIBRARY_CHUNK_BUDGETS_KB = { katex: 80 };
 const budgetOf = (file) => {
   const name = file.replace(/^assets\//, "").replace(/-[A-Za-z0-9_-]{8}\.js$/, "");

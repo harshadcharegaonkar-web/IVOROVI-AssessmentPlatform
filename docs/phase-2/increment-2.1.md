@@ -1,10 +1,17 @@
 # Increment 2.1 — Question bank: implementation record
 
-Status: **implementation complete, awaiting product-owner acceptance.** Commit `b83aa42`; CI run **42466656418**
-all jobs green (backend 407 tests; frontend; security scan; end-to-end: web suite 115/115 including the mathematics
-test in Chromium desktop, Firefox, WebKit/Safari, Edge, mobile Chrome and mobile Safari; exam app 7 passed plus 1
-existing 2.0 test flaky, passing on retry). Follow-up commit: visible labels for three checkboxes in the editor,
-taxonomy and import screens. Authorized 2026-11-08: plan `increment-2.1-plan.md`, final approval with KaTeX,
+Status: **Accepted** by the product owner on 2026-11-08, on the basis of this report, CI run **42466656418**
+(commit `b83aa42`) and follow-up CI run **42469900842** (commit `b45bfb7`), all jobs green. Acceptance is not a
+production authorization: the release blockers stay open. Accepted with follow-ups KI-75 (search performance targets),
+KI-77 (manual accessibility validation), KI-78 (real-device Safari) and the root cause of the flaky exam-app test
+(KI-79). KI-77 and KI-78 are required before production examination use.
+
+CI evidence (run 42466656418): backend 407 tests; frontend; security scan; end-to-end web suite 115/115 including the
+mathematics test in Chromium desktop, Firefox, WebKit/Safari, Edge, mobile Chrome and mobile Safari; exam app 7 passed
+plus 1 existing 2.0 test that passed only on retry (root cause in KI-79; a retry is not accepted as evidence of
+reliability). Follow-up commit `b45bfb7`: visible labels for three checkboxes in the editor, taxonomy and import screens.
+
+Authorized 2026-11-08: plan `increment-2.1-plan.md`, final approval with KaTeX,
 image, governance, numeric, versioning and security-testing requirements, and the permission-conflict resolution P2-08
 (Option 2).
 
@@ -84,8 +91,7 @@ See `../performance/question-bank-benchmark.md`.
 
 ## 6. Decisions and approvals
 
-- L-2.1-1 (KaTeX) approved. P2-08 decided.
-- **Pending your approval:** L-2.1-2 — KaTeX lazy-chunk budget ≤ 80 kB gzip.
+- L-2.1-1 (KaTeX) approved. P2-08 decided. L-2.1-2 (KaTeX chunk budget ≤ 80 kB gzip) approved 2026-11-08 with conditions (decision register).
 
 ## 7. Known issues
 
