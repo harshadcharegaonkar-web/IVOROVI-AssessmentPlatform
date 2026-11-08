@@ -31,7 +31,12 @@ public class RecordingEmailSender implements EmailSender {
         m.setTo(message.to());
         m.setSubject(message.subject());
         m.setText(message.textBody());
-        smtp.send(m);
+        try {
+            smtp.send(m);
+        } catch (org.springframework.mail.MailException e) {
+            // no SMTP server in the backend CI job: the recorded message is what tests assert on (the real adapter is
+            // exercised against Mailpit by the E2E suites)
+        }
     }
 
     public String lastTokenFor(String email) {

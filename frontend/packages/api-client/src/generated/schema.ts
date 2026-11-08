@@ -6017,6 +6017,8 @@ export interface components {
             lastSeenAt?: string;
             /** Format: int64 */
             beats?: number;
+            /** Format: int64 */
+            saves?: number;
         };
         AuditEvent: {
             /** Format: uuid */
