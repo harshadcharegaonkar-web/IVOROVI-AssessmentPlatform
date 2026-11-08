@@ -25,11 +25,14 @@ public class NotificationService {
     public enum Severity { INFO, SUCCESS, WARNING, ERROR }
 
     /** Categories shown as filters in the notification center. */
-    public static final Set<String> CATEGORIES = Set.of("invitations", "accounts", "access", "students", "imports", "integrations", "system");
+    public static final Set<String> CATEGORIES = Set.of("invitations", "accounts", "access", "students", "imports", "integrations", "approvals", "exams", "system");
 
     @Schema(name = "Notification")
     public record Notification(UUID id, String category, Severity severity, String title, String body, String link, Instant createdAt, Instant readAt,
-                               String eventType, String resourceType, String resourceId, String channel, String deliveryStatus) {}
+                               String eventType, String resourceType, String resourceId, String channel, String deliveryStatus, String emailStatus) {}
+
+    @Schema(name = "NotificationPreference")
+    public record Preference(String category, boolean email) {}
 
     public record Page(List<Notification> items, long total, long unread) {}
 
@@ -38,10 +41,18 @@ public class NotificationService {
                           String resourceType, String resourceId) {}
 
     private final JdbcClient jdbc;
+    private final com.ivorovi.platform.crypto.FieldCipher cipher;
+    private final String appBaseUrl;
 
-    NotificationService(JdbcClient jdbc) {
+    NotificationService(JdbcClient jdbc, com.ivorovi.platform.crypto.FieldCipher cipher,
+                        @org.springframework.beans.factory.annotation.Value("${ivorovi.identity.app-base-url:http://localhost:5173}") String appBaseUrl) {
         this.jdbc = jdbc;
+        this.cipher = cipher;
+        this.appBaseUrl = appBaseUrl.replaceAll("/+$", "");
     }
+
+    public static final String RECIPIENT_FIELD_NAME = "email_delivery.recipient";
+    static final String RECIPIENT_FIELD = RECIPIENT_FIELD_NAME;
 
     /** Creates a notification for a user of the current tenant. {@code link} must be an in-app path. */
     @Transactional
@@ -60,7 +71,57 @@ public class NotificationService {
                 .params(id, TenantContext.requireTenantId(), recipientId, m.category(), m.severity().name(), truncate(m.title(), 200), truncate(m.body(), 1000),
                         m.link(), m.sourceEventId(), m.eventType(), m.resourceType(), m.resourceId())
                 .update();
-        return n == 0 ? null : id;
+        if (n == 0) return null;
+        // email channel (P2-09): queued in the same transaction when the recipient's preference allows it (default on)
+        boolean wanted = jdbc.sql("SELECT email_enabled FROM notification_preference WHERE user_id = ? AND category = ?").params(recipientId, m.category())
+                .query(Boolean.class).optional().orElse(true);
+        String address = jdbc.sql("SELECT email FROM user_account WHERE id = ? AND status = 'ACTIVE'").param(recipientId).query(String.class).optional().orElse(null);
+        if (wanted && address != null && !address.isBlank()) {
+            String body = (m.body() == null ? "" : m.body() + "\n\n") + (m.link() == null ? "" : "Open: " + appBaseUrl + m.link() + "\n\n")
+                    + "You can change which notifications you receive by email under Notifications → Email preferences.";
+            queueEmail(id, recipientId, address, m.category(), "[Ivorovi] " + m.title(), body);
+        }
+        return id;
+    }
+
+    /** Queues an email (e.g. to a candidate, who has no staff account). Sent with retries by the email dispatcher. */
+    @Transactional
+    public UUID email(String address, String category, String subject, String body) {
+        return queueEmail(null, null, address, category, subject, body);
+    }
+
+    private UUID queueEmail(UUID notificationId, UUID userId, String address, String category, String subject, String body) {
+        UUID id = Ids.newId();
+        UUID tenant = TenantContext.requireTenantId();
+        jdbc.sql("""
+                INSERT INTO email_delivery (id, tenant_id, notification_id, recipient_user_id, recipient_enc, category, subject, body)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)""").params(id, tenant, notificationId, userId, cipher.encrypt(address, RECIPIENT_FIELD, tenant), category,
+                truncate(subject, 300), body).update();
+        return id;
+    }
+
+    // ------------------------------------------------------------------------------------------------ preferences
+
+    @Transactional(readOnly = true)
+    public List<Preference> preferences() {
+        UUID me = CurrentUser.require().userId();
+        java.util.Map<String, Boolean> set = new java.util.HashMap<>();
+        jdbc.sql("SELECT category, email_enabled FROM notification_preference WHERE user_id = ?").param(me)
+                .query(rs -> { set.put(rs.getString(1), rs.getBoolean(2)); });
+        return CATEGORIES.stream().sorted().map(c -> new Preference(c, set.getOrDefault(c, true))).toList();
+    }
+
+    @Transactional
+    public List<Preference> updatePreferences(List<Preference> changes) {
+        UUID me = CurrentUser.require().userId();
+        for (Preference p : changes) {
+            if (!CATEGORIES.contains(p.category())) throw ApiException.badRequest("invalid_category", "Unknown notification category.");
+            jdbc.sql("""
+                    INSERT INTO notification_preference (tenant_id, user_id, category, email_enabled) VALUES (?, ?, ?, ?)
+                    ON CONFLICT (tenant_id, user_id, category) DO UPDATE SET email_enabled = EXCLUDED.email_enabled, updated_at = now()""")
+                    .params(TenantContext.requireTenantId(), me, p.category(), p.email()).update();
+        }
+        return preferences();
     }
 
     @Transactional(readOnly = true)
@@ -86,14 +147,16 @@ public class NotificationService {
         p.add(size);
         p.add((long) page * size);
         List<Notification> items = jdbc.sql("""
-                SELECT id, category, severity, title, body, link, created_at, read_at, event_type, resource_type, resource_id, channel, delivery_status
-                FROM notification""" + filter + " ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?")
+                SELECT n.id, n.category, n.severity, n.title, n.body, n.link, n.created_at, n.read_at, n.event_type, n.resource_type, n.resource_id, n.channel,
+                       n.delivery_status, (SELECT e.status FROM email_delivery e WHERE e.notification_id = n.id ORDER BY e.created_at DESC LIMIT 1) AS email_status
+                FROM notification n""" + filter.toString().replace("recipient_id", "n.recipient_id").replace("read_at", "n.read_at").replace("category", "n.category") + " ORDER BY n.created_at DESC, n.id DESC LIMIT ? OFFSET ?")
                 .params(p)
                 .query((rs, n) -> new Notification(rs.getObject("id", UUID.class), rs.getString("category"),
                         Severity.valueOf(rs.getString("severity")), rs.getString("title"), rs.getString("body"),
                         rs.getString("link"), rs.getTimestamp("created_at").toInstant(),
                         rs.getTimestamp("read_at") == null ? null : rs.getTimestamp("read_at").toInstant(), rs.getString("event_type"),
-                        rs.getString("resource_type"), rs.getString("resource_id"), rs.getString("channel"), rs.getString("delivery_status")))
+                        rs.getString("resource_type"), rs.getString("resource_id"), rs.getString("channel"), rs.getString("delivery_status"),
+                        rs.getString("email_status")))
                 .list();
         return new Page(items, total, unreadCount());
     }

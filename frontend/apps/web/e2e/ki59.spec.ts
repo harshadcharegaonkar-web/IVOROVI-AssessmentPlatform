@@ -47,7 +47,7 @@ test.describe("KI-59: live API-client authorization and service identities", () 
     await dialog.getByLabel("Name", { exact: true }).fill(name);
     await dialog.getByLabel("Purpose").fill("Nightly roster export (E2E)");
     await dialog.getByLabel("Business custodian").selectOption({ index: 1 });
-    await dialog.getByLabel("Technical custodian").selectOption({ index: 1 });
+    await dialog.getByLabel("Technical custodian").selectOption({ index: 2 });
     await dialog.getByLabel(/View the organization hierarchy/).check();
     await dialog.getByRole("button", { name: "Submit for approval" }).click();
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();

@@ -96,6 +96,35 @@ ivorovi:
       issuer: ${IVOROVI_OIDC_ISSUER}
       jwk-set-uri: ${IVOROVI_OIDC_JWKS}
       audience: ${IVOROVI_OIDC_AUDIENCE:ivorovi-api}
+  # P2-03 / C-4: the same build runs as the administrative API (ADMIN) or the exam delivery API (DELIVERY); each refuses the
+  # other's endpoints with 404. Every process writes a heartbeat used by the outage detector (C-3).
+  process:
+    role: ${IVOROVI_PROCESS_ROLE:ADMIN}
+    heartbeat-enabled: ${IVOROVI_PROCESS_HEARTBEAT_ENABLED:true}
+    heartbeat-interval: PT10S
+  # Delivery boundary: candidate-realm tokens only (Q-03), exam application origin only (Q-07).
+  delivery:
+    issuer: ${IVOROVI_DELIVERY_OIDC_ISSUER}
+    jwk-set-uri: ${IVOROVI_DELIVERY_OIDC_JWKS}
+    audience: ivorovi-delivery
+    allowed-origins: ${IVOROVI_EXAM_APP_ORIGINS:}
+    candidate-per-minute: ${IVOROVI_RATE_LIMIT_CANDIDATE:240}
+    tenant-per-minute: ${IVOROVI_RATE_LIMIT_DELIVERY_TENANT:120000}
+    code-attempts-per-candidate-per-minute: 10
+    # one exam hall behind a campus NAT shares an address; per-candidate and per-code limits remain the tight ones
+    code-attempts-per-ip-per-minute: ${IVOROVI_DELIVERY_CODE_ATTEMPTS_PER_IP:300}
+    code-attempts-per-code-per-minute: 5
+  exams:
+    exam-app-base-url: ${IVOROVI_EXAM_APP_BASE_URL:http://localhost:5174}
+    outage-detector-enabled: ${IVOROVI_OUTAGE_DETECTOR_ENABLED:true}
+    outage-threshold: ${IVOROVI_OUTAGE_THRESHOLD:PT45S}
+    outage-check-interval: PT15S
+    idp:
+      # candidate realm admin API (view/manage users of that realm only): second-factor status and support resets
+      admin-url: ${IVOROVI_IDP_ADMIN_URL:http://localhost:8180}
+      realm: ${IVOROVI_CANDIDATE_IDP_REALM:ivorovi-candidates}
+      client-id: ${IVOROVI_CANDIDATE_IDP_CLIENT_ID:ivorovi-candidate-provisioner}
+      client-secret: ${IVOROVI_CANDIDATE_IDP_SECRET:}
   features:
     # e.g. "ai.*" on an on-premises deployment without an approved AI provider
     deployment-disabled: ${IVOROVI_FEATURES_DEPLOYMENT_DISABLED:}
@@ -146,7 +175,10 @@ ivorovi:
     consumer-enabled: ${IVOROVI_NOTIFICATIONS_CONSUMER_ENABLED:true}
   outbox:
     exchange: ivorovi.events
-    batch-size: 100
+    # KI-64 (2.0): parallel workers, one broker confirm per batch
+    batch-size: 500
+    publisher-threads: ${IVOROVI_OUTBOX_PUBLISHER_THREADS:4}
+    drain-budget: PT5S
     publisher-enabled: true
     poll-interval: 1s
   storage:
@@ -171,6 +203,8 @@ ivorovi:
       client-secret: ${IVOROVI_IDP_PROVISIONER_SECRET:}
 
 springdoc:
+  # the staff API contract; delivery endpoints are served only by the DELIVERY process (exam app uses its own client)
+  paths-to-exclude: /api/v1/delivery/**
   api-docs:
     enabled: ${IVOROVI_OPENAPI_ENABLED:true}
   swagger-ui:

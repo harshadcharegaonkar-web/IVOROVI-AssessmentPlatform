@@ -1,0 +1,45 @@
+{
+  "date": "2026-11-05T02:15:33Z",
+  "events": 50000,
+  "otherBacklogAtStart": 0,
+  "insertSeconds": 3.19,
+  "pickupLatencySeconds": 0.9,
+  "drainSeconds": 4.29,
+  "eventsPerSecond": 11658,
+  "deliveredToQueue": 50000,
+  "lostOrDuplicated": 0,
+  "samples": [
+    {
+      "t": 0.2,
+      "pending": 50000
+    },
+    {
+      "t": 0.9,
+      "pending": 43000
+    },
+    {
+      "t": 1.6,
+      "pending": 36500
+    },
+    {
+      "t": 2.4,
+      "pending": 31500
+    },
+    {
+      "t": 3.0,
+      "pending": 31500
+    },
+    {
+      "t": 3.7,
+      "pending": 27000
+    },
+    {
+      "t": 4.5,
+      "pending": 15000
+    },
+    {
+      "t": 5.2,
+      "pending": 0
+    }
+  ]
+}

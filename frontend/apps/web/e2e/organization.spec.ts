@@ -10,9 +10,18 @@ async function seriousViolations(page: Page): Promise<string[]> {
   return results.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id}: ${v.help}`);
 }
 
+/**
+ * Opens "More actions" and picks an item. KI-65: right after a navigation the lazily loaded page may still re-render,
+ * which closes a menu opened too early; wait for the open menu (re-opening if needed) instead of for element stability.
+ */
 async function moreAction(page: Page, name: string | RegExp) {
-  await page.getByRole("button", { name: "More actions" }).click();
-  await page.getByRole("menuitem", { name }).click();
+  const item = page.getByRole("menuitem", { name });
+  await expect(async () => {
+    if (!(await item.isVisible())) await page.getByRole("button", { name: "More actions" }).click();
+    await expect(page.getByRole("menu")).toBeVisible({ timeout: 2000 });
+    await expect(item).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 20_000 });
+  await item.click();
 }
 
 test.describe("Increment 1.1: organization hierarchy", () => {

@@ -93,8 +93,11 @@ services:
       KC_HEALTH_ENABLED: "true"
       DEV_USER_PASSWORD: ${DEV_USER_PASSWORD:?}
       KEYCLOAK_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      # candidate realm: security emails for password/authenticator changes (C-1 recovery notice), not for failed logins
+      KC_SPI_EVENTS_LISTENER__EMAIL__EXCLUDE_EVENTS: LOGIN_ERROR
     volumes:
       - ./keycloak/realm-ivorovi.json:/opt/keycloak/data/import/realm-ivorovi.json:ro
+      - ./keycloak/realm-ivorovi-candidates.json:/opt/keycloak/data/import/realm-ivorovi-candidates.json:ro
     ports: ["127.0.0.1:8180:8080"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -128,6 +131,10 @@ services:
       IVOROVI_APP_BASE_URL: http://localhost:8081
       IVOROVI_OIDC_ISSUER: http://localhost:8180/realms/ivorovi
       IVOROVI_OIDC_JWKS: http://keycloak:8080/realms/ivorovi/protocol/openid-connect/certs
+      IVOROVI_DELIVERY_OIDC_ISSUER: http://localhost:8180/realms/ivorovi-candidates
+      IVOROVI_DELIVERY_OIDC_JWKS: http://keycloak:8080/realms/ivorovi-candidates/protocol/openid-connect/certs
+      IVOROVI_CANDIDATE_IDP_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      IVOROVI_EXAM_APP_BASE_URL: http://localhost:8082
     ports: ["127.0.0.1:8080:8080"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -139,6 +146,61 @@ services:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness || exit 1"]
       interval: 10s
       retries: 30
+
+  # Exam delivery process (P2-03): same image, DELIVERY role (serves only /api/v1/delivery/**), own connection pool.
+  delivery:
+    profiles: [app]
+    <<: *restart
+    build:
+      context: ../..
+      dockerfile: backend/api/Dockerfile
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      IVOROVI_PROCESS_ROLE: DELIVERY
+      IVOROVI_DB_POOL_SIZE: 30
+      IVOROVI_DB_URL: jdbc:postgresql://postgres:5432/ivorovi
+      IVOROVI_DB_APP_PASSWORD: ${IVOROVI_APP_PASSWORD:?}
+      IVOROVI_DB_OWNER_PASSWORD: ${IVOROVI_OWNER_PASSWORD:?}
+      IVOROVI_REDIS_HOST: valkey
+      IVOROVI_REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+      IVOROVI_RABBITMQ_HOST: rabbitmq
+      IVOROVI_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?}
+      IVOROVI_S3_ENDPOINT: http://objectstore:8333
+      IVOROVI_S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      IVOROVI_S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+      IVOROVI_SMTP_HOST: mailpit
+      IVOROVI_IDP_ADMIN_URL: http://keycloak:8080
+      IVOROVI_IDP_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      IVOROVI_CANDIDATE_IDP_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      IVOROVI_DATA_KEY: ${DATA_ENCRYPTION_KEY:?run scripts/dev-setup.sh}
+      IVOROVI_OIDC_ISSUER: http://localhost:8180/realms/ivorovi
+      IVOROVI_OIDC_JWKS: http://keycloak:8080/realms/ivorovi/protocol/openid-connect/certs
+      IVOROVI_DELIVERY_OIDC_ISSUER: http://localhost:8180/realms/ivorovi-candidates
+      IVOROVI_DELIVERY_OIDC_JWKS: http://keycloak:8080/realms/ivorovi-candidates/protocol/openid-connect/certs
+      IVOROVI_EXAM_APP_ORIGINS: http://localhost:8082
+      IVOROVI_EXAM_APP_BASE_URL: http://localhost:8082
+    ports: ["127.0.0.1:8090:8080"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/actuator/health/readiness || exit 1"]
+      interval: 10s
+      retries: 30
+
+  # Exam application (C-4): separate origin and bundle; proxies only the delivery API.
+  exam:
+    profiles: [app]
+    <<: *restart
+    build:
+      context: ../../frontend
+      dockerfile: apps/exam/Dockerfile
+    environment:
+      OIDC_AUTHORITY: http://localhost:8180/realms/ivorovi-candidates
+      OIDC_CLIENT_ID: ivorovi-exam
+      DELIVERY_UPSTREAM: http://delivery:8080
+    ports: ["127.0.0.1:8082:8080"]
+    depends_on:
+      delivery: { condition: service_healthy }
 
   web:
     profiles: [app]

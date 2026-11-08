@@ -79,9 +79,11 @@ public class IntegrationService {
     private final TransactionTemplate tx;
     private final IntegrationsProperties props;
     private final Map<String, IntegrationAdapter> adapters;
+    private final com.ivorovi.platform.jobs.JobLeases leases;
 
     IntegrationService(JdbcClient jdbc, Authz authz, AuditLog audit, Outbox outbox, FieldCipher cipher, JsonMapper json, TransactionTemplate tx,
-                       IntegrationsProperties props, List<IntegrationAdapter> adapters) {
+                       IntegrationsProperties props, List<IntegrationAdapter> adapters, com.ivorovi.platform.jobs.JobLeases leases) {
+        this.leases = leases;
         this.jdbc = jdbc;
         this.authz = authz;
         this.audit = audit;
@@ -309,6 +311,13 @@ public class IntegrationService {
     @Scheduled(fixedDelayString = "${ivorovi.integrations.health-check-interval:PT15M}", initialDelayString = "PT2M")
     void healthChecks() {
         if (props.healthCheckInterval().isZero()) return;
+        // KI-61: one instance per interval (the lease outlives the interval slightly so a slower peer cannot start late)
+        if (!leases.tryAcquire("integrations.health-checks", props.healthCheckInterval().minusSeconds(5))) return;
+        runHealthChecks();
+    }
+
+    /** One pass over every organization's due integrations (called by the leased scheduler and by tests). */
+    public void runHealthChecks() {
         List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant WHERE status IN ('ACTIVE', 'TRIAL')").query(UUID.class).list());
         for (UUID tenant : tenants) {
             TenantContext.runInTenant(tenant, () -> {

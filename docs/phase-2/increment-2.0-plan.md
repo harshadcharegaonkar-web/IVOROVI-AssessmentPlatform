@@ -1,7 +1,7 @@
-# Increment 2.0 — Foundations (plan for review)
+# Increment 2.0 — Foundations
 
-Status: **planning only — awaiting approval** (2026-11-04). No 2.0 code exists. Prerequisite: Increment 1.7 formally
-closed (KI-59 implemented, CI green). Phase 1 functionality is changed only where a documented defect (KI-61, KI-64) or
+Status: **authorized 2026-11-04 and implemented; awaiting acceptance** (implementation record: `increment-2.0.md`).
+Prerequisite met: Increment 1.7 formally accepted (CI run 41777630761). Phase 1 functionality is changed only where a documented defect (KI-61, KI-64) or
 an approved dependency requires it, and each such change is listed in §6.
 
 ## 1. Goal
@@ -99,15 +99,15 @@ No question bank, assessment, scheduling or delivery business logic is built in 
 
 | # | Decision | Status |
 |---|---|---|
-| P2-03 | Delivery as a process profile of the monolith | Needs approval (recommended) |
-| P2-09 | Email notification channel | Needs approval (recommended) |
-| Q-02 | MFA factors and default | Needs answer (recommend TOTP + email code, default optional) |
-| Q-03 | Separate candidate realm | Needs answer (recommended) |
-| Q-04 | Single-approver organizations | Needs answer (recommend block, never self-approve) |
-| Q-07 | Exam domain | Needs answer (recommend one domain per region) |
-| Q-11 | Harness without new libraries | Needs confirmation |
-| ADR-0007 (new) | Four-eyes approval framework | To be written in 2.0 |
-| ADR-0008 (new) | Candidate identity boundary and exam application security | To be written in 2.0 |
+| P2-03 | Delivery as a process profile of the monolith | Approved 2026-11-04; implemented (`IVOROVI_PROCESS_ROLE`) |
+| P2-09 | Email notification channel | Approved 2026-11-04; implemented |
+| Q-02 | MFA factors | Decided: verified email, single-use session codes, optional TOTP; SMS never the only factor. Implemented (TOTP + recovery codes; no email OTP factor) |
+| Q-03 | Separate candidate realm | Decided; implemented (`ivorovi-candidates`) |
+| Q-04 | Single-approver organizations | Decided: never bypassed; implemented (pending + escalation) |
+| Q-07 | Exam domain | Decided: one shared exam domain, tenant from server-side configuration; implemented (`/p/{portal}`) |
+| Q-11 | Harness without new libraries | Decided; implemented (single-file JDK harness) |
+| ADR-0007 | Four-eyes approval framework | Written (`../adr/0007-four-eyes-approvals.md`) |
+| ADR-0008 | Candidate identity boundary and exam application security | Written (`../adr/0008-candidate-identity-and-exam-app.md`) |
 
 ## 4. Dependencies
 
@@ -169,6 +169,21 @@ No change to student, academic, import, report or dashboard behaviour.
 9. No Phase 1 regression: full backend, frontend, E2E and smoke suites are green. The bundle budget holds for the
    staff app; the exam app gets its own budget (≤ 120 kB initial gzip).
 10. Docs: ADR-0007, ADR-0008, runbooks (candidate accounts, outage compensation), decision register updated, tracker.
+
+## 7a. Additional acceptance requirements (product owner, 2026-11-04)
+
+| # | Requirement | Evidence |
+|---|---|---|
+| 7a-1 | Four-eyes validated at service **and** database level | `ApprovalsIT` (API refusal + audit; direct UPDATE and INSERT refused by `approval_four_eyes`; revoked approver refused); `IncidentWorkflowIT`; exam E2E with two controllers |
+| 7a-2 | Candidate authentication, recovery, MFA and session-code security tested | `DeliveryIT` (13 tests: token validation, verified email, MFA policy, hashed codes, 100-way concurrency, windows, revocation, rate limits, audit); exam E2E against the real candidate realm (registration with email verification, TOTP, MFA-protected reset, all sessions ended) |
+| 7a-3 | Staff and candidate sessions cannot cross boundaries | `DeliveryIT`/`ExamAdminIT` both directions incl. forged issuer/key/audience; process role 404s; E2E with real tokens |
+| 7a-4 | Tenant isolation on the exam app | portal → tenant server-side; codes, sessions and presence of another organization unusable (`DeliveryIT`, exam E2E) |
+| 7a-5 | Outage detection and the complete compensation workflow | `IncidentWorkflowIT` (heartbeats → incident → impact → proposal → four-eyes → entitlement → single use); failure script with a real process crash; exam E2E through the UI |
+| 7a-6 | Event publishing benchmarked under bulk load | `ReliabilityIT` (20,000 events) and `docs/performance/outbox-throughput.md` (running stack) |
+| 7a-7 | Email failures retried and recorded | `ReliabilityIT` (backoff, attempts, FAILED after 6, in-app unaffected, two dispatchers never double-send) |
+| 7a-8 | Job leasing across multiple instances | `ReliabilityIT` (three owners, 60 concurrent attempts, release, expiry) |
+| 7a-9 | Repeatable load results (response times, throughput, errors, resources) | `backend/devtools/harness/DeliveryHarness.java`; `docs/performance/delivery-load-and-failure.md` |
+| 7a-10 | Complete audit trails | every step above writes audit events; asserted in the tests |
 
 ## 8. Test strategy
 

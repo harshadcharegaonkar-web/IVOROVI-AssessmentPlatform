@@ -95,7 +95,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
     <Modal open onOpenChange={(o) => !o && onClose()} title="New service identity" size="lg"
       description="It stays pending until another integration manager approves its envelope."
       footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" loading={save.isPending} disabled={!name.trim() || !purpose.trim() || !business || !technical || envelope.length === 0} onClick={() => save.mutate()}>Submit for approval</Button></>}>
+        <Button variant="primary" loading={save.isPending} disabled={!name.trim() || !purpose.trim() || !business || !technical || business === technical || envelope.length === 0} onClick={() => save.mutate()}>Submit for approval</Button></>}>
       <div className="space-y-4">
         {save.isError && <p role="alert" className="text-sm text-danger">{errorInfo(save.error).message}</p>}
         <Field label="Name">{(p) => <Input {...p} value={name} maxLength={100} onChange={(e) => setName(e.target.value)} />}</Field>
@@ -106,6 +106,7 @@ function CreateDialog({ onClose }: { onClose: () => void }) {
           <UserSelect label="Business custodian" value={business} onChange={setBusiness} hint="Accountable for why the integration needs this data." />
           <UserSelect label="Technical custodian" value={technical} onChange={setTechnical} hint="Accountable for operating the integration and its keys." />
         </div>
+        {business && business === technical && <p role="alert" className="text-sm text-danger">The business and technical custodians must be two different people.</p>}
         <EnvelopePicker value={envelope} onChange={setEnvelope} />
       </div>
     </Modal>

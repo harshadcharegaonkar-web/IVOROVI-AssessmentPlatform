@@ -178,6 +178,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My email preferences per category (email is on unless switched off) */
+        get: operations["preferences"];
+        /** Change my email preferences */
+        put: operations["updatePreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/integrations/{id}": {
         parameters: {
             query?: never;
@@ -227,6 +245,22 @@ export interface paths {
         post?: never;
         /** Remove an override so the value is inherited again */
         delete: operations["clearOverride"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/portals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updatePortal"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1298,6 +1332,222 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sessions"];
+        put?: never;
+        post: operations["createSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/sessions/{id}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["codes"];
+        put?: never;
+        /** Generate single-use session codes; the codes are returned once and stored only as keyed hashes */
+        post: operations["generate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/sessions/{id}/codes/{codeId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["revoke_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/sessions/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/portals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["portals"];
+        put?: never;
+        /** Create an exam portal on the shared exam domain (organization-wide permission) */
+        post: operations["createPortal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["incidents"];
+        put?: never;
+        /** Report an outage observed by the institution; affected candidates are derived from presence and check-ins */
+        post: operations["report"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/incidents/{id}/compensations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Propose compensation; applied only after a second person approves it (four-eyes) */
+        post: operations["propose"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/candidates/{id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["suspend_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/candidates/{id}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reactivate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/candidates/{id}/mfa-reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove the candidate's second factors and sign out all sessions (lost device); the candidate is emailed */
+        post: operations["resetMfa"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{id}/escalate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Escalate to organization-level approvers (when no eligible approver is available) */
+        post: operations["escalate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve or reject (not by the requester; approver must hold the required permission now) */
+        post: operations["decide_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel my pending request */
+        post: operations["cancel_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/api-clients": {
         parameters: {
             query?: never;
@@ -1326,7 +1576,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Suspend a client (keys stop working until resumed) */
-        post: operations["suspend_1"];
+        post: operations["suspend_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1360,7 +1610,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Revoke the client and all its keys (permanent) */
-        post: operations["revoke_1"];
+        post: operations["revoke_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2141,7 +2391,7 @@ export interface paths {
             cookie?: never;
         };
         /** Download a report: VALIDATION, ERRORS, RESULT or CORRECTIONS (rows to fix with their original values; needs student.personal.read) */
-        get: operations["report"];
+        get: operations["report_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2626,6 +2876,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/sessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["session"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/sessions/{id}/check-ins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["checkIns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/incidents/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["incident"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["candidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-events": {
         parameters: {
             query?: never;
@@ -2652,6 +2966,40 @@ export interface paths {
         };
         /** Verify the integrity of the tenant's hash-chained audit trail */
         get: operations["verify_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** view=decide: pending requests I may decide (never my own); view=requests: requests I made */
+        get: operations["list_11"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/approvals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One request (requester or eligible approvers only) */
+        get: operations["get_6"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2718,7 +3066,7 @@ export interface paths {
             cookie?: never;
         };
         /** Active teaching staff of the program's institution who can be assigned */
-        get: operations["candidates"];
+        get: operations["candidates_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3245,6 +3593,10 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        NotificationPreference: {
+            category?: string;
+            email?: boolean;
+        };
         IntegrationRequest: {
             /** @enum {string} */
             kind?: "SIS_ERP" | "LMS" | "EMAIL" | "APPLICATION";
@@ -3311,6 +3663,30 @@ export interface components {
             inheritedSource?: string;
             enabled?: boolean;
             source?: string;
+        };
+        UpdateExamPortalRequest: {
+            name: string;
+            mfaPolicy: string;
+            selfRegistration?: boolean;
+            status: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ExamPortal: {
+            /** Format: uuid */
+            id?: string;
+            portalKey?: string;
+            name?: string;
+            status?: string;
+            selfRegistration?: boolean;
+            mfaPolicy?: string;
+            url?: string;
+            /** Format: int64 */
+            candidates?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
         };
         ApiClientRequest: {
             name?: string;
@@ -4115,6 +4491,190 @@ export interface components {
             startedAt?: string;
             /** Format: date-time */
             finishedAt?: string;
+        };
+        CreateReadinessSessionRequest: {
+            /** Format: uuid */
+            portalId: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            name: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+        };
+        ReadinessSession: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            portalId?: string;
+            portalName?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            name?: string;
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            endsAt?: string;
+            status?: string;
+            /** Format: int64 */
+            codes?: number;
+            /** Format: int64 */
+            codesUsed?: number;
+            /** Format: int64 */
+            checkIns?: number;
+            /** Format: int64 */
+            version?: number;
+        };
+        GenerateSessionCodesRequest: {
+            /** Format: int32 */
+            count?: number;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validUntil?: string;
+        };
+        IssuedSessionCode: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            hint?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validUntil?: string;
+        };
+        CreateExamPortalRequest: {
+            portalKey: string;
+            name: string;
+            mfaPolicy: string;
+            selfRegistration?: boolean;
+        };
+        ReportExamIncidentRequest: {
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            endedAt: string;
+            description: string;
+            /** Format: uuid */
+            sessionId?: string;
+        };
+        ExamCompensation: {
+            /** Format: uuid */
+            id?: string;
+            action?: string;
+            /** Format: int32 */
+            extensionMinutes?: number;
+            rationale?: string;
+            status?: string;
+            /** Format: uuid */
+            approvalId?: string;
+            /** Format: uuid */
+            proposedBy?: string;
+            proposedByName?: string;
+            /** Format: date-time */
+            proposedAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            /** Format: int64 */
+            applied?: number;
+        };
+        ExamIncident: {
+            /** Format: uuid */
+            id?: string;
+            source?: string;
+            /** Format: uuid */
+            platformIncidentId?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            endedAt?: string;
+            description?: string;
+            status?: string;
+            /** Format: int64 */
+            affected?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+            candidates?: components["schemas"]["ExamIncidentCandidate"][];
+            compensations?: components["schemas"]["ExamCompensation"][];
+        };
+        ExamIncidentCandidate: {
+            /** Format: uuid */
+            candidateId?: string;
+            displayName?: string;
+            email?: string;
+            /** Format: uuid */
+            sessionId?: string;
+            sessionName?: string;
+        };
+        ProposeCompensationRequest: {
+            action: string;
+            /** Format: int32 */
+            extensionMinutes?: number;
+            rationale: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        CandidateAccount: {
+            /** Format: uuid */
+            id?: string;
+            displayName?: string;
+            email?: string;
+            status?: string;
+            portalName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            lastSeenAt?: string;
+        };
+        CandidateMfaResetRequest: {
+            reason: string;
+        };
+        ApprovalRequest: {
+            /** Format: uuid */
+            id?: string;
+            type?: string;
+            typeLabel?: string;
+            subjectType?: string;
+            subjectId?: string;
+            summary?: string;
+            payload?: {
+                [key: string]: unknown;
+            };
+            requiredPermission?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            /** Format: uuid */
+            requestedBy?: string;
+            requestedByName?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            status?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: uuid */
+            decidedBy?: string;
+            decidedByName?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+            decisionReason?: string;
+            /** Format: date-time */
+            escalatedAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canDecide?: boolean;
+            /** Format: int32 */
+            eligibleApprovers?: number;
+        };
+        ApprovalDecisionRequest: {
+            approve: boolean;
+            reason?: string;
+            /** Format: int64 */
+            version?: number;
         };
         ApiClientCreated: {
             client?: components["schemas"]["ApiClient"];
@@ -5104,6 +5664,7 @@ export interface components {
             resourceId?: string;
             channel?: string;
             deliveryStatus?: string;
+            emailStatus?: string;
         };
         NotificationPage: {
             items?: components["schemas"]["Notification"][];
@@ -5428,6 +5989,34 @@ export interface components {
             category?: string;
             enabled?: boolean;
             source?: string;
+        };
+        SessionCode: {
+            /** Format: uuid */
+            id?: string;
+            hint?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validUntil?: string;
+            status?: string;
+            /** Format: date-time */
+            consumedAt?: string;
+            consumedByName?: string;
+            issuedForName?: string;
+        };
+        SessionCheckIn: {
+            /** Format: uuid */
+            candidateId?: string;
+            displayName?: string;
+            email?: string;
+            /** Format: date-time */
+            checkedInAt?: string;
+            /** Format: int32 */
+            clockOffsetMs?: number;
+            /** Format: date-time */
+            lastSeenAt?: string;
+            /** Format: int64 */
+            beats?: number;
         };
         AuditEvent: {
             /** Format: uuid */
@@ -6042,6 +6631,50 @@ export interface operations {
             };
         };
     };
+    preferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NotificationPreference"][];
+                };
+            };
+        };
+    };
+    updatePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationPreference"][];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["NotificationPreference"][];
+                };
+            };
+        };
+    };
     get_2: {
         parameters: {
             query?: never;
@@ -6182,6 +6815,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FeatureConfigurationView"];
+                };
+            };
+        };
+    };
+    updatePortal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateExamPortalRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamPortal"];
                 };
             };
         };
@@ -8148,6 +8807,393 @@ export interface operations {
             };
         };
     };
+    sessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadinessSession"][];
+                };
+            };
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReadinessSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadinessSession"];
+                };
+            };
+        };
+    };
+    codes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionCode"][];
+                };
+            };
+        };
+    };
+    generate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateSessionCodesRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssuedSessionCode"][];
+                };
+            };
+        };
+    };
+    revoke_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                codeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancel_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadinessSession"];
+                };
+            };
+        };
+    };
+    portals: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamPortal"][];
+                };
+            };
+        };
+    };
+    createPortal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateExamPortalRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamPortal"];
+                };
+            };
+        };
+    };
+    incidents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamIncident"][];
+                };
+            };
+        };
+    };
+    report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReportExamIncidentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamIncident"];
+                };
+            };
+        };
+    };
+    propose: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeCompensationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamIncident"];
+                };
+            };
+        };
+    };
+    suspend_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CandidateAccount"];
+                };
+            };
+        };
+    };
+    reactivate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CandidateAccount"];
+                };
+            };
+        };
+    };
+    resetMfa: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateMfaResetRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    escalate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovalRequest"];
+                };
+            };
+        };
+    };
+    decide_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovalRequest"];
+                };
+            };
+        };
+    };
+    cancel_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovalRequest"];
+                };
+            };
+        };
+    };
     list_8: {
         parameters: {
             query?: never;
@@ -8192,7 +9238,7 @@ export interface operations {
             };
         };
     };
-    suspend_1: {
+    suspend_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -8244,7 +9290,7 @@ export interface operations {
             };
         };
     };
-    revoke_1: {
+    revoke_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -9910,7 +10956,7 @@ export interface operations {
             };
         };
     };
-    report: {
+    report_1: {
         parameters: {
             query?: {
                 format?: string;
@@ -10583,6 +11629,92 @@ export interface operations {
             };
         };
     };
+    session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ReadinessSession"];
+                };
+            };
+        };
+    };
+    checkIns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SessionCheckIn"][];
+                };
+            };
+        };
+    };
+    incident: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamIncident"];
+                };
+            };
+        };
+    };
+    candidates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CandidateAccount"][];
+                };
+            };
+        };
+    };
     search_1: {
         parameters: {
             query?: {
@@ -10627,6 +11759,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["AuditVerification"];
+                };
+            };
+        };
+    };
+    list_11: {
+        parameters: {
+            query?: {
+                view?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovalRequest"][];
+                };
+            };
+        };
+    };
+    get_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovalRequest"];
                 };
             };
         };
@@ -10696,7 +11872,7 @@ export interface operations {
             };
         };
     };
-    candidates: {
+    candidates_1: {
         parameters: {
             query?: {
                 q?: string;

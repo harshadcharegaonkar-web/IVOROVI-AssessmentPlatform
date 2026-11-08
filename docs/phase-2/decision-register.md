@@ -11,8 +11,9 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | KI-59 implementation | Approved, implemented; Increment 1.7 closed (commit `fe68a41`, CI run 41777630761) |
 | Phase 2 shared assessment engine | **Approved with conditions C-1…C-7** |
 | Phase 2 roadmap structure (increments 2.0–2.15) | **Approved with conditions C-1…C-7** |
-| Increment 2.0 | **Planning and review only** (`increment-2.0-plan.md`). No implementation until separately approved |
-| Increment 2.1 and later | Not authorized |
+| Increment 1.7 | **Formally accepted** 2026-11-04 (CI run 41777630761) |
+| Increment 2.0 | **Authorized** 2026-11-04: parts A–F as planned; 25–29 days is a planning estimate, not a commitment. Extra acceptance requirements in `increment-2.0-plan.md` §7a. **Implemented; awaiting acceptance** (record: `increment-2.0.md`) |
+| Increment 2.1 and later | Not authorized (separate approval needed) |
 | DPDP legal review | Start immediately (brief: `../legal/dpdp-review-brief.md`; counsel to be engaged by the product owner) |
 | Real-candidate admission testing | **Blocked** until the production blockers are resolved and formally verified (C-7) |
 
@@ -46,13 +47,13 @@ increment that needs it is planned), **Open question** (needs an answer before t
 |---|---|---|
 | P2-01 | Consolidate former Phases 3–8 into increments 2.0–2.15 | Approved (roadmap structure) |
 | P2-02 | Candidates stored separately from students | Not yet decided (recommendation stands; needed for 2.3) |
-| P2-03 | Delivery as a separate process profile of the same codebase | Not yet decided (needed for 2.0; recommendation stands) |
+| P2-03 | Exam delivery runs as a separate process from the administrative application | **Approved** 2026-11-04 |
 | P2-04 | Separate exam application on its own origin | Approved via C-4 |
 | P2-05 | Candidate accounts + session access codes | Approved with C-1 requirements |
 | P2-06 | New MODERATOR system role | Not yet decided (needed for 2.8) |
 | P2-07 | Refine placeholder permissions | Not yet decided (needed for 2.1) |
 | P2-08 | Support access through tenant-approved, time-boxed grants | Not yet decided (needed before production support) |
-| P2-09 | Email notification channel | Not yet decided (proposed for 2.0; KI-63) |
+| P2-09 | Email notifications | **Approved** 2026-11-04, implemented in 2.0 |
 | P2-10 | Payments deferred | Not yet decided (recommendation: defer) |
 | P2-11 | Legal review | Approved: start immediately |
 | P2-12 | Scores in webhooks only for approved endpoints | Not yet decided (needed for 2.14) |
@@ -65,18 +66,33 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | P2-19 | Browser-only delivery | Not yet decided (D-08 remains “proposed”) |
 | P2-20 | LTI 1.3 and OneRoster first | Not yet decided (needed for 2.14) |
 
+## Implementation notes from Increment 2.0 (not new product decisions)
+
+These are technical choices made inside the authorized scope; none of them decides an open question below.
+
+| # | Note | Why |
+|---|---|---|
+| N-2.0-1 | Candidate password reset requires the second factor (authenticator code or recovery code) instead of Keycloak's default, which removes the authenticator after an email link | C-1: an email mailbox alone must not defeat MFA. Lost phone and codes → audited institution reset |
+| N-2.0-2 | After a password reset every candidate session ends (enforced by the platform from the realm's events) | C-1 "recovery invalidates sessions"; Keycloak only does it when the candidate ticks a box (KI-67) |
+| N-2.0-3 | Readiness check-in sessions are the 2.0 vehicle for session codes, presence and compensation | No exam business logic in 2.0; real exam sessions replace them in 2.5 |
+| N-2.0-4 | Compensation entitlements are codes bound to a candidate, used from the signed-in portal; emails carry no code | Nothing secret is sent by email |
+| N-2.0-5 | Session-code limits: 10/min per candidate, 5 failed/min per code, 300/min per address (configurable) | Campus NAT (KI-66) |
+| N-2.0-6 | The staff screen *suggests* "lost time + 5 min" for extensions; nothing is applied without four-eyes approval | Q-06 stays open: institution policy decides |
+| N-2.0-8 | Three permissions became available for the 2.0 foundations: `exam.session.manage`, `exam.incident.manage`, `exam.incident.decide` (granted to ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER). The placeholders `exam.read`/`exam.manage` stay PLANNED | Needed by parts B–D. P2-07 (refining the catalogue, needed for 2.1) is **not** decided by this; the three codes may be merged or renamed then, with a migration |
+| N-2.0-7 | Q-05 (code delivery) is not decided: codes can be printed per candidate or released by the invigilator; both work | Awaiting the decision before 2.5 |
+
 ## Open design questions
 
 | # | Question | Needed for | Recommendation |
 |---|---|---|---|
-| Q-01 | May the business and technical custodian of a service identity be the same person? (Currently allowed.) | Now (KI-59 follow-up) | Allow, but show a warning and require different people where the organization has ≥ 2 integration managers |
-| Q-02 | Candidate MFA factors and default policy (TOTP, email one-time code; SMS needs a provider decision) | 2.0 | TOTP + email code; default “optional”, “required” selectable per assessment purpose |
-| Q-03 | Candidate identity boundary: separate Keycloak realm for candidates, or a separate client in the current realm | 2.0 | Separate realm (no staff sessions, policies or brute-force settings shared with candidates) |
-| Q-04 | Four-eyes in organizations with a single administrator | 2.0 | Block the step and show who can be given the approver role; never allow self-approval or platform-staff approval |
+| Q-01 | Same person as business and technical custodian? | — | **Decided 2026-11-04: two different people are mandatory**, enforced in the service and by a database check constraint (`service_identity_distinct_custodians`) |
+| Q-02 | Candidate MFA and verification | — | **Decided 2026-11-04:** verified email, expiring single-use session codes and optional TOTP authenticator-app MFA; SMS never the only MFA mechanism |
+| Q-03 | Candidate authentication separate from staff | — | **Decided 2026-11-04:** separate, including session and recovery boundaries (separate realm) |
+| Q-04 | Four-eyes with a single administrator | — | **Decided 2026-11-04:** never bypassed; an authorized second approver or an approved higher-level escalation decides, otherwise the request stays pending |
 | Q-05 | Session-code delivery: released by the proctor at session start, or printed on the admit card | 2.0 design / 2.5 | Proctor-released codes for supervised sessions; per-candidate codes for remote sessions, valid only in the session window |
 | Q-06 | Candidate-compensation policy for platform outages (extension formula, re-sit eligibility, approvers, notice to candidates) | 2.0 runbook / 2.5 | Extension = lost time + 5 min, re-sit if > 15 min lost or answers unrecoverable; controller + second approver; institution policy confirms |
-| Q-07 | Exam application domain: one shared exam domain, or per-tenant subdomains | 2.0 | One exam domain per region (simpler certificates and CSP), tenant chosen by session code |
+| Q-07 | Exam application domain | — | **Decided 2026-11-04:** one shared exam domain separate from the administrative portal; tenant context resolved from trusted server-side configuration; institution-specific domains designed for later |
 | Q-08 | Account recovery for candidates without email access (mobile-only) | 2.3 | Mobile verification needs an SMS provider decision; until then email is mandatory |
 | Q-09 | Retention periods (proposals in `18-business-readiness.md`) | 2.3 | Await legal review |
 | Q-10 | First SIS/ERP vendor scope (KI-60) | 2.14 | Product decision |
-| Q-11 | Load-test harness tooling without new libraries | 2.0 | JDK `HttpClient`-based harness in `backend/devtools` (no new dependency); k6 or Gatling only if approved |
+| Q-11 | Load-test tooling | — | **Decided 2026-11-04:** no new production dependencies; existing tools or a lightweight standalone harness with repeatable results |

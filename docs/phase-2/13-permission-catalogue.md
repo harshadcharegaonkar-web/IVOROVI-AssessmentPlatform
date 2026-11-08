@@ -5,6 +5,17 @@ are bounded by the assigner's ceiling; PLANNED permissions become AVAILABLE only
 catalogue placeholders (`assessment.*`, `exam.*`, `evaluation.*`, `result.*`, `placement.*`, `ai.*`) are **refined** into
 the codes below (decision P2-07: replace the coarse placeholders before they were ever grantable, so no data migration).
 
+## Available since Increment 2.0
+
+| Code | Level | Scope | Granted to (system roles) | Purpose |
+|---|---|---|---|---|
+| `exam.session.manage` | M | UNIT (portals: organization-wide) | ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER | exam portals, readiness sessions, single-use session codes, check-ins, candidate accounts (suspend, second-factor reset) |
+| `exam.incident.manage` | M | ORGANIZATION | ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER | record/report outages, propose candidate compensation |
+| `exam.incident.decide` | M | ORGANIZATION | ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER | approve or reject compensation proposed by another person (four-eyes, ADR-0007) |
+
+Because both incident permissions are organization-wide, an institution administrator assigned to one institution holds
+them only where assigned at organization level. The remaining codes below stay proposals until their increments.
+
 ## New and refined permissions
 
 | Domain | Code | Level | Scope | Purpose |

@@ -1,12 +1,12 @@
 import { unwrap, type Notification } from "@ivorovi/api-client";
-import { Badge, Button, Card, EmptyState, ErrorState, Link, PageHeader, Pagination, Skeleton, TabPanel, Tabs, cn } from "@ivorovi/ui";
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, ErrorState, Link, PageHeader, Pagination, Skeleton, Switch, TabPanel, Tabs, cn } from "@ivorovi/ui";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { useSearchParams } from "react-router";
 import { errorInfo, useApi } from "../api/ApiProvider";
 import { formatRelative, humanize } from "../lib/format";
 
-const CATEGORIES = ["invitations", "accounts", "access", "students", "imports", "integrations", "system"] as const;
+const CATEGORIES = ["invitations", "accounts", "access", "students", "imports", "integrations", "approvals", "exams", "system"] as const;
 const icons = { INFO: Info, SUCCESS: CheckCircle2, WARNING: AlertTriangle, ERROR: XCircle } as const;
 const tones = { INFO: "text-primary", SUCCESS: "text-success", WARNING: "text-warning", ERROR: "text-danger" } as const;
 
@@ -78,7 +78,36 @@ export function NotificationsPage() {
         </Card>
         </TabPanel>
       </Tabs>
+      <EmailPreferences />
     </>
+  );
+}
+
+/** Email channel (P2-09): per category, on unless switched off. In-app notifications are always kept. */
+function EmailPreferences() {
+  const api = useApi();
+  const qc = useQueryClient();
+  const prefs = useQuery({ queryKey: ["notifications", "preferences"], queryFn: async () => unwrap(await api.GET("/api/v1/notifications/preferences")) });
+  const update = useMutation({
+    mutationFn: async (p: { category: string; email: boolean }) => unwrap(await api.PUT("/api/v1/notifications/preferences", { body: [p] })),
+    onSuccess: (d) => qc.setQueryData(["notifications", "preferences"], d),
+  });
+  return (
+    <Card className="mt-6">
+      <CardHeader title="Email preferences" description="Choose which notifications are also sent to your email address. Failed emails are retried and shown in the history." />
+      <CardBody>
+        {prefs.isError ? <ErrorState message={errorInfo(prefs.error).message} onRetry={() => void prefs.refetch()} />
+          : prefs.isPending ? <Skeleton className="h-24 w-full" /> : (
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label="Email preferences">
+              {prefs.data.map((p) => (
+                <li key={p.category}><Switch label={`${humanize(p.category)} by email`} checked={!!p.email} disabled={update.isPending}
+                  onCheckedChange={(email) => update.mutate({ category: p.category!, email })} /></li>
+              ))}
+            </ul>
+          )}
+        {update.isError && <p role="alert" className="mt-2 text-sm text-danger">{errorInfo(update.error).message}</p>}
+      </CardBody>
+    </Card>
   );
 }
 

@@ -19,8 +19,12 @@ public class RecordingEmailSender implements EmailSender {
         this.from = from;
     }
 
+    /** Number of upcoming sends that fail (simulates an unavailable mail relay). */
+    public final java.util.concurrent.atomic.AtomicInteger failNext = new java.util.concurrent.atomic.AtomicInteger();
+
     @Override
     public void send(EmailMessage message) {
+        if (failNext.getAndUpdate(n -> n > 0 ? n - 1 : 0) > 0) throw new org.springframework.mail.MailSendException("simulated relay failure");
         sent.add(message);
         SimpleMailMessage m = new SimpleMailMessage();
         m.setFrom(from);

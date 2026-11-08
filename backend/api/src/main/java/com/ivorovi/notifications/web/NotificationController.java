@@ -66,6 +66,18 @@ class NotificationController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/preferences")
+    @Operation(summary = "My email preferences per category (email is on unless switched off)")
+    java.util.List<NotificationService.Preference> preferences() {
+        return service.preferences();
+    }
+
+    @org.springframework.web.bind.annotation.PutMapping("/preferences")
+    @Operation(summary = "Change my email preferences")
+    java.util.List<NotificationService.Preference> updatePreferences(@org.springframework.web.bind.annotation.RequestBody @Size(max = 20) java.util.List<NotificationService.Preference> changes) {
+        return service.updatePreferences(changes);
+    }
+
     @PostMapping("/read-all")
     @Operation(summary = "Mark all my notifications as read")
     Map<String, Integer> readAll() {

@@ -486,6 +486,61 @@
         }
       }
     },
+    "/api/v1/notifications/preferences" : {
+      "get" : {
+        "tags" : [ "Notifications" ],
+        "summary" : "My email preferences per category (email is on unless switched off)",
+        "operationId" : "preferences",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/NotificationPreference"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Notifications" ],
+        "summary" : "Change my email preferences",
+        "operationId" : "updatePreferences",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/NotificationPreference"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/NotificationPreference"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/integrations/{id}" : {
       "get" : {
         "tags" : [ "Integrations" ],
@@ -670,6 +725,43 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/FeatureConfigurationView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/portals/{id}" : {
+      "put" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "updatePortal",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateExamPortalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamPortal"
                 }
               }
             }
@@ -3726,6 +3818,490 @@
         }
       }
     },
+    "/api/v1/exam/sessions" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "sessions",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReadinessSession"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "createSession",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateReadinessSessionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReadinessSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/sessions/{id}/codes" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "codes",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SessionCode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "summary" : "Generate single-use session codes; the codes are returned once and stored only as keyed hashes",
+        "operationId" : "generate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GenerateSessionCodesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/IssuedSessionCode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/sessions/{id}/codes/{codeId}/revoke" : {
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "revoke_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "codeId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/exam/sessions/{id}/cancel" : {
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "cancel_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReadinessSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/portals" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "portals",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamPortal"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "summary" : "Create an exam portal on the shared exam domain (organization-wide permission)",
+        "operationId" : "createPortal",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateExamPortalRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamPortal"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/incidents" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "incidents",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamIncident"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "summary" : "Report an outage observed by the institution; affected candidates are derived from presence and check-ins",
+        "operationId" : "report",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportExamIncidentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamIncident"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/incidents/{id}/compensations" : {
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "summary" : "Propose compensation; applied only after a second person approves it (four-eyes)",
+        "operationId" : "propose",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProposeCompensationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamIncident"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/candidates/{id}/suspend" : {
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "suspend_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CandidateAccount"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/candidates/{id}/reactivate" : {
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "reactivate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CandidateAccount"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/candidates/{id}/mfa-reset" : {
+      "post" : {
+        "tags" : [ "Exam administration" ],
+        "summary" : "Remove the candidate's second factors and sign out all sessions (lost device); the candidate is emailed",
+        "operationId" : "resetMfa",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CandidateMfaResetRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{id}/escalate" : {
+      "post" : {
+        "tags" : [ "Approvals" ],
+        "summary" : "Escalate to organization-level approvers (when no eligible approver is available)",
+        "operationId" : "escalate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApprovalRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{id}/decision" : {
+      "post" : {
+        "tags" : [ "Approvals" ],
+        "summary" : "Approve or reject (not by the requester; approver must hold the required permission now)",
+        "operationId" : "decide_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ApprovalDecisionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApprovalRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{id}/cancel" : {
+      "post" : {
+        "tags" : [ "Approvals" ],
+        "summary" : "Cancel my pending request",
+        "operationId" : "cancel_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApprovalRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/api-clients" : {
       "get" : {
         "tags" : [ "API clients" ],
@@ -3779,7 +4355,7 @@
       "post" : {
         "tags" : [ "API clients" ],
         "summary" : "Suspend a client (keys stop working until resumed)",
-        "operationId" : "suspend_1",
+        "operationId" : "suspend_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -3855,7 +4431,7 @@
       "post" : {
         "tags" : [ "API clients" ],
         "summary" : "Revoke the client and all its keys (permanent)",
-        "operationId" : "revoke_1",
+        "operationId" : "revoke_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -6509,7 +7085,7 @@
       "get" : {
         "tags" : [ "Student imports" ],
         "summary" : "Download a report: VALIDATION, ERRORS, RESULT or CORRECTIONS (rows to fix with their original values; needs student.personal.read)",
-        "operationId" : "report",
+        "operationId" : "report_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7680,6 +8256,111 @@
         }
       }
     },
+    "/api/v1/exam/sessions/{id}" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "session",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReadinessSession"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/sessions/{id}/check-ins" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "checkIns",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SessionCheckIn"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/incidents/{id}" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "incident",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamIncident"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/candidates" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "candidates",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CandidateAccount"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit-events" : {
       "get" : {
         "tags" : [ "Audit" ],
@@ -7778,6 +8459,66 @@
         }
       }
     },
+    "/api/v1/approvals" : {
+      "get" : {
+        "tags" : [ "Approvals" ],
+        "summary" : "view=decide: pending requests I may decide (never my own); view=requests: requests I made",
+        "operationId" : "list_11",
+        "parameters" : [ {
+          "name" : "view",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "decide",
+            "pattern" : "decide|requests"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ApprovalRequest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{id}" : {
+      "get" : {
+        "tags" : [ "Approvals" ],
+        "summary" : "One request (requester or eligible approvers only)",
+        "operationId" : "get_6",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApprovalRequest"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/api-clients/scopes" : {
       "get" : {
         "tags" : [ "API clients" ],
@@ -7867,7 +8608,7 @@
       "get" : {
         "tags" : [ "Academic delivery" ],
         "summary" : "Active teaching staff of the program's institution who can be assigned",
-        "operationId" : "candidates",
+        "operationId" : "candidates_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -9199,6 +9940,17 @@
           }
         }
       },
+      "NotificationPreference" : {
+        "type" : "object",
+        "properties" : {
+          "category" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "IntegrationRequest" : {
         "type" : "object",
         "properties" : {
@@ -9370,6 +10122,71 @@
           },
           "source" : {
             "type" : "string"
+          }
+        }
+      },
+      "UpdateExamPortalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "mfaPolicy" : {
+            "type" : "string",
+            "pattern" : "OFF|OPTIONAL|REQUIRED"
+          },
+          "selfRegistration" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string",
+            "pattern" : "ACTIVE|DISABLED"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "mfaPolicy", "name", "status" ]
+      },
+      "ExamPortal" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalKey" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "selfRegistration" : {
+            "type" : "boolean"
+          },
+          "mfaPolicy" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
+          },
+          "candidates" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -11505,6 +12322,461 @@
             "format" : "date-time"
           }
         }
+      },
+      "CreateReadinessSessionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "portalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "startsAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "endsAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        },
+        "required" : [ "endsAt", "name", "portalId", "startsAt" ]
+      },
+      "ReadinessSession" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalName" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "startsAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "endsAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "codes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "codesUsed" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "checkIns" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "GenerateSessionCodesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "count" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 500,
+            "minimum" : 1
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "IssuedSessionCode" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "hint" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CreateExamPortalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "portalKey" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "mfaPolicy" : {
+            "type" : "string",
+            "pattern" : "OFF|OPTIONAL|REQUIRED"
+          },
+          "selfRegistration" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "mfaPolicy", "name", "portalKey" ]
+      },
+      "ReportExamIncidentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "endedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "sessionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "description", "endedAt", "startedAt" ]
+      },
+      "ExamCompensation" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "action" : {
+            "type" : "string"
+          },
+          "extensionMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rationale" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "approvalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "proposedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "proposedByName" : {
+            "type" : "string"
+          },
+          "proposedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "applied" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExamIncident" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "platformIncidentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "endedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "affected" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "candidates" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExamIncidentCandidate"
+            }
+          },
+          "compensations" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExamCompensation"
+            }
+          }
+        }
+      },
+      "ExamIncidentCandidate" : {
+        "type" : "object",
+        "properties" : {
+          "candidateId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "sessionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "sessionName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ProposeCompensationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string",
+            "pattern" : "EXTEND_SESSION|NEW_CHECK_IN|NO_ACTION"
+          },
+          "extensionMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rationale" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "action", "rationale" ]
+      },
+      "CandidateAccount" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "portalName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSeenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "CandidateMfaResetRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "ApprovalRequest" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "typeLabel" : {
+            "type" : "string"
+          },
+          "subjectType" : {
+            "type" : "string"
+          },
+          "subjectId" : {
+            "type" : "string"
+          },
+          "summary" : {
+            "type" : "string"
+          },
+          "payload" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "requiredPermission" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "requestedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "requestedByName" : {
+            "type" : "string"
+          },
+          "requestedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decidedByName" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decisionReason" : {
+            "type" : "string"
+          },
+          "escalatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canDecide" : {
+            "type" : "boolean"
+          },
+          "eligibleApprovers" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ApprovalDecisionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "approve" : {
+            "type" : "boolean"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "approve" ]
       },
       "ApiClientCreated" : {
         "type" : "object",
@@ -14050,6 +15322,9 @@
           },
           "deliveryStatus" : {
             "type" : "string"
+          },
+          "emailStatus" : {
+            "type" : "string"
           }
         }
       },
@@ -14894,6 +16169,74 @@
           },
           "source" : {
             "type" : "string"
+          }
+        }
+      },
+      "SessionCode" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "hint" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "consumedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "consumedByName" : {
+            "type" : "string"
+          },
+          "issuedForName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "SessionCheckIn" : {
+        "type" : "object",
+        "properties" : {
+          "candidateId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "checkedInAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "clockOffsetMs" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lastSeenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "beats" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "saves" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },

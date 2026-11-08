@@ -272,6 +272,27 @@
           "query-users"
         ]
       }
+    },
+    {
+      "id": "0192a000-0000-7000-8000-0000000a00e1",
+      "username": "eshan.controller@aurora.test",
+      "email": "eshan.controller@aurora.test",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Eshan",
+      "lastName": "Controller",
+      "attributes": {
+        "tenant_id": [
+          "0192a000-0000-7000-8000-00000000000a"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

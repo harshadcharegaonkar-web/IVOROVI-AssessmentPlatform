@@ -67,9 +67,11 @@ public class ServiceIdentityService {
     private final ClientAuthorization authorization;
     private final ApiClientService clients;
     private final TransactionTemplate tx;
+    private final com.ivorovi.platform.jobs.JobLeases leases;
 
     ServiceIdentityService(JdbcClient jdbc, Authz authz, AuditLog audit, Outbox outbox, ClientAuthorization authorization, ApiClientService clients,
-                           TransactionTemplate tx) {
+                           TransactionTemplate tx, com.ivorovi.platform.jobs.JobLeases leases) {
+        this.leases = leases;
         this.jdbc = jdbc;
         this.authz = authz;
         this.audit = audit;
@@ -340,6 +342,7 @@ public class ServiceIdentityService {
 
     @Scheduled(cron = "${ivorovi.integrations.custodian-check-cron:0 17 * * * *}")
     void scheduledCustodianCheck() {
+        if (!leases.tryAcquire("integrations.custodian-check", Duration.ofMinutes(55))) return;   // KI-61: one instance
         List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant WHERE status IN ('ACTIVE', 'TRIAL')").query(UUID.class).list());
         for (UUID t : tenants) {
             try {
@@ -389,12 +392,16 @@ public class ServiceIdentityService {
 
     private void custodians(UUID business, UUID technical) {
         if (business == null || technical == null) throw ApiException.badRequest("custodians_required", "Name a business custodian and a technical custodian.");
+        if (business.equals(technical)) {
+            throw ApiException.badRequest("custodians_must_differ", "The business custodian and the technical custodian must be two different people.");
+        }
         if (!custodiansActive(business, technical)) throw ApiException.badRequest("custodian_inactive", "Custodians must be active users of this organization.");
     }
 
     private boolean custodiansActive(UUID business, UUID technical) {
-        return jdbc.sql("SELECT count(DISTINCT id) FROM user_account WHERE id IN (?, ?) AND status = 'ACTIVE'").params(business, technical)
-                .query(Long.class).single() == (business.equals(technical) ? 1 : 2);
+        // two different, active people (decision Q-01); the database enforces the difference as well
+        return !business.equals(technical) && jdbc.sql("SELECT count(DISTINCT id) FROM user_account WHERE id IN (?, ?) AND status = 'ACTIVE'")
+                .params(business, technical).query(Long.class).single() == 2;
     }
 
     private static List<String> envelope(List<String> requested) {

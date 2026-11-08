@@ -1,0 +1,357 @@
+{
+  "candidates": 200,
+  "events": [
+    {
+      "t": 60,
+      "event": "valkey restarted"
+    },
+    {
+      "t": 101,
+      "event": "rabbitmq restarted"
+    },
+    {
+      "t": 140,
+      "event": "postgres paused 10 s"
+    },
+    {
+      "t": 180,
+      "event": "delivery killed (SIGKILL)"
+    },
+    {
+      "t": 287,
+      "event": "delivery restarted and ready"
+    }
+  ],
+  "outageDetectedAfterSeconds": 47,
+  "incidentResolvedAfterRestartSeconds": 16,
+  "affectedCandidatesRecorded": 200,
+  "candidatesCheckedIn": 200,
+  "healthAfter": {
+    "adminApi": 200,
+    "delivery": 200
+  },
+  "passed": true,
+  "harness": {
+    "label": "failure-200",
+    "date": "2026-11-05T02:14:51.750375934Z",
+    "candidates": 200,
+    "durationSeconds": 360,
+    "rampSeconds": 15,
+    "heartbeatSeconds": 5,
+    "saveSeconds": 5,
+    "portal": "harness-failure200-mw2wpi3v",
+    "elapsedSeconds": 375.0,
+    "checkedIn": 200,
+    "endpoints": {
+      "GET /me": {
+        "requests": 200,
+        "p50Ms": 17.6,
+        "p95Ms": 492.4,
+        "p99Ms": 835.9,
+        "maxMs": 1095.5,
+        "perSecond": 0.5
+      },
+      "POST /check-ins": {
+        "requests": 200,
+        "p50Ms": 19.8,
+        "p95Ms": 489.5,
+        "p99Ms": 664.4,
+        "maxMs": 710.6,
+        "perSecond": 0.5
+      },
+      "POST /presence": {
+        "requests": 14695,
+        "p50Ms": 7.4,
+        "p95Ms": 30.0,
+        "p99Ms": 1123.2,
+        "maxMs": 10019.9,
+        "perSecond": 39.2
+      },
+      "POST /saves": {
+        "requests": 14701,
+        "p50Ms": 7.5,
+        "p95Ms": 29.7,
+        "p99Ms": 803.5,
+        "maxMs": 10005.4,
+        "perSecond": 39.2
+      }
+    },
+    "statuses": {
+      "GET /me 200": 200,
+      "POST /check-ins 200": 200,
+      "POST /presence 200": 10512,
+      "POST /presence ConnectException": 4167,
+      "POST /presence HttpTimeoutException": 14,
+      "POST /presence IOException": 2,
+      "POST /saves 200": 10514,
+      "POST /saves ConnectException": 4177,
+      "POST /saves HttpTimeoutException": 9,
+      "POST /saves IOException": 1
+    },
+    "totalRequests": 29796,
+    "requestsPerSecond": 79.5,
+    "errors": 8370,
+    "errorRatePercent": 28.091,
+    "saves": {
+      "acknowledged": 10514,
+      "failed": 4187,
+      "storedByServer": 10523,
+      "lostAcknowledgements": 9
+    },
+    "serverHeartbeats": 10632,
+    "deliveryProcess": {
+      "samples": 25,
+      "cores": 4,
+      "cpuAvgPercent": 13.1,
+      "cpuMaxPercent": 36.3,
+      "rssMaxMb": 661,
+      "threadsMax": 63
+    },
+    "docker": [
+      "2s ivorovi-postgres-1 22.27% 153.9MiB / 15.71GiB|ivorovi-valkey-1 1.08% 6.715MiB / 15.71GiB",
+      "30s ivorovi-postgres-1 6.31% 157.1MiB / 15.71GiB|ivorovi-valkey-1 3.88% 6.414MiB / 15.71GiB",
+      "58s ivorovi-postgres-1 15.67% 158.1MiB / 15.71GiB|ivorovi-valkey-1 4.10% 3.988MiB / 15.71GiB",
+      "87s ivorovi-postgres-1 6.75% 158.1MiB / 15.71GiB|ivorovi-valkey-1 3.39% 4.148MiB / 15.71GiB",
+      "115s ivorovi-postgres-1 9.47% 158.1MiB / 15.71GiB|ivorovi-valkey-1 3.72% 4.039MiB / 15.71GiB",
+      "142s ivorovi-postgres-1 0.00% 158.1MiB / 15.71GiB|ivorovi-valkey-1 0.34% 3.883MiB / 15.71GiB",
+      "170s ivorovi-postgres-1 8.19% 151.8MiB / 15.71GiB|ivorovi-valkey-1 2.94% 4.234MiB / 15.71GiB",
+      "198s ivorovi-postgres-1 0.67% 104.4MiB / 15.71GiB|ivorovi-valkey-1 0.23% 3.984MiB / 15.71GiB",
+      "226s ivorovi-postgres-1 1.12% 105.1MiB / 15.71GiB|ivorovi-valkey-1 0.24% 4.344MiB / 15.71GiB",
+      "255s ivorovi-postgres-1 0.20% 105MiB / 15.71GiB|ivorovi-valkey-1 2.91% 3.852MiB / 15.71GiB",
+      "283s ivorovi-postgres-1 28.09% 150.5MiB / 15.71GiB|ivorovi-valkey-1 3.82% 3.91MiB / 15.71GiB",
+      "311s ivorovi-postgres-1 6.96% 152.4MiB / 15.71GiB|ivorovi-valkey-1 6.66% 4.051MiB / 15.71GiB",
+      "339s ivorovi-postgres-1 8.55% 152.7MiB / 15.71GiB|ivorovi-valkey-1 4.18% 4.43MiB / 15.71GiB",
+      "367s ivorovi-postgres-1 7.36% 153.1MiB / 15.71GiB|ivorovi-valkey-1 4.28% 4.195MiB / 15.71GiB"
+    ],
+    "timeline": [
+      {
+        "t": 0,
+        "requests": 530,
+        "errors": 0,
+        "meanMs": 57.9
+      },
+      {
+        "t": 10,
+        "requests": 866,
+        "errors": 0,
+        "meanMs": 15.0
+      },
+      {
+        "t": 20,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 9.4
+      },
+      {
+        "t": 30,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 9.1
+      },
+      {
+        "t": 40,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.4
+      },
+      {
+        "t": 50,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 23.9
+      },
+      {
+        "t": 60,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 10.1
+      },
+      {
+        "t": 70,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.5
+      },
+      {
+        "t": 80,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 7.5
+      },
+      {
+        "t": 90,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 7.8
+      },
+      {
+        "t": 100,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.1
+      },
+      {
+        "t": 110,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.1
+      },
+      {
+        "t": 120,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 7.8
+      },
+      {
+        "t": 130,
+        "requests": 425,
+        "errors": 0,
+        "meanMs": 7.6
+      },
+      {
+        "t": 140,
+        "requests": 1175,
+        "errors": 23,
+        "meanMs": 1649.7
+      },
+      {
+        "t": 150,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 7.5
+      },
+      {
+        "t": 160,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 7.5
+      },
+      {
+        "t": 170,
+        "requests": 800,
+        "errors": 355,
+        "meanMs": 4.8
+      },
+      {
+        "t": 180,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 1.4
+      },
+      {
+        "t": 190,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 0.9
+      },
+      {
+        "t": 200,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 1.0
+      },
+      {
+        "t": 210,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 1.2
+      },
+      {
+        "t": 220,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 0.6
+      },
+      {
+        "t": 230,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 0.6
+      },
+      {
+        "t": 240,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 0.7
+      },
+      {
+        "t": 250,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 0.7
+      },
+      {
+        "t": 260,
+        "requests": 800,
+        "errors": 800,
+        "meanMs": 0.7
+      },
+      {
+        "t": 270,
+        "requests": 792,
+        "errors": 792,
+        "meanMs": 0.7
+      },
+      {
+        "t": 280,
+        "requests": 808,
+        "errors": 0,
+        "meanMs": 310.2
+      },
+      {
+        "t": 290,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 14.6
+      },
+      {
+        "t": 300,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 9.7
+      },
+      {
+        "t": 310,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 9.0
+      },
+      {
+        "t": 320,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 9.5
+      },
+      {
+        "t": 330,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.6
+      },
+      {
+        "t": 340,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 9.1
+      },
+      {
+        "t": 350,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.8
+      },
+      {
+        "t": 360,
+        "requests": 800,
+        "errors": 0,
+        "meanMs": 8.4
+      },
+      {
+        "t": 370,
+        "requests": 400,
+        "errors": 0,
+        "meanMs": 8.6
+      }
+    ]
+  }
+}

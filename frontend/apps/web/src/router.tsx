@@ -62,6 +62,8 @@ const READ_STUDENTS = (a: Access) => a.hasAnywhere("student.read");
 const IMPORT_STUDENTS = (a: Access) => a.hasAnywhere("student.import");
 const REPORTS = (a: Access) => a.hasAnywhere("report.read");
 const INTEGRATIONS = (a: Access) => a.has("integration.read");
+const EXAMS = (a: Access) => a.hasAnywhere("exam.session.manage");
+const INCIDENTS = (a: Access) => a.has("exam.incident.manage") || a.has("exam.incident.decide");
 
 export const routes: RouteObject[] = [
   { path: CALLBACK_PATH, element: <AuthCallback /> },
@@ -174,6 +176,23 @@ export const routes: RouteObject[] = [
           { path: ":key", handle: { crumb: "Report" }, ...page(() => import("./routes/reports/ReportPage"), REPORTS) },
         ] },
         { path: "notifications", handle: { crumb: "Notifications" }, ...page(() => import("./routes/NotificationsPage")) },
+        { path: "approvals", handle: { crumb: "Approvals" }, children: [
+          { index: true, ...page(() => import("./routes/approvals/ApprovalsPage")) },
+          { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/approvals/ApprovalDetailPage")) },
+        ] },
+        { path: "exams", handle: { crumb: "Examinations" }, children: [
+          { index: true, element: <Navigate to="/exams/portals" replace /> },
+          { path: "portals", handle: { crumb: "Portals" }, ...page(() => import("./routes/exams/ExamPortalsPage"), EXAMS) },
+          { path: "sessions", handle: { crumb: "Readiness sessions" }, children: [
+            { index: true, ...page(() => import("./routes/exams/ExamSessionsPage"), EXAMS) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/exams/ExamSessionDetailPage"), EXAMS) },
+          ] },
+          { path: "candidates", handle: { crumb: "Candidates" }, ...page(() => import("./routes/exams/ExamCandidatesPage"), EXAMS) },
+          { path: "incidents", handle: { crumb: "Incidents" }, children: [
+            { index: true, ...page(() => import("./routes/exams/ExamIncidentsPage"), INCIDENTS) },
+            { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/exams/ExamIncidentDetailPage"), INCIDENTS) },
+          ] },
+        ] },
         { path: "integrations", handle: { crumb: "Integrations" }, children: [
           { index: true, ...page(() => import("./routes/integrations/IntegrationsPage"), INTEGRATIONS) },
           { path: "api-clients", handle: { crumb: "API clients" }, children: [

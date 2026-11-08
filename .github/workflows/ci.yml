@@ -68,10 +68,19 @@ jobs:
       - run: pnpm build
       - name: Bundle budget (initial JS and lazy chunks, gzip)
         run: pnpm --filter @ivorovi/web budget
+      - name: Exam app bundle budget (own budget, 120 kB initial gzip)
+        run: pnpm --filter @ivorovi/exam budget
+      - name: Exam app bundle contains no staff code (C-4)
+        run: pnpm --filter @ivorovi/exam boundary
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: web-dist
           path: frontend/apps/web/dist
+          retention-days: 3
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: exam-dist
+          path: frontend/apps/exam/dist
           retention-days: 3
 
   e2e:
@@ -89,6 +98,10 @@ jobs:
         with:
           name: web-dist
           path: frontend/apps/web/dist
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: exam-dist
+          path: frontend/apps/exam/dist
       - name: Generate throwaway secrets
         run: ./scripts/dev-setup.sh
       - name: Start stack
@@ -125,11 +138,18 @@ jobs:
           pnpm --filter @ivorovi/web exec playwright install --with-deps chromium
           set -a; . ../deploy/compose/.env; set +a
           CI=1 pnpm e2e
+      - name: Playwright (exam application, delivery process)
+        working-directory: frontend
+        run: |
+          set -a; . ../deploy/compose/.env; set +a
+          CI=1 E2E_BASE_URL=http://localhost:8082 E2E_STAFF_URL=http://localhost:8081 pnpm --filter @ivorovi/exam e2e
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: failure()
         with:
           name: playwright-report
-          path: frontend/apps/web/playwright-report
+          path: |
+            frontend/apps/web/playwright-report
+            frontend/apps/exam/playwright-report
       - name: Container logs on failure
         if: failure()
         working-directory: deploy/compose

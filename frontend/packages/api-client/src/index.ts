@@ -97,3 +97,15 @@ export type WebhookEventType = Schemas["WebhookEventType"];
 export type ServiceIdentity = Schemas["ServiceIdentity"];
 export type ServiceIdentityDetail = Schemas["ServiceIdentityDetail"];
 export type ServiceRoleAssignment = Schemas["ServiceRoleAssignment"];
+// Increment 2.0
+export type ApprovalRequest = Schemas["ApprovalRequest"];
+export type ExamPortal = Schemas["ExamPortal"];
+export type ReadinessSession = Schemas["ReadinessSession"];
+export type IssuedSessionCode = Schemas["IssuedSessionCode"];
+export type SessionCode = Schemas["SessionCode"];
+export type SessionCheckIn = Schemas["SessionCheckIn"];
+export type CandidateAccount = Schemas["CandidateAccount"];
+export type ExamIncident = Schemas["ExamIncident"];
+export type ExamCompensation = Schemas["ExamCompensation"];
+export type ExamIncidentCandidate = Schemas["ExamIncidentCandidate"];
+export type NotificationPreference = Schemas["NotificationPreference"];

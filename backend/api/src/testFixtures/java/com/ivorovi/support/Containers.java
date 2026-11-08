@@ -20,7 +20,9 @@ public final class Containers {
             .withEnv("IVOROVI_OWNER_PASSWORD", OWNER_PASSWORD)
             .withEnv("IVOROVI_APP_PASSWORD", APP_PASSWORD)
             .withCopyFileToContainer(MountableFile.forHostPath(repoFile("deploy/compose/postgres/init/01-init.sh"), 0755),
-                    "/docker-entrypoint-initdb.d/01-init.sh");
+                    "/docker-entrypoint-initdb.d/01-init.sh")
+            // several cached Spring contexts (admin and delivery process roles, property variants), each with its own pool
+            .withCommand("postgres", "-c", "max_connections=400");
 
     public static final RabbitMQContainer RABBIT = new RabbitMQContainer("rabbitmq:4.3-management-alpine");
 

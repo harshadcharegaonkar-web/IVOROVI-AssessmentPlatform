@@ -1,0 +1,58 @@
+# Exam application (C-4): own origin, strict headers (same values as security-headers.ts, checked by e2e/headers.spec.ts).
+# Only the delivery API is reachable from here (DELIVERY_UPSTREAM); staff endpoints do not exist on that process.
+server {
+    listen 8080;
+    server_tokens off;
+    root /usr/share/nginx/html;
+    client_max_body_size 64k;
+
+    set $csp "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' ${OIDC_AUTHORITY}/; form-action 'self' ${OIDC_AUTHORITY}/; manifest-src 'self'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'";
+    set $pp "camera=(self), fullscreen=(self), microphone=(), geolocation=(), payment=(), usb=(), display-capture=()";
+
+    add_header Content-Security-Policy $csp always;
+    add_header Referrer-Policy no-referrer always;
+    add_header Permissions-Policy $pp always;
+    add_header Cross-Origin-Opener-Policy same-origin always;
+    add_header Cross-Origin-Embedder-Policy require-corp always;
+    add_header Cross-Origin-Resource-Policy same-origin always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+
+    location /api/v1/delivery/ {
+        proxy_pass ${DELIVERY_UPSTREAM};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+
+    # nothing else of the API is proxied
+    location /api/ { return 404; }
+
+    location = /config.json {
+        add_header Cache-Control "no-store" always;
+        add_header Content-Security-Policy $csp always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Cross-Origin-Resource-Policy same-origin always;
+    }
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Cross-Origin-Resource-Policy same-origin always;
+        try_files $uri =404;
+    }
+
+    location / {
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Security-Policy $csp always;
+        add_header Referrer-Policy no-referrer always;
+        add_header Permissions-Policy $pp always;
+        add_header Cross-Origin-Opener-Policy same-origin always;
+        add_header Cross-Origin-Embedder-Policy require-corp always;
+        add_header Cross-Origin-Resource-Policy same-origin always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        try_files $uri /index.html;
+    }
+}

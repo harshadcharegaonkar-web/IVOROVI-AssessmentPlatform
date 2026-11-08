@@ -28,6 +28,25 @@ public class TestSecurityConfiguration {
         return new RecordingEmailSender(smtp, from);
     }
 
+    @Bean
+    TestApprovalHandler testApprovalHandler() {
+        return new TestApprovalHandler();
+    }
+
+    @Bean
+    @org.springframework.context.annotation.Primary
+    FakeCandidateMfa fakeCandidateMfa() {
+        return new FakeCandidateMfa();
+    }
+
+    /** Delivery boundary: production validator chain, trusts only the test candidate-realm key. */
+    @Bean
+    com.ivorovi.platform.security.CandidateTokenDecoder candidateTokenDecoder(com.ivorovi.platform.config.DeliveryProperties props) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(TestTokens.candidatePublicKey()).build();
+        decoder.setJwtValidator(com.ivorovi.platform.security.CandidateTokenDecoder.validator(props));
+        return new com.ivorovi.platform.security.CandidateTokenDecoder(decoder);
+    }
+
     /** Same validator chain as production; trusts only the test signing key. */
     @Bean
     JwtDecoder jwtDecoder(SecurityProperties props) {

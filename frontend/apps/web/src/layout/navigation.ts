@@ -1,6 +1,6 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
 import type { TerminologyKey } from "../session/useOrgLabels";
-import { Activity, BadgeCheck, Bot, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { Activity, ClipboardCheck, MonitorCheck, Siren, Stamp, BadgeCheck, Bot, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -13,7 +13,10 @@ export interface NavGroup { id: string; label: string | null; items: NavItem[] }
  * Visibility mirrors server permissions for convenience only; the API enforces every permission.
  */
 export const NAV_GROUPS: NavGroup[] = [
-  { id: "home", label: null, items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard, visible: () => true }] },
+  { id: "home", label: null, items: [
+    { to: "/", label: "Dashboard", icon: LayoutDashboard, visible: () => true },
+    { to: "/approvals", label: "Approvals", icon: Stamp, visible: () => true },
+  ] },
   {
     id: "insights", label: "Insights",
     items: [
@@ -69,6 +72,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/students/list", label: "Students", icon: Contact, visible: (a) => a.hasAnywhere("student.read") },
       { to: "/students/imports", label: "Student Imports", icon: FileUp, visible: (a) => a.hasAnywhere("student.import") },
       { to: "/students/settings", label: "Student Settings", icon: IdCard, visible: (a) => a.hasAnywhere("student.read") },
+    ],
+  },
+  {
+    id: "exams", label: "Examinations",
+    items: [
+      { to: "/exams/portals", label: "Exam Portals", icon: MonitorCheck, visible: (a) => a.hasAnywhere("exam.session.manage") },
+      { to: "/exams/sessions", label: "Readiness Sessions", icon: ClipboardCheck, visible: (a) => a.hasAnywhere("exam.session.manage") },
+      { to: "/exams/candidates", label: "Candidates", icon: UserRound, visible: (a) => a.has("exam.session.manage") },
+      { to: "/exams/incidents", label: "Incidents", icon: Siren, visible: (a) => a.has("exam.incident.manage") || a.has("exam.incident.decide") },
     ],
   },
   {

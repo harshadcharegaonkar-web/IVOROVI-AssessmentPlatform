@@ -74,4 +74,25 @@ public class FieldCipher {
     private static byte[] aad(String field, java.util.UUID tenantId) {
         return (field + "|" + tenantId).getBytes(StandardCharsets.UTF_8);
     }
+
+    /**
+     * Keyed one-way index (HMAC-SHA-256 under a key derived from the data key) for low-entropy secrets such as session
+     * codes, so a copied database does not allow offline guessing. Lower-case hex, 64 characters.
+     */
+    public String blindIndex(String value, String purpose) {
+        try {
+            javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+            byte[] k = MessageDigest.getInstance("SHA-256").digest(concat(key.getEncoded(), ("blind-index-v1:" + purpose).getBytes(StandardCharsets.UTF_8)));
+            mac.init(new SecretKeySpec(k, "HmacSHA256"));
+            return java.util.HexFormat.of().formatHex(mac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static byte[] concat(byte[] a, byte[] b) {
+        byte[] r = java.util.Arrays.copyOf(a, a.length + b.length);
+        System.arraycopy(b, 0, r, a.length, b.length);
+        return r;
+    }
 }

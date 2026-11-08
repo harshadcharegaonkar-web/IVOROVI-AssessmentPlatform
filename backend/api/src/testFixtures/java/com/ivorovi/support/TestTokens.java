@@ -26,14 +26,42 @@ public final class TestTokens {
 
     public static final String ISSUER = "https://idp.test/realms/ivorovi";
     public static final String AUDIENCE = "ivorovi-api";
+    /** Candidate realm (delivery boundary): different issuer, audience and signing key. */
+    public static final String CANDIDATE_ISSUER = "https://idp.test/realms/ivorovi-candidates";
+    public static final String CANDIDATE_AUDIENCE = "ivorovi-delivery";
 
     private static final KeyPair TRUSTED = generate();
     private static final KeyPair UNTRUSTED = generate();
+    private static final KeyPair CANDIDATE = generate();
 
     private TestTokens() {}
 
     public static RSAPublicKey trustedPublicKey() {
         return (RSAPublicKey) TRUSTED.getPublic();
+    }
+
+    public static RSAPublicKey candidatePublicKey() {
+        return (RSAPublicKey) CANDIDATE.getPublic();
+    }
+
+    /** A verified candidate-realm token (email verified, delivery audience). */
+    public static String candidate(String subject, String email, String... amr) {
+        return candidate(subject, b -> {
+            b.claim("email", email).claim("email_verified", true).claim("name", "Candidate " + subject.substring(0, Math.min(6, subject.length())));
+            if (amr.length > 0) b.claim("amr", java.util.List.of(amr));
+        });
+    }
+
+    public static String candidate(String subject, Consumer<JwtClaimsSet.Builder> customizer) {
+        return sign(CANDIDATE, subject, null, b -> {
+            b.issuer(CANDIDATE_ISSUER).audience(List.of(CANDIDATE_AUDIENCE));
+            customizer.accept(b);
+        });
+    }
+
+    /** A token signed by the candidate key but carrying staff claims, or vice versa, for boundary tests. */
+    public static String signedByCandidateKey(String subject, String tid, Consumer<JwtClaimsSet.Builder> customizer) {
+        return sign(CANDIDATE, subject, tid, customizer);
     }
 
     public static String forCaller(Fixture.Caller caller) {

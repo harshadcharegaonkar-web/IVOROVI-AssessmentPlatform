@@ -130,8 +130,9 @@ export function ServiceIdentityDetailPage() {
         <EnvelopePicker value={envelope} onChange={setEnvelope} />
       </Modal>
       <Modal open={dialog === "custodians"} onOpenChange={(o) => !o && setDialog(null)} title="Change custodians"
-        footer={<><Button variant="secondary" onClick={() => setDialog(null)}>Cancel</Button><Button variant="primary" loading={custodians.isPending} disabled={!business || !technical} onClick={() => custodians.mutate()}>Save</Button></>}>
-        <div className="space-y-4"><UserSelect label="Business custodian" value={business} onChange={setBusiness} /><UserSelect label="Technical custodian" value={technical} onChange={setTechnical} /></div>
+        footer={<><Button variant="secondary" onClick={() => setDialog(null)}>Cancel</Button><Button variant="primary" loading={custodians.isPending} disabled={!business || !technical || business === technical} onClick={() => custodians.mutate()}>Save</Button></>}>
+        <div className="space-y-4"><UserSelect label="Business custodian" value={business} onChange={setBusiness} /><UserSelect label="Technical custodian" value={technical} onChange={setTechnical} />
+          {business && business === technical && <p role="alert" className="text-sm text-danger">The custodians must be two different people.</p>}</div>
       </Modal>
       <Modal open={dialog === "role"} onOpenChange={(o) => !o && setDialog(null)} title="Assign role"
         footer={<><Button variant="secondary" onClick={() => setDialog(null)}>Cancel</Button><Button variant="primary" loading={assign.isPending} disabled={!roleId} onClick={() => assign.mutate()}>Assign</Button></>}>

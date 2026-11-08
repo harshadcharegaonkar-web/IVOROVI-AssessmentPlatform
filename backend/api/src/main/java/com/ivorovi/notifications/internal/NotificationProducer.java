@@ -50,7 +50,8 @@ public class NotificationProducer {
     static final List<String> KEYS = List.of("user.activated", "user.suspended", "user.deactivated", "user.reactivated", "user.invitation.delivery_failed",
             "role.assigned", "role.revoked", "role.updated", "role.deactivated", "student.status_changed", "student.enrolment.*", "student.import.finished",
             "student.import.validated", "integration.failing", "webhook.endpoint.disabled", "api_client.suspended", "service_identity.envelope_proposed",
-            "service_identity.custodian_missing", "service_identity.suspended");
+            "service_identity.custodian_missing", "service_identity.suspended", "approval.requested", "approval.escalated", "approval.decided",
+            "exam.incident.started", "exam.incident.detected", "exam.compensation.decided");
 
     @Configuration(proxyBeanMethods = false)
     static class Messaging {
@@ -175,6 +176,30 @@ public class NotificationProducer {
             case "service_identity.suspended" -> send(e, holders("integration.manage"), new Message("integrations", Severity.ERROR, "Service identity suspended",
                     d.get("name") + " was suspended (" + label(String.valueOf(d.get("reason"))) + "). Its API clients stop working until it is resumed.",
                     "/integrations/service-identities/" + id, e.id(), type, "service_identity", id));
+            case "approval.requested", "approval.escalated" -> {
+                record A(String perm, UUID unit, UUID requester) {}
+                A a = jdbc.sql("SELECT required_permission, org_unit_id, requested_by FROM approval_request WHERE id = ?").param(UUID.fromString(id))
+                        .query((rs, n) -> new A(rs.getString(1), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class))).optional().orElse(null);
+                if (a == null) yield 0;
+                List<UUID> to = type.equals("approval.escalated") ? holders(a.perm()) : approvers(a.perm(), a.unit());
+                to = to.stream().filter(u -> !u.equals(a.requester())).toList();     // four-eyes: never the requester
+                yield send(e, to, new Message("approvals", Severity.INFO, type.equals("approval.escalated") ? "Approval escalated to you" : "Approval needed",
+                        String.valueOf(d.get("summary")), "/approvals/" + id, e.id(), type, "approval_request", id));
+            }
+            case "approval.decided" -> send(e, List.of(UUID.fromString(String.valueOf(d.get("requestedBy")))), new Message("approvals",
+                    "APPROVED".equals(d.get("decision")) ? Severity.SUCCESS : Severity.WARNING,
+                    "APPROVED".equals(d.get("decision")) ? "Your request was approved" : "Your request was rejected", String.valueOf(d.get("summary")),
+                    "/approvals/" + id, e.id(), type, "approval_request", id));
+            case "exam.incident.started" -> send(e, holders("exam.incident.manage"), new Message("exams", Severity.ERROR, "Exam delivery interrupted",
+                    "The exam delivery service has not responded since " + d.get("startedAt") + " while sessions of your organization were open. "
+                            + "Time keeps running on the server; compensation can be proposed once the incident is resolved.", "/exams/incidents/" + id, e.id(), type,
+                    "exam_incident_impact", id));
+            case "exam.incident.detected" -> send(e, holders("exam.incident.manage"), new Message("exams", Severity.ERROR, "Platform outage affected your candidates",
+                    "An outage from " + d.get("startedAt") + " to " + d.get("endedAt") + " affected " + d.get("candidates")
+                            + " candidate(s). Review the incident and propose compensation.", "/exams/incidents/" + id, e.id(), type, "exam_incident_impact", id));
+            case "exam.compensation.decided" -> send(e, holders("exam.incident.manage"), new Message("exams", Severity.INFO, "Compensation " + label(String.valueOf(d.get("decision"))),
+                    "The compensation plan for incident " + d.get("incident") + " was " + String.valueOf(d.get("decision")).toLowerCase() + ".",
+                    "/exams/incidents/" + d.get("impactId"), e.id(), type, "exam_compensation", id));
             default -> type.startsWith("student.enrolment.")
                     ? send(e, studentAccount(UUID.fromString(id)), new Message("students", Severity.INFO, "Your enrolment changed",
                             label(type.substring("student.enrolment.".length())) + ": batch " + d.get("batch") + ", term " + d.get("termNumber") + ".", null, e.id(), type,
@@ -206,6 +231,17 @@ public class NotificationProducer {
                 WHERE ra.revoked_at IS NULL AND ra.scope_type = 'TENANT' AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
                   AND r.status = 'ACTIVE' AND r.archived_at IS NULL AND ? = ANY (r.permissions) AND u.status = 'ACTIVE'
                 ORDER BY 1 LIMIT ?""").params(permission, MAX_BROADCAST).query(UUID.class).list();
+    }
+
+    /** Active holders of the permission at the unit (tenant-wide or through an ancestor unit), capped. */
+    private List<UUID> approvers(String permission, UUID unit) {
+        return jdbc.sql("""
+                SELECT DISTINCT ra.user_account_id FROM role_assignment ra JOIN role r ON r.id = ra.role_id JOIN user_account u ON u.id = ra.user_account_id
+                WHERE ra.revoked_at IS NULL AND ra.valid_from <= now() AND (ra.valid_to IS NULL OR ra.valid_to > now())
+                  AND r.status = 'ACTIVE' AND r.archived_at IS NULL AND ? = ANY (r.permissions) AND u.status = 'ACTIVE'
+                  AND (ra.scope_type = 'TENANT' OR (CAST(? AS uuid) IS NOT NULL AND EXISTS (
+                        SELECT 1 FROM org_unit s, org_unit t WHERE s.id = ra.scope_id AND t.id = CAST(? AS uuid) AND t.path <@ s.path)))
+                ORDER BY 1 LIMIT ?""").params(permission, unit, unit, MAX_BROADCAST).query(UUID.class).list();
     }
 
     private List<UUID> roleHolders(UUID role) {

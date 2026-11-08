@@ -1,0 +1,4 @@
+{
+  "oidcAuthority": "http://localhost:8180/realms/ivorovi-candidates",
+  "oidcClientId": "ivorovi-exam"
+}

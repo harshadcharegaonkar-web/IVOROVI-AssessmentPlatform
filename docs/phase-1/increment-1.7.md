@@ -1,6 +1,6 @@
 # Increment 1.7 — Dashboard and integration improvements
 
-**Status: ✅ closed 2026-11-04** — accepted in principle, KI-59 fixed (commit `fe68a41`, CI run 41777630761 green on all four jobs). Authorized 2026-11-03 together with the acceptance of increment 1.6.
+**Status: ✅ formally accepted 2026-11-04** by the product owner (KI-59 accepted as implemented, subject to maintaining the authorization, tenant-isolation and audit controls). Evidence retained: commit `fe68a41`, CI run 41777630761 (all four jobs green), sections below. Follow-up: Q-01 (two different custodians) enforced in Increment 2.0; flaky E2E test recorded as KI-65. Authorized 2026-11-03 together with the acceptance of increment 1.6.
 Not a production-readiness claim: the release blockers in `runbooks/production-readiness.md` remain open.
 
 ## Part A — 1.6 acceptance items (done before 1.7 work)

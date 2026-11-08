@@ -26,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
         "ivorovi.rate-limit.failed-auth-per-ip-per-minute=100000",
         "ivorovi.rate-limit.public-per-ip-per-minute=100000",
         // test-only probe endpoints never appear in the exported API contract
-        "springdoc.paths-to-exclude=/api/v1/test-probe/**",
+        "springdoc.paths-to-exclude=/api/v1/test-probe/**,/api/v1/delivery/**",
         // scans run when a test calls the scan worker, so quarantine states can be asserted deterministically
         "ivorovi.scanning.scan-on-upload=false",
         // import jobs run when a test calls StudentImportWorker.runPending (no listener, no sweeper)
@@ -45,7 +45,13 @@ import org.springframework.test.web.servlet.MockMvc;
         "ivorovi.integrations.webhooks.backoff-base=PT1S",
         "ivorovi.notifications.consumer-enabled=false",
         "ivorovi.integrations.lifecycle-consumer-enabled=false",
-        "ivorovi.integrations.custodian-check-cron=-"})
+        "ivorovi.integrations.custodian-check-cron=-",
+        "ivorovi.notifications.email-dispatcher-enabled=false",
+        // exams: outage checks and heartbeats run when a test calls them
+        "ivorovi.exams.outage-detector-enabled=false",
+        "ivorovi.exams.recovery-guard-enabled=false",
+        "ivorovi.process.heartbeat-enabled=false",
+        "ivorovi.delivery.allowed-origins=https://exam.test"})
 public abstract class IntegrationTest {
 
     /** Per-run random field-encryption key (test databases are throw-away). */
@@ -75,6 +81,8 @@ public abstract class IntegrationTest {
         r.add("ivorovi.storage.bucket", () -> "ivorovi-test");
         r.add("IVOROVI_OIDC_ISSUER", () -> TestTokens.ISSUER);
         r.add("IVOROVI_OIDC_JWKS", () -> "http://jwks.invalid/certs");
+        r.add("IVOROVI_DELIVERY_OIDC_ISSUER", () -> TestTokens.CANDIDATE_ISSUER);
+        r.add("IVOROVI_DELIVERY_OIDC_JWKS", () -> "http://jwks.invalid/candidates/certs");
         r.add("ivorovi.deployment.environment", () -> "TEST");
         r.add("ivorovi.outbox.publisher-enabled", () -> "false");
         r.add("ivorovi.features.deployment-disabled", () -> "ai.proctoring-vision");

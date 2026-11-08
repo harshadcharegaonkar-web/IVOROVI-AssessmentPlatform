@@ -55,8 +55,10 @@ public class AuditLog {
         long seq = last.seq() + 1;
         Instant now = Instant.now().truncatedTo(ChronoUnit.MICROS);
         Optional<IvoroviPrincipal> actor = CurrentUser.get();
-        UUID actorId = actor.map(IvoroviPrincipal::userId).orElse(null);
-        String actorSubject = actor.map(IvoroviPrincipal::subject).orElse("system");
+        AuditActor other = actor.isEmpty() && org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() instanceof AuditActor a
+                ? a : null;
+        UUID actorId = actor.map(IvoroviPrincipal::userId).orElse(other == null ? null : other.auditActorId());
+        String actorSubject = actor.map(IvoroviPrincipal::subject).orElse(other == null ? "system" : other.auditActorSubject());
         String hash = AuditHasher.hash(last.hash(), tenantId, seq, now, actorId, actorSubject, action, resourceType,
                 resourceId, outcome, safeDetails);
         HttpServletRequest req = currentRequest();

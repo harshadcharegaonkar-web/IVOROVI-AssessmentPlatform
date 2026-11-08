@@ -12,6 +12,10 @@ ivorovi:
     oidc:
       issuer: ${IVOROVI_OIDC_ISSUER:http://localhost:8180/realms/ivorovi}
       jwk-set-uri: ${IVOROVI_OIDC_JWKS:http://localhost:8180/realms/ivorovi/protocol/openid-connect/certs}
+  delivery:
+    issuer: ${IVOROVI_DELIVERY_OIDC_ISSUER:http://localhost:8180/realms/ivorovi-candidates}
+    jwk-set-uri: ${IVOROVI_DELIVERY_OIDC_JWKS:http://localhost:8180/realms/ivorovi-candidates/protocol/openid-connect/certs}
+    allowed-origins: ${IVOROVI_EXAM_APP_ORIGINS:http://localhost:5174,http://localhost:8082}
   storage:
     endpoint: ${IVOROVI_S3_ENDPOINT:http://localhost:8333}
     create-bucket: true

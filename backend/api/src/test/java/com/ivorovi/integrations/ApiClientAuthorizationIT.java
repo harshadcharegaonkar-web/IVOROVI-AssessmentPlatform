@@ -1,5 +1,6 @@
 package com.ivorovi.integrations;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -286,6 +287,10 @@ class ApiClientAuthorizationIT extends IntegrationTest {
                 .formatted(admin.id(), admin2.id())), admin, status().isBadRequest());
         call(post("/api/v1/service-identities").content("""
                 {"name":"Bad2","purpose":"x","businessCustodianId":"%s","envelope":["student.read"]}""".formatted(admin.id())), admin, status().isBadRequest());
+        // Q-01: one person cannot be both custodians — refused by the service …
+        call(post("/api/v1/service-identities").content("""
+                {"name":"Same","purpose":"x","businessCustodianId":"%s","technicalCustodianId":"%s","envelope":["student.read"]}"""
+                .formatted(admin.id(), admin.id())), admin, status().isBadRequest());
         JsonNode created = identity("\"student.read\",\"org_unit.read\"");
         String id = created.path("id").asString();
         assertThat(created.path("status").asString()).isEqualTo("PENDING_APPROVAL");
@@ -388,5 +393,8 @@ class ApiClientAuthorizationIT extends IntegrationTest {
         assertThat(audits("service_identity.envelope_approved")).isEqualTo(1);
         String trail = ownerJdbc().sql("SELECT string_agg(details::text, '|') FROM audit_event WHERE tenant_id = ?").param(org.tenant).query(String.class).single();
         assertThat(trail).doesNotContain("ivk_");
+        // … and by the database, even for a direct update
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE service_identity SET technical_custodian_id = business_custodian_id WHERE id = ?")
+                .param(UUID.fromString(id)).update()).hasMessageContaining("service_identity_distinct_custodians");
     }
 }

@@ -78,6 +78,9 @@ dependencies {
 tasks.withType<JavaCompile> {
     options.compilerArgs.addAll(listOf("-parameters", "-Xlint:all,-processing,-serial", "-Werror"))
 }
+// Test fixtures implement main-module interfaces whose records carry OpenAPI annotations that are not on the fixtures'
+// classpath; javac's "missing annotation class" notice is harmless there.
+tasks.named<JavaCompile>("compileTestFixturesJava") { options.compilerArgs.add("-Xlint:-classfile") }
 
 tasks.test {
     useJUnitPlatform()
