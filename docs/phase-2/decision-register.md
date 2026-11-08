@@ -14,7 +14,7 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | Increment 1.7 | **Formally accepted** 2026-11-04 (CI run 41777630761) |
 | Increment 2.0 | **Authorized** 2026-11-04: parts A–F as planned; 25–29 days is a planning estimate, not a commitment. Extra acceptance requirements in `increment-2.0-plan.md` §7a. **Implemented; awaiting acceptance** (record: `increment-2.0.md`) |
 | Increment 2.0 | **Conditionally accepted** 2026-11-08 (CI run 42444423260); conditions A–D in `increment-2.0-follow-ups.md` |
-| Increment 2.1 (question bank) | **Authorized** 2026-11-08 (planning and implementation; plan `increment-2.1-plan.md`) |
+| Increment 2.1 (question bank) | **Authorized** 2026-11-08; plan revised the same day with the product owner's modifications and **awaiting final review before implementation** (`increment-2.1-plan.md`) |
 | Increment 2.2 and later | Not authorized (separate approval needed) |
 | DPDP legal review | Start immediately (brief: `../legal/dpdp-review-brief.md`; counsel to be engaged by the product owner) |
 | Real-candidate admission testing | **Blocked** until the production blockers are resolved and formally verified (C-7) |
@@ -82,6 +82,12 @@ These are technical choices made inside the authorized scope; none of them decid
 | N-2.0-6 | The staff screen *suggests* "lost time + 5 min" for extensions; nothing is applied without four-eyes approval | Superseded by the Q-06 decision (configurable policy, delivered with B/2.5) |
 | N-2.0-8 | Three permissions became available for the 2.0 foundations: `exam.session.manage`, `exam.incident.manage`, `exam.incident.decide` (granted to ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER). The placeholders `exam.read`/`exam.manage` stay PLANNED | Needed by parts B–D. Under P2-07 (decided 2026-11-08) these become: exam administration (`exam.session.manage`), candidate check-in (`exam.checkin.manage`, new), incident management (`exam.incident.manage`), compensation proposal (`exam.compensation.propose`, new) and compensation approval (`exam.compensation.approve`, replacing `exam.incident.decide`); role grants narrowed (ORG_ADMIN/INSTITUTION_ADMIN lose compensation approval by default). Migration in work package R |
 | N-2.0-7 | Codes can be printed per candidate or released by the invigilator | Confirmed by the Q-05 decision |
+
+## Pending approvals for Increment 2.1
+
+| # | Item | Status |
+|---|---|---|
+| L-2.1-1 | New frontend library **KaTeX 0.16 (MIT)** for mathematical notation, MathML output only, `trust: false` (plan §6.3, ADR-0010 proposal) | **Needs approval** (standing rule: no unapproved libraries) |
 
 ## Open design questions
 
