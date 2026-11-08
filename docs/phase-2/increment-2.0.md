@@ -1,9 +1,21 @@
 # Increment 2.0 — Foundations: implementation record
 
-Status: **implemented, awaiting product-owner acceptance**. Authorized 2026-11-04 (plan: `increment-2.0-plan.md`, extra
-acceptance requirements §7a). Increment 2.1 has not been started. **No production-readiness claim**: the release
-blockers in `../runbooks/production-readiness.md` stay open (malware scanner, key management and rotation, KI-46,
-KI-48 legal review and workflows, penetration test) and real-candidate processing stays blocked (C-7).
+Status: **conditionally accepted** by the product owner on 2026-11-08, on the basis of this report and CI run
+**42444423260** (all jobs green: backend, frontend, security scan, end-to-end) on commits `79f07c2`, `a5c7564`, `fbcc47c`.
+Accepted: four-eyes approval framework; separate candidate realm; candidate MFA, recovery and session codes; separate
+delivery process and security boundaries; outage and compensation workflow; event publishing; job leasing; email
+notifications; load and failure harness; distinct business and technical custodians; KI-65 fix.
+
+**Conditions** (mandatory follow-ups before examination-delivery implementation, tracked in
+`increment-2.0-follow-ups.md`): A — layered candidate rate limiting for shared campus addresses (KI-66);
+B — outage detection beyond total failure (per instance, partial, candidate/session impact, operator dashboard,
+correlation and recovery, compensation integration; KI-71, KI-72, KI-73); C — answer-persistence requirements recorded
+as mandatory for 2.5; D — complete register for KI-66 … KI-73. B must be completed and tested before real examination
+delivery.
+
+Authorized 2026-11-04 (plan: `increment-2.0-plan.md`, extra acceptance requirements §7a). **No production-readiness
+claim**: the release blockers in `../runbooks/production-readiness.md` stay open (malware scanner, key management and
+rotation, KI-46, KI-48 legal review and workflows, penetration test) and real-candidate processing stays blocked (C-7).
 
 ## 1. What was built, per part
 
@@ -45,7 +57,7 @@ reset — enforced by the platform (KI-67).
 | Exam app E2E (production build with production headers, real candidate realm, desktop/tablet/mobile + axe) | **8/8** |
 | Bundles | staff initial 158.6 kB gzip (≤ 180); exam initial 88.0 kB (≤ 120); boundary check: no staff code in the exam bundle |
 
-CI: see the commit and run references reported with the acceptance request.
+CI: run 42444423260 — green on all jobs (backend 283 tests, frontend, security scan, end-to-end with staff and exam suites in the compose stack).
 
 ## 4. Load and failure results
 

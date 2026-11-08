@@ -92,3 +92,18 @@ final submission.
 2,000 concurrent candidates per event in the reference environment, 10,000 per SaaS region: p95 save < 300 ms, zero
 lost acknowledged answers under chaos tests (kill delivery pods, drop network, Valkey restart), submission burst of
 10,000 in 2 minutes. Load tests with scripted candidates are an acceptance gate for every delivery increment.
+
+
+## Answer persistence requirements (mandatory for 2.5)
+
+Recorded 2026-11-08 as a condition of the Increment 2.0 acceptance (`increment-2.0-follow-ups.md` §C). Each item is an
+architecture requirement **and** an acceptance criterion of Increment 2.5:
+
+1. A unique idempotency key for every answer operation (attempt, item, client operation id).
+2. Acknowledgement only after durable server-side persistence (committed journal entry).
+3. Duplicate retry protection: a repeated operation returns the original acknowledgement and has no second effect.
+4. Sequence-based protection against stale answers: a lower client sequence never overwrites a newer stored answer.
+5. Reconciliation of server-persisted answers with the device's offline queue on reconnect and resume.
+6. Clear candidate indication of saved, pending and failed answer operations. **A locally queued answer is never shown
+   as server-confirmed.**
+7. Recovery testing for database, network and delivery-process failures with zero lost acknowledged answers.

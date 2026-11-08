@@ -13,7 +13,9 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | Phase 2 roadmap structure (increments 2.0–2.15) | **Approved with conditions C-1…C-7** |
 | Increment 1.7 | **Formally accepted** 2026-11-04 (CI run 41777630761) |
 | Increment 2.0 | **Authorized** 2026-11-04: parts A–F as planned; 25–29 days is a planning estimate, not a commitment. Extra acceptance requirements in `increment-2.0-plan.md` §7a. **Implemented; awaiting acceptance** (record: `increment-2.0.md`) |
-| Increment 2.1 and later | Not authorized (separate approval needed) |
+| Increment 2.0 | **Conditionally accepted** 2026-11-08 (CI run 42444423260); conditions A–D in `increment-2.0-follow-ups.md` |
+| Increment 2.1 (question bank) | **Authorized** 2026-11-08 (planning and implementation; plan `increment-2.1-plan.md`) |
+| Increment 2.2 and later | Not authorized (separate approval needed) |
 | DPDP legal review | Start immediately (brief: `../legal/dpdp-review-brief.md`; counsel to be engaged by the product owner) |
 | Real-candidate admission testing | **Blocked** until the production blockers are resolved and formally verified (C-7) |
 
@@ -51,7 +53,7 @@ increment that needs it is planned), **Open question** (needs an answer before t
 | P2-04 | Separate exam application on its own origin | Approved via C-4 |
 | P2-05 | Candidate accounts + session access codes | Approved with C-1 requirements |
 | P2-06 | New MODERATOR system role | Not yet decided (needed for 2.8) |
-| P2-07 | Refine placeholder permissions | Not yet decided (needed for 2.1) |
+| P2-07 | Refine placeholder permissions | **Decided** 2026-11-08: distinct permissions for exam administration, candidate check-in, incident management, compensation proposal and compensation approval; no broad exam permissions where not needed. Question bank: distinct read, author, review, approve and bank-management permissions (2.1). The exam split is applied in work package R (it changes 2.0 grants) |
 | P2-08 | Support access through tenant-approved, time-boxed grants | Not yet decided (needed before production support) |
 | P2-09 | Email notifications | **Approved** 2026-11-04, implemented in 2.0 |
 | P2-10 | Payments deferred | Not yet decided (recommendation: defer) |
@@ -77,9 +79,9 @@ These are technical choices made inside the authorized scope; none of them decid
 | N-2.0-3 | Readiness check-in sessions are the 2.0 vehicle for session codes, presence and compensation | No exam business logic in 2.0; real exam sessions replace them in 2.5 |
 | N-2.0-4 | Compensation entitlements are codes bound to a candidate, used from the signed-in portal; emails carry no code | Nothing secret is sent by email |
 | N-2.0-5 | Session-code limits: 10/min per candidate, 5 failed/min per code, 300/min per address (configurable) | Campus NAT (KI-66) |
-| N-2.0-6 | The staff screen *suggests* "lost time + 5 min" for extensions; nothing is applied without four-eyes approval | Q-06 stays open: institution policy decides |
-| N-2.0-8 | Three permissions became available for the 2.0 foundations: `exam.session.manage`, `exam.incident.manage`, `exam.incident.decide` (granted to ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER). The placeholders `exam.read`/`exam.manage` stay PLANNED | Needed by parts B–D. P2-07 (refining the catalogue, needed for 2.1) is **not** decided by this; the three codes may be merged or renamed then, with a migration |
-| N-2.0-7 | Q-05 (code delivery) is not decided: codes can be printed per candidate or released by the invigilator; both work | Awaiting the decision before 2.5 |
+| N-2.0-6 | The staff screen *suggests* "lost time + 5 min" for extensions; nothing is applied without four-eyes approval | Superseded by the Q-06 decision (configurable policy, delivered with B/2.5) |
+| N-2.0-8 | Three permissions became available for the 2.0 foundations: `exam.session.manage`, `exam.incident.manage`, `exam.incident.decide` (granted to ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER). The placeholders `exam.read`/`exam.manage` stay PLANNED | Needed by parts B–D. Under P2-07 (decided 2026-11-08) these become: exam administration (`exam.session.manage`), candidate check-in (`exam.checkin.manage`, new), incident management (`exam.incident.manage`), compensation proposal (`exam.compensation.propose`, new) and compensation approval (`exam.compensation.approve`, replacing `exam.incident.decide`); role grants narrowed (ORG_ADMIN/INSTITUTION_ADMIN lose compensation approval by default). Migration in work package R |
+| N-2.0-7 | Codes can be printed per candidate or released by the invigilator | Confirmed by the Q-05 decision |
 
 ## Open design questions
 
@@ -89,8 +91,8 @@ These are technical choices made inside the authorized scope; none of them decid
 | Q-02 | Candidate MFA and verification | — | **Decided 2026-11-04:** verified email, expiring single-use session codes and optional TOTP authenticator-app MFA; SMS never the only MFA mechanism |
 | Q-03 | Candidate authentication separate from staff | — | **Decided 2026-11-04:** separate, including session and recovery boundaries (separate realm) |
 | Q-04 | Four-eyes with a single administrator | — | **Decided 2026-11-04:** never bypassed; an authorized second approver or an approved higher-level escalation decides, otherwise the request stays pending |
-| Q-05 | Session-code delivery: released by the proctor at session start, or printed on the admit card | 2.0 design / 2.5 | Proctor-released codes for supervised sessions; per-candidate codes for remote sessions, valid only in the session window |
-| Q-06 | Candidate-compensation policy for platform outages (extension formula, re-sit eligibility, approvers, notice to candidates) | 2.0 runbook / 2.5 | Extension = lost time + 5 min, re-sit if > 15 min lost or answers unrecoverable; controller + second approver; institution policy confirms |
+| Q-05 | Session-code delivery | — | **Decided 2026-11-08: both** printed (per-candidate) session codes and invigilator-controlled code release are supported |
+| Q-06 | Candidate-compensation policy | — | **Decided 2026-11-08:** configurable per organization. Default: restore verified lost time where possible, plus a configurable recovery buffer, and support rescheduling when required. Independent approval and a full audit trail are mandatory. Implemented with B (verified lost time) and 2.5 |
 | Q-07 | Exam application domain | — | **Decided 2026-11-04:** one shared exam domain separate from the administrative portal; tenant context resolved from trusted server-side configuration; institution-specific domains designed for later |
 | Q-08 | Account recovery for candidates without email access (mobile-only) | 2.3 | Mobile verification needs an SMS provider decision; until then email is mandatory |
 | Q-09 | Retention periods (proposals in `18-business-readiness.md`) | 2.3 | Await legal review |
