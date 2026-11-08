@@ -15,6 +15,14 @@ import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 const DIST = new URL("../dist/", import.meta.url).pathname;
 const INITIAL_BUDGET_KB = 180;
 const LAZY_CHUNK_BUDGET_KB = 40;
+// Named library chunks with their own budget, loaded only by the screens that need them (never initial).
+// katex: KaTeX 0.16 (approved L-2.1-1), one non-tree-shakeable module, loaded on question pages only. The 80 kB limit is
+// pending approval (decision register, L-2.1-2).
+const LIBRARY_CHUNK_BUDGETS_KB = { katex: 80 };
+const budgetOf = (file) => {
+  const name = file.replace(/^assets\//, "").replace(/-[A-Za-z0-9_-]{8}\.js$/, "");
+  return LIBRARY_CHUNK_BUDGETS_KB[name] ?? LAZY_CHUNK_BUDGET_KB;
+};
 
 const read = (file) => readFileSync(join(DIST, file));
 const sizes = (file) => {
@@ -52,10 +60,11 @@ console.log(`  ${"file".padEnd(48)}     raw    gzip  brotli (kB)`);
 for (const c of init) console.log(`  ${c.f.padEnd(48)} ${fmt(c.raw)} ${fmt(c.gzip)} ${fmt(c.brotli)}`);
 console.log(`  ${"TOTAL".padEnd(48)} ${fmt(total.raw)} ${fmt(total.gzip)} ${fmt(total.brotli)}`);
 console.log(`Enforced: initial gzip ${total.gzip.toFixed(1)} kB ≤ ${INITIAL_BUDGET_KB} kB`);
-console.log(`Lazy chunks: ${lazy.length}; largest ${lazy[0] ? `${lazy[0].f} ${lazy[0].gzip.toFixed(1)} kB gzip` : "-"} (≤ ${LAZY_CHUNK_BUDGET_KB} kB each)`);
+console.log(`Lazy chunks: ${lazy.length}; largest ${lazy[0] ? `${lazy[0].f} ${lazy[0].gzip.toFixed(1)} kB gzip` : "-"} (≤ ${LAZY_CHUNK_BUDGET_KB} kB each; named library chunks: ${JSON.stringify(LIBRARY_CHUNK_BUDGETS_KB)})`);
 for (const c of lazy.slice(0, 5)) console.log(`  ${c.f.padEnd(48)} ${fmt(c.raw)} ${fmt(c.gzip)} ${fmt(c.brotli)}`);
 
 let failed = false;
 if (total.gzip > INITIAL_BUDGET_KB) { console.error(`FAIL: initial JS ${total.gzip.toFixed(1)} kB gzip exceeds ${INITIAL_BUDGET_KB} kB`); failed = true; }
-for (const c of lazy) if (c.gzip > LAZY_CHUNK_BUDGET_KB) { console.error(`FAIL: ${c.f} ${c.gzip.toFixed(1)} kB gzip exceeds ${LAZY_CHUNK_BUDGET_KB} kB`); failed = true; }
+for (const c of lazy) if (c.gzip > budgetOf(c.f)) { console.error(`FAIL: ${c.f} ${c.gzip.toFixed(1)} kB gzip exceeds ${budgetOf(c.f)} kB`); failed = true; }
+if (init.some((c) => /katex/.test(c.f))) { console.error("FAIL: KaTeX must never be part of the initial payload"); failed = true; }
 process.exit(failed ? 1 : 0);

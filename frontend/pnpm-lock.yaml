@@ -102,6 +102,9 @@ importers:
       '@ivorovi/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@ivorovi/content':
+        specifier: workspace:*
+        version: link:../../packages/content
       '@ivorovi/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -185,6 +188,46 @@ importers:
       openapi-typescript:
         specifier: 7.13.0
         version: 7.13.0(typescript@6.0.3)
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@22.19.1)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.19.1)(jiti@2.7.0))
+
+  packages/content:
+    dependencies:
+      katex:
+        specifier: 0.16.47
+        version: 0.16.47
+    devDependencies:
+      '@testing-library/jest-dom':
+        specifier: 7.0.1
+        version: 7.0.1(@testing-library/dom@10.4.2)(vitest@5.0.5(@types/node@22.19.1)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.19.1)(jiti@2.7.0)))
+      '@testing-library/react':
+        specifier: 16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@types/node':
+        specifier: 22.19.1
+        version: 22.19.1
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: 6.2.1
+        version: 6.2.1(vite@8.3.5(@types/node@22.19.1)(jiti@2.7.0))
+      jsdom:
+        specifier: 30.1.3
+        version: 30.1.3
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@22.19.1)(jiti@2.7.0)
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@22.19.1)(jsdom@30.1.3)(vite@8.3.5(@types/node@22.19.1)(jiti@2.7.0))
@@ -1714,6 +1757,10 @@ packages:
   colorette@1.4.0:
     resolution: {integrity: sha512-Y2oEozpomLn7Q3HFP7dpww7AtMJplbM9lGZP6RDfHqmbeRjiwRg4n6VM6j4KLmRke85uWEI7JqF17f3pqdRA0g==}
 
+  commander@8.3.0:
+    resolution: {integrity: sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==}
+    engines: {node: '>= 12'}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -2006,6 +2053,10 @@ packages:
   jwt-decode@4.0.0:
     resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
     engines: {node: '>=18'}
+
+  katex@0.16.47:
+    resolution: {integrity: sha512-Eeo8Ys1doU1z+x8AZsPpQu+p/QcZBI5PeOo7QGQdy2x2m0MU/hYagBbGOmXwr5KVbEfVuWv9LpnQWeehogurjg==}
+    hasBin: true
 
   keyv@5.6.0:
     resolution: {integrity: sha512-CYDD3SOtsHtyXeEORYRx2qBtpDJFjRTGXUtmNEMGyzYOKj1TE3tycdlho7kA1Ufx9OYWZzg52QFBGALTirzDSw==}
@@ -4117,6 +4168,8 @@ snapshots:
 
   colorette@1.4.0: {}
 
+  commander@8.3.0: {}
+
   convert-source-map@2.0.0: {}
 
   cookie-es@3.1.1: {}
@@ -4396,6 +4449,10 @@ snapshots:
   json5@2.2.3: {}
 
   jwt-decode@4.0.0: {}
+
+  katex@0.16.47:
+    dependencies:
+      commander: 8.3.0
 
   keyv@5.6.0:
     dependencies:

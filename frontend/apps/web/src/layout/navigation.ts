@@ -1,6 +1,6 @@
 import type { OrgUnitType } from "@ivorovi/api-client";
 import type { TerminologyKey } from "../session/useOrgLabels";
-import { Activity, ClipboardCheck, MonitorCheck, Siren, Stamp, BadgeCheck, Bot, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
+import { Activity, FileQuestion, Inbox, Tags, ShieldCheck, ClipboardCheck, MonitorCheck, Siren, Stamp, BadgeCheck, Bot, Bell, ChartBar, ChartColumn, FileText, KeySquare, Plug, Webhook, BookKey, Contact, Gauge, FileUp, IdCard, BookOpen, CalendarDays, CalendarRange, GitBranch, GraduationCap, Layers, LibraryBig, KeyRound, Landmark, ListChecks, LayoutDashboard, type LucideIcon, MailPlus, MapPin, Network, School, ScrollText, Settings2, SlidersHorizontal, UserCog, UserRound, Users } from "lucide-react";
 import type { Access } from "../session/access";
 
 /** {@code orgType}: the label comes from the organization's configured plural for that unit type. */
@@ -72,6 +72,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: "/students/list", label: "Students", icon: Contact, visible: (a) => a.hasAnywhere("student.read") },
       { to: "/students/imports", label: "Student Imports", icon: FileUp, visible: (a) => a.hasAnywhere("student.import") },
       { to: "/students/settings", label: "Student Settings", icon: IdCard, visible: (a) => a.hasAnywhere("student.read") },
+    ],
+  },
+  {
+    id: "questions", label: "Question Bank",
+    items: [
+      { to: "/questions", label: "Question Banks", icon: FileQuestion, visible: (a) => a.hasAnywhere("question.read") },
+      { to: "/questions/review", label: "Review Queue", icon: Inbox, visible: (a) => a.hasAnywhere("question.review") || a.hasAnywhere("question.approve") },
+      { to: "/questions/taxonomy", label: "Taxonomy", icon: Tags, visible: (a) => a.hasAnywhere("question.read") },
+      { to: "/questions/policies", label: "Approval Policies", icon: ShieldCheck, visible: (a) => a.hasAnywhere("question.read") },
     ],
   },
   {

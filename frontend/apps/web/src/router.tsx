@@ -64,6 +64,9 @@ const REPORTS = (a: Access) => a.hasAnywhere("report.read");
 const INTEGRATIONS = (a: Access) => a.has("integration.read");
 const EXAMS = (a: Access) => a.hasAnywhere("exam.session.manage");
 const INCIDENTS = (a: Access) => a.has("exam.incident.manage") || a.has("exam.incident.decide");
+const QUESTIONS = (a: Access) => a.hasAnywhere("question.read");
+const QUESTION_AUTHOR = (a: Access) => a.hasAnywhere("question.author");
+const QUESTION_QUEUE = (a: Access) => a.hasAnywhere("question.review") || a.hasAnywhere("question.approve");
 
 export const routes: RouteObject[] = [
   { path: CALLBACK_PATH, element: <AuthCallback /> },
@@ -179,6 +182,18 @@ export const routes: RouteObject[] = [
         { path: "approvals", handle: { crumb: "Approvals" }, children: [
           { index: true, ...page(() => import("./routes/approvals/ApprovalsPage")) },
           { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/approvals/ApprovalDetailPage")) },
+        ] },
+        { path: "questions", handle: { crumb: "Question bank" }, children: [
+          { index: true, ...page(() => import("./routes/questions/QuestionBanksPage"), QUESTIONS) },
+          { path: "review", handle: { crumb: "Review queue" }, ...page(() => import("./routes/questions/ReviewQueuePage"), QUESTION_QUEUE) },
+          { path: "taxonomy", handle: { crumb: "Taxonomy" }, ...page(() => import("./routes/questions/QuestionTaxonomyPage"), QUESTIONS) },
+          { path: "policies", handle: { crumb: "Policies" }, ...page(() => import("./routes/questions/QuestionPoliciesPage"), QUESTIONS) },
+          { path: "banks/:id", handle: { crumb: "Bank" }, ...page(() => import("./routes/questions/QuestionBankPage"), QUESTIONS) },
+          { path: "banks/:bankId/new", handle: { crumb: "New question" }, ...page(() => import("./routes/questions/QuestionEditorPage"), QUESTION_AUTHOR) },
+          { path: "banks/:bankId/assets", handle: { crumb: "Images" }, ...page(() => import("./routes/questions/QuestionAssetsPage"), QUESTIONS) },
+          { path: "banks/:bankId/import", handle: { crumb: "Import" }, ...page(() => import("./routes/questions/QuestionImportPage"), QUESTION_AUTHOR) },
+          { path: "items/:id", handle: { crumb: "Question" }, ...page(() => import("./routes/questions/QuestionDetailPage"), QUESTIONS) },
+          { path: "items/:id/edit", handle: { crumb: "Edit" }, ...page(() => import("./routes/questions/QuestionEditorPage"), QUESTION_AUTHOR) },
         ] },
         { path: "exams", handle: { crumb: "Examinations" }, children: [
           { index: true, element: <Navigate to="/exams/portals" replace /> },

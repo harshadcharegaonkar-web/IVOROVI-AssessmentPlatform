@@ -24,4 +24,24 @@ public interface ApprovalHandler {
     default boolean unchanged(ApprovalService.Request request) {
         return true;
     }
+
+    /**
+     * Extra live eligibility of the deciding person beyond the request's required permission (e.g. holding several
+     * permissions at the scope, or not being the subject of the request). Checked at decision time; false refuses the
+     * decision (audited).
+     */
+    default boolean mayDecide(ApprovalService.Request request, java.util.UUID decider) {
+        return true;
+    }
+
+    /**
+     * Thrown by {@link #onApproved} when the approved change can no longer be applied (a live re-check failed). The
+     * framework then undoes the handler's work, closes the request as CANCELLED with the reason, audits
+     * {@code approval.invalidated} and reports the refusal; nothing is applied.
+     */
+    final class Invalidated extends RuntimeException {
+        public Invalidated(String reason) {
+            super(reason, null, false, false);
+        }
+    }
 }

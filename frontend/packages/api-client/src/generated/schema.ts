@@ -178,6 +178,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/questions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A question with its current and approved versions, reviews, policy and the actions open to the caller (no answer key) */
+        get: operations["get_2"];
+        /** Edit the open version (author only); editing a version in review returns it to draft and invalidates its reviews */
+        put: operations["update_3"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy/{kind}/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Deactivate or reactivate a taxonomy entry (entries are never deleted) */
+        put: operations["status_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-policy-floors/{orgUnitId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set an institution's minimum approval policy (weakening needs a second administrator's approval) */
+        put: operations["setFloor"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_3"];
+        /** Update a bank; a weaker approval policy needs a second administrator's approval before it applies */
+        put: operations["update_4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-asset-quotas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the organization-wide default image quota, or an institution's quota with orgUnitId */
+        put: operations["setQuota"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/preferences": {
         parameters: {
             query?: never;
@@ -204,9 +290,9 @@ export interface paths {
             cookie?: never;
         };
         /** Integration with adapter details, recent runs and 30-day run counts */
-        get: operations["get_2"];
+        get: operations["get_4"];
         /** Change name, description, configuration or secret (optimistic version check) */
-        put: operations["update_3"];
+        put: operations["update_5"];
         post?: never;
         /** Delete a disabled integration and its run history */
         delete: operations["delete_1"];
@@ -274,9 +360,9 @@ export interface paths {
             cookie?: never;
         };
         /** API client with its keys (id and last four characters only) and daily usage */
-        get: operations["get_3"];
+        get: operations["get_5"];
         /** Change name, description, IP allow-list or expiry (scopes are fixed) */
-        put: operations["update_4"];
+        put: operations["update_6"];
         post?: never;
         delete?: never;
         options?: never;
@@ -415,7 +501,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Suspend, reactivate, deactivate or activate an account (also enables/disables the login) */
-        post: operations["status_1"];
+        post: operations["status_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -432,7 +518,7 @@ export interface paths {
         /** Role assignments of the user, including revoked and expired ones */
         get: operations["roleAssignments"];
         put?: never;
-        /** Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there) */
+        /** Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there). Roles with question.approve or question.key.read are not assigned directly: 202 with status PENDING_APPROVAL and the approval request id */
         post: operations["assignRole"];
         delete?: never;
         options?: never;
@@ -674,7 +760,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Change the lifecycle status (only valid transitions; reason required; history kept) */
-        post: operations["status_2"];
+        post: operations["status_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1085,7 +1171,295 @@ export interface paths {
         get?: never;
         put?: never;
         /** Activate or deactivate a custom role; deactivation suspends all of its assignments at once */
-        post: operations["status_3"];
+        post: operations["status_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a new draft version from the approved one (the approved version is unchanged) */
+        post: operations["newVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/versions/{no}/marking-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark sample responses against a version (needs answer-key access; audited) */
+        post: operations["markingPreview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit the draft for review */
+        post: operations["submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record a review of the version in review (authors cannot review their own questions) */
+        post: operations["review"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire a question from future use (versions already used stay intact) */
+        post: operations["retire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/request-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approver returns the version to its author with a reason (reviewers use a CHANGES_REQUESTED review) */
+        post: operations["requestChanges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a reviewed version (never the author's own; the bank's policy is enforced by the service and the database) */
+        post: operations["approve_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a topic, or a subtopic when parentId names a topic */
+        post: operations["topic"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy/subjects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["subject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy/learning-outcomes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["outcome"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy/difficulty-levels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["difficulty"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy/attributes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Define an institution metadata field for questions */
+        post: operations["attribute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-imports/{id}/commit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create drafts from valid rows (optionally near duplicates); only the uploader may commit; repeating returns the same result */
+        post: operations["commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Question banks of the units the caller may read */
+        get: operations["list_6"];
+        put?: never;
+        /** Create a bank (admission banks are always high-stakes; institution floors apply) */
+        post: operations["create_6"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks/{bankId}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search a bank (full text over statements and options only; answer keys and explanations are never searched) */
+        get: operations["search_1"];
+        put?: never;
+        /** Create a draft question (version 1) */
+        post: operations["create_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks/{bankId}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_7"];
+        put?: never;
+        /** Upload a CSV or XLSX (scanned first); every row is validated and checked for duplicates before anything is created */
+        post: operations["upload_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks/{bankId}/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_8"];
+        put?: never;
+        /** Upload a PNG or JPEG (max 5 MB, 4096×4096). It is quarantined and scanned; only clean images are re-encoded without metadata and served */
+        post: operations["upload_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1134,10 +1508,10 @@ export interface paths {
             cookie?: never;
         };
         /** List organization units visible to the caller (search, filters, sort, pagination) */
-        get: operations["list_6"];
+        get: operations["list_9"];
         put?: never;
         /** Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units) */
-        post: operations["create_6"];
+        post: operations["create_8"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1271,10 +1645,10 @@ export interface paths {
             cookie?: never;
         };
         /** Integrations with connection status, last check, last success and last sync */
-        get: operations["list_7"];
+        get: operations["list_10"];
         put?: never;
         /** Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked */
-        post: operations["create_7"];
+        post: operations["create_9"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1556,10 +1930,10 @@ export interface paths {
             cookie?: never;
         };
         /** API clients with status, last use and 30-day usage */
-        get: operations["list_8"];
+        get: operations["list_11"];
         put?: never;
         /** Register an API client; returns the key once */
-        post: operations["create_8"];
+        post: operations["create_10"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1990,7 +2364,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit profile fields (email only before the first sign-in) */
-        patch: operations["update_5"];
+        patch: operations["update_7"];
         trace?: never;
     };
     "/api/v1/students/{studentId}/guardians/{guardianId}": {
@@ -2041,7 +2415,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged) */
-        patch: operations["update_6"];
+        patch: operations["update_8"];
         trace?: never;
     };
     "/api/v1/roles/{id}": {
@@ -2059,7 +2433,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a custom role (system roles are protected); changes apply to every holder immediately */
-        patch: operations["update_7"];
+        patch: operations["update_9"];
         trace?: never;
     };
     "/api/v1/org-units/{id}": {
@@ -2070,7 +2444,7 @@ export interface paths {
             cookie?: never;
         };
         /** Unit details with ancestors (breadcrumb), child counts and dependents */
-        get: operations["get_4"];
+        get: operations["get_6"];
         put?: never;
         post?: never;
         /** Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead) */
@@ -2078,7 +2452,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_8"];
+        patch: operations["update_10"];
         trace?: never;
     };
     "/api/v1/academics/subjects/{id}": {
@@ -2089,7 +2463,7 @@ export interface paths {
             cookie?: never;
         };
         /** Subject with prerequisites, dependants and the courses/terms that teach it */
-        get: operations["subject"];
+        get: operations["subject_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2476,7 +2850,7 @@ export interface paths {
             cookie?: never;
         };
         /** Identity with role assignments, API clients and current effective permissions */
-        get: operations["get_5"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2587,6 +2961,222 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/questions/{id}/versions/{no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["version"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/versions/{no}/answer-key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The answer key and explanation of a version, only to permitted staff (every view and refusal is audited; never cached) */
+        get: operations["answerKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["transitions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit history of the question (no content or answer key values) */
+        get: operations["history_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["types"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-taxonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["taxonomy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-review-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Versions waiting for the caller's review or approval (never the caller's own) */
+        get: operations["queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-policy-floors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Minimum approval policies set by institutions (banks may be stricter, never weaker) */
+        get: operations["floors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["read_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Row outcomes (no answer keys) */
+        get: operations["rows_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-imports/template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** CSV template with one example row per question type */
+        get: operations["template_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-banks/{bankId}/asset-quota": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Image storage quota applying to the bank's institution, with current usage */
+        get: operations["quota"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-assets/{id}/content": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A clean, re-encoded image to readers of its bank (unscanned, infected or failed images are refused) */
+        get: operations["content"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/permissions": {
         parameters: {
             query?: never;
@@ -2612,7 +3202,7 @@ export interface paths {
             cookie?: never;
         };
         /** Change history of a unit (newest first) */
-        get: operations["history_2"];
+        get: operations["history_3"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2663,7 +3253,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first); state ALL, UNREAD or READ; optional category */
-        get: operations["list_9"];
+        get: operations["list_12"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2714,7 +3304,7 @@ export interface paths {
             cookie?: never;
         };
         /** Invitations of users visible to the caller */
-        get: operations["list_10"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2948,7 +3538,7 @@ export interface paths {
             cookie?: never;
         };
         /** Search the tenant audit trail (newest first) */
-        get: operations["search_1"];
+        get: operations["search_2"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2982,7 +3572,7 @@ export interface paths {
             cookie?: never;
         };
         /** view=decide: pending requests I may decide (never my own); view=requests: requests I made */
-        get: operations["list_11"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2999,7 +3589,7 @@ export interface paths {
             cookie?: never;
         };
         /** One request (requester or eligible approvers only) */
-        get: operations["get_6"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3593,6 +4183,241 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        QuestionDraftRequest: {
+            type: string;
+            content: {
+                [key: string]: unknown;
+            };
+            body: {
+                [key: string]: unknown;
+            };
+            marking?: {
+                [key: string]: unknown;
+            };
+            answerKey?: {
+                [key: string]: unknown;
+            };
+            explanation?: string;
+            marks?: number;
+            negativeMarks?: number;
+            /** Format: uuid */
+            subjectId?: string;
+            /** Format: uuid */
+            topicId?: string;
+            /** Format: uuid */
+            subtopicId?: string;
+            /** Format: uuid */
+            difficultyId?: string;
+            outcomeIds?: string[];
+            tags?: string[];
+            attributes?: {
+                [key: string]: unknown;
+            };
+            language?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        QuestionActions: {
+            edit?: boolean;
+            submit?: boolean;
+            review?: boolean;
+            requestChanges?: boolean;
+            approve?: boolean;
+            retire?: boolean;
+            newVersion?: boolean;
+            viewKey?: boolean;
+            blockedReason?: string;
+        };
+        QuestionBankPolicy: {
+            approvalPolicy?: string;
+            /** Format: int32 */
+            requiredReviews?: number;
+            approverDistinct?: boolean;
+        };
+        QuestionDetail: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            bankId?: string;
+            bankName?: string;
+            status?: string;
+            current?: components["schemas"]["QuestionVersion"];
+            approved?: components["schemas"]["QuestionVersion"];
+            versions?: components["schemas"]["QuestionVersionSummary"][];
+            effectivePolicy?: components["schemas"]["QuestionBankPolicy"];
+            actions?: components["schemas"]["QuestionActions"];
+            /** Format: int64 */
+            version?: number;
+        };
+        QuestionImageUse: {
+            /** Format: uuid */
+            assetId?: string;
+            usage?: string;
+            optionId?: string;
+            altText?: string;
+            decorative?: boolean;
+            scanStatus?: string;
+        };
+        QuestionReview: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            reviewerId?: string;
+            reviewerName?: string;
+            decision?: string;
+            checklist?: {
+                [key: string]: unknown;
+            };
+            comment?: string;
+            /** Format: date-time */
+            at?: string;
+            valid?: boolean;
+            invalidatedReason?: string;
+        };
+        QuestionVersion: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            state?: string;
+            type?: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            body?: {
+                [key: string]: unknown;
+            };
+            marking?: {
+                [key: string]: unknown;
+            };
+            marks?: number;
+            negativeMarks?: number;
+            /** Format: uuid */
+            subjectId?: string;
+            /** Format: uuid */
+            topicId?: string;
+            /** Format: uuid */
+            subtopicId?: string;
+            /** Format: uuid */
+            difficultyId?: string;
+            outcomeIds?: string[];
+            tags?: string[];
+            attributes?: {
+                [key: string]: unknown;
+            };
+            language?: string;
+            images?: components["schemas"]["QuestionImageUse"][];
+            /** Format: uuid */
+            authorId?: string;
+            authorName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: uuid */
+            approvedBy?: string;
+            approvedByName?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+            /** Format: date-time */
+            retiredAt?: string;
+            source?: string;
+            reviews?: components["schemas"]["QuestionReview"][];
+            /** Format: int32 */
+            validReviews?: number;
+            reviewHash?: string;
+            /** Format: int64 */
+            version?: number;
+            keyVisible?: boolean;
+        };
+        QuestionVersionSummary: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            state?: string;
+            authorName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            approvedAt?: string;
+        };
+        TaxonomyStatusRequest: {
+            active?: boolean;
+        };
+        QuestionPolicyInput: {
+            approvalPolicy: string;
+            /** Format: int32 */
+            requiredReviews?: number;
+            approverDistinct?: boolean;
+        };
+        QuestionPolicyFloor: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            policy?: components["schemas"]["QuestionBankPolicy"];
+            /** Format: int64 */
+            version?: number;
+        };
+        QuestionBankRequest: {
+            /** Format: uuid */
+            orgUnitId?: string;
+            code: string;
+            name: string;
+            description?: string;
+            intendedUses?: string[];
+            policy: components["schemas"]["QuestionPolicyInput"];
+            freeTags?: boolean;
+            defaultMarks?: number;
+            defaultNegativeMarks?: number;
+            status?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        QuestionBank: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            code?: string;
+            name?: string;
+            description?: string;
+            intendedUses?: string[];
+            policy?: components["schemas"]["QuestionBankPolicy"];
+            effectivePolicy?: components["schemas"]["QuestionBankPolicy"];
+            freeTags?: boolean;
+            defaultMarks?: number;
+            defaultNegativeMarks?: number;
+            status?: string;
+            counts?: {
+                [key: string]: number;
+            };
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+            canManage?: boolean;
+            canAuthor?: boolean;
+            /** Format: uuid */
+            pendingPolicyApprovalId?: string;
+        };
+        QuestionAssetQuotaRequest: {
+            /** Format: int64 */
+            limitBytes?: number;
+        };
+        QuestionAssetQuota: {
+            /** Format: uuid */
+            orgUnitId?: string;
+            /** Format: int64 */
+            limitBytes?: number;
+            /** Format: int64 */
+            usedBytes?: number;
+        };
         NotificationPreference: {
             category?: string;
             email?: boolean;
@@ -3912,6 +4737,9 @@ export interface components {
             active?: boolean;
             roleStatus?: string;
             systemRole?: boolean;
+            status?: string;
+            /** Format: uuid */
+            approvalRequestId?: string;
         };
         RoleRevokeRequest: {
             reason: string;
@@ -4367,6 +5195,161 @@ export interface components {
             /** Format: int64 */
             version: number;
             reason?: string;
+        };
+        MarkingPreviewRequest: {
+            responses: unknown[];
+        };
+        MarkingPreviewResult: {
+            response?: unknown;
+            outcome?: string;
+            awarded?: number;
+            detail?: string;
+        };
+        QuestionReasonRequest: {
+            reason?: string;
+        };
+        QuestionReviewRequest: {
+            decision: string;
+            checklist?: {
+                [key: string]: unknown;
+            };
+            comment?: string;
+        };
+        QuestionRequiredReasonRequest: {
+            reason: string;
+        };
+        QuestionTopicRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            /** Format: uuid */
+            parentId?: string;
+            name: string;
+        };
+        QuestionTopic: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            subjectId?: string;
+            /** Format: uuid */
+            parentId?: string;
+            /** Format: int32 */
+            level?: number;
+            name?: string;
+            status?: string;
+        };
+        QuestionSubjectRequest: {
+            /** Format: uuid */
+            orgUnitId?: string;
+            code: string;
+            name: string;
+            /** Format: uuid */
+            academicSubjectId?: string;
+        };
+        QuestionSubject: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            code?: string;
+            name?: string;
+            /** Format: uuid */
+            academicSubjectId?: string;
+            status?: string;
+        };
+        LearningOutcomeRequest: {
+            /** Format: uuid */
+            subjectId: string;
+            code: string;
+            description: string;
+            bloomLevel?: string;
+        };
+        LearningOutcome: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            subjectId?: string;
+            code?: string;
+            description?: string;
+            bloomLevel?: string;
+            status?: string;
+        };
+        DifficultyLevelRequest: {
+            code: string;
+            label: string;
+            /** Format: int32 */
+            rank?: number;
+        };
+        DifficultyLevel: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            label?: string;
+            /** Format: int32 */
+            rank?: number;
+            status?: string;
+        };
+        QuestionAttributeRequest: {
+            key: string;
+            label: string;
+            type: string;
+            allowedValues?: string[];
+            requiredForApproval?: boolean;
+        };
+        QuestionAttributeDefinition: {
+            /** Format: uuid */
+            id?: string;
+            key?: string;
+            label?: string;
+            type?: string;
+            allowedValues?: string[];
+            requiredForApproval?: boolean;
+            status?: string;
+        };
+        QuestionImport: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            bankId?: string;
+            fileName?: string;
+            format?: string;
+            status?: string;
+            /** Format: int32 */
+            totalRows?: number;
+            /** Format: int32 */
+            validRows?: number;
+            /** Format: int32 */
+            invalidRows?: number;
+            /** Format: int32 */
+            duplicateRows?: number;
+            /** Format: int32 */
+            nearDuplicateRows?: number;
+            /** Format: int32 */
+            createdRows?: number;
+            createdByName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            committedAt?: string;
+        };
+        QuestionAsset: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            bankId?: string;
+            mediaType?: string;
+            /** Format: int32 */
+            width?: number;
+            /** Format: int32 */
+            height?: number;
+            /** Format: int64 */
+            bytes?: number;
+            scanStatus?: string;
+            fileName?: string;
+            altText?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            usedByVersions?: number;
         };
         InvitationTokenRequest: {
             token: string;
@@ -5485,6 +6468,7 @@ export interface components {
             scopeOrgUnitId?: string;
             scopeName?: string;
             organizationOnly?: boolean;
+            requiresApproval?: boolean;
         };
         PageResponseRoleAssignmentOverview: {
             items?: components["schemas"]["RoleAssignmentOverview"][];
@@ -5551,6 +6535,115 @@ export interface components {
             /** Format: int32 */
             totalPages?: number;
             personalIncluded?: boolean;
+        };
+        QuestionAnswerKey: {
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            key?: {
+                [key: string]: unknown;
+            };
+            explanation?: string;
+        };
+        QuestionTransition: {
+            /** Format: int32 */
+            versionNo?: number;
+            fromState?: string;
+            toState?: string;
+            actorName?: string;
+            reason?: string;
+            /** Format: date-time */
+            at?: string;
+        };
+        QuestionHistoryEvent: {
+            action?: string;
+            actorName?: string;
+            /** Format: date-time */
+            at?: string;
+            details?: {
+                [key: string]: unknown;
+            };
+        };
+        QuestionTypeInfo: {
+            code?: string;
+            label?: string;
+        };
+        QuestionTag: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+        };
+        QuestionTaxonomy: {
+            subjects?: components["schemas"]["QuestionSubject"][];
+            topics?: components["schemas"]["QuestionTopic"][];
+            outcomes?: components["schemas"]["LearningOutcome"][];
+            difficulties?: components["schemas"]["DifficultyLevel"][];
+            tags?: components["schemas"]["QuestionTag"][];
+            attributes?: components["schemas"]["QuestionAttributeDefinition"][];
+        };
+        QueueItem: {
+            /** Format: uuid */
+            questionId?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            bankName?: string;
+            state?: string;
+            type?: string;
+            excerpt?: string;
+            authorName?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: int32 */
+            validReviews?: number;
+            /** Format: int32 */
+            requiredReviews?: number;
+        };
+        QuestionImportRow: {
+            /** Format: int32 */
+            rowNo?: number;
+            outcome?: string;
+            errors?: string[];
+            type?: string;
+            excerpt?: string;
+            /** Format: uuid */
+            matchedQuestionId?: string;
+            similarity?: number;
+            /** Format: uuid */
+            createdQuestionId?: string;
+        };
+        QuestionPage: {
+            items?: components["schemas"]["QuestionSummary"][];
+            /** Format: int64 */
+            total?: number;
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+        };
+        QuestionSummary: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            state?: string;
+            type?: string;
+            excerpt?: string;
+            subjectName?: string;
+            difficultyLabel?: string;
+            tags?: string[];
+            marks?: number;
+            negativeMarks?: number;
+            /** Format: int32 */
+            approvedVersionNo?: number;
+            status?: string;
+            authorName?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         PermissionDomain: {
             /** @enum {string} */
@@ -6633,6 +7726,179 @@ export interface operations {
             };
         };
     };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    update_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    status_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaxonomyStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setFloor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                orgUnitId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionPolicyInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionPolicyFloor"];
+                };
+            };
+        };
+    };
+    get_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionBank"];
+                };
+            };
+        };
+    };
+    update_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionBankRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionBank"];
+                };
+            };
+        };
+    };
+    setQuota: {
+        parameters: {
+            query?: {
+                orgUnitId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionAssetQuotaRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionAssetQuota"];
+                };
+            };
+        };
+    };
     preferences: {
         parameters: {
             query?: never;
@@ -6677,7 +7943,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -6699,7 +7965,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -6847,7 +8113,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -6869,7 +8135,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -7114,7 +8380,7 @@ export interface operations {
             };
         };
     };
-    status_1: {
+    status_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -7668,7 +8934,7 @@ export interface operations {
             };
         };
     };
-    status_2: {
+    status_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -8413,7 +9679,7 @@ export interface operations {
             };
         };
     };
-    status_3: {
+    status_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -8435,6 +9701,541 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["RoleDetail"];
+                };
+            };
+        };
+    };
+    newVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    markingPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MarkingPreviewResult"][];
+                };
+            };
+        };
+    };
+    submit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuestionReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    retire: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionRequiredReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    requestChanges: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionRequiredReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    approve_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["QuestionReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    topic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionTopicRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionTopic"];
+                };
+            };
+        };
+    };
+    subject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionSubjectRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionSubject"];
+                };
+            };
+        };
+    };
+    outcome: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearningOutcomeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LearningOutcome"];
+                };
+            };
+        };
+    };
+    difficulty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DifficultyLevelRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DifficultyLevel"];
+                };
+            };
+        };
+    };
+    attribute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionAttributeRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionAttributeDefinition"];
+                };
+            };
+        };
+    };
+    commit: {
+        parameters: {
+            query?: {
+                includeNearDuplicates?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionImport"];
+                };
+            };
+        };
+    };
+    list_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionBank"][];
+                };
+            };
+        };
+    };
+    create_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionBankRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionBank"];
+                };
+            };
+        };
+    };
+    search_1: {
+        parameters: {
+            query?: {
+                q?: string;
+                state?: string;
+                type?: string;
+                subjectId?: string;
+                topicId?: string;
+                subtopicId?: string;
+                difficultyId?: string;
+                outcomeId?: string;
+                tag?: string;
+                attributeKey?: string;
+                attributeValue?: string;
+                status?: string;
+                approvedOnly?: boolean;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionPage"];
+                };
+            };
+        };
+    };
+    create_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionDetail"];
+                };
+            };
+        };
+    };
+    list_7: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionImport"][];
+                };
+            };
+        };
+    };
+    upload_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionImport"];
+                };
+            };
+        };
+    };
+    list_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionAsset"][];
+                };
+            };
+        };
+    };
+    upload_3: {
+        parameters: {
+            query?: {
+                altText?: string;
+            };
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionAsset"];
                 };
             };
         };
@@ -8485,7 +10286,7 @@ export interface operations {
             };
         };
     };
-    list_6: {
+    list_9: {
         parameters: {
             query?: {
                 type?: "UNIVERSITY" | "COLLEGE" | "CAMPUS" | "DEPARTMENT";
@@ -8514,7 +10315,7 @@ export interface operations {
             };
         };
     };
-    create_6: {
+    create_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -8698,7 +10499,7 @@ export interface operations {
             };
         };
     };
-    list_7: {
+    list_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -8718,7 +10519,7 @@ export interface operations {
             };
         };
     };
-    create_7: {
+    create_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -9196,7 +10997,7 @@ export interface operations {
             };
         };
     };
-    list_8: {
+    list_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -9216,7 +11017,7 @@ export interface operations {
             };
         };
     };
-    create_8: {
+    create_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -10089,7 +11890,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -10234,7 +12035,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -10304,7 +12105,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -10330,7 +12131,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -10374,7 +12175,7 @@ export interface operations {
             };
         };
     };
-    update_8: {
+    update_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -10400,7 +12201,7 @@ export interface operations {
             };
         };
     };
-    subject: {
+    subject_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -11069,7 +12870,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -11254,6 +13055,286 @@ export interface operations {
             };
         };
     };
+    version: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionVersion"];
+                };
+            };
+        };
+    };
+    answerKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionAnswerKey"];
+                };
+            };
+        };
+    };
+    transitions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionTransition"][];
+                };
+            };
+        };
+    };
+    history_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionHistoryEvent"][];
+                };
+            };
+        };
+    };
+    types: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionTypeInfo"][];
+                };
+            };
+        };
+    };
+    taxonomy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionTaxonomy"];
+                };
+            };
+        };
+    };
+    queue: {
+        parameters: {
+            query?: {
+                stage?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QueueItem"][];
+                };
+            };
+        };
+    };
+    floors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionPolicyFloor"][];
+                };
+            };
+        };
+    };
+    read_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionImport"];
+                };
+            };
+        };
+    };
+    rows_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionImportRow"][];
+                };
+            };
+        };
+    };
+    template_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    quota: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["QuestionAssetQuota"];
+                };
+            };
+        };
+    };
+    content: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
     catalogue_1: {
         parameters: {
             query?: never;
@@ -11274,7 +13355,7 @@ export interface operations {
             };
         };
     };
-    history_2: {
+    history_3: {
         parameters: {
             query?: {
                 page?: number;
@@ -11339,7 +13420,7 @@ export interface operations {
             };
         };
     };
-    list_9: {
+    list_12: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -11407,7 +13488,7 @@ export interface operations {
             };
         };
     };
-    list_10: {
+    list_13: {
         parameters: {
             query?: {
                 status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
@@ -11717,7 +13798,7 @@ export interface operations {
             };
         };
     };
-    search_1: {
+    search_2: {
         parameters: {
             query?: {
                 action?: string;
@@ -11765,7 +13846,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_14: {
         parameters: {
             query?: {
                 view?: string;
@@ -11787,7 +13868,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;

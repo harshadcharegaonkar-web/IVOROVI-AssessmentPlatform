@@ -486,6 +486,248 @@
         }
       }
     },
+    "/api/v1/questions/{id}" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "summary" : "A question with its current and approved versions, reviews, policy and the actions open to the caller (no answer key)",
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Edit the open version (author only); editing a version in review returns it to draft and invalidates its reviews",
+        "operationId" : "update_3",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionDraftRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy/{kind}/{id}/status" : {
+      "put" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Deactivate or reactivate a taxonomy entry (entries are never deleted)",
+        "operationId" : "status_1",
+        "parameters" : [ {
+          "name" : "kind",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "subjects|topics|learning-outcomes|difficulty-levels|attributes"
+          }
+        }, {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TaxonomyStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/question-policy-floors/{orgUnitId}" : {
+      "put" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Set an institution's minimum approval policy (weakening needs a second administrator's approval)",
+        "operationId" : "setFloor",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionPolicyInput"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionPolicyFloor"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-banks/{id}" : {
+      "get" : {
+        "tags" : [ "Question banks" ],
+        "operationId" : "get_3",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionBank"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Update a bank; a weaker approval policy needs a second administrator's approval before it applies",
+        "operationId" : "update_4",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionBankRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionBank"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-asset-quotas" : {
+      "put" : {
+        "tags" : [ "Question images" ],
+        "summary" : "Set the organization-wide default image quota, or an institution's quota with orgUnitId",
+        "operationId" : "setQuota",
+        "parameters" : [ {
+          "name" : "orgUnitId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionAssetQuotaRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionAssetQuota"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notifications/preferences" : {
       "get" : {
         "tags" : [ "Notifications" ],
@@ -545,7 +787,7 @@
       "get" : {
         "tags" : [ "Integrations" ],
         "summary" : "Integration with adapter details, recent runs and 30-day run counts",
-        "operationId" : "get_2",
+        "operationId" : "get_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -571,7 +813,7 @@
       "put" : {
         "tags" : [ "Integrations" ],
         "summary" : "Change name, description, configuration or secret (optimistic version check)",
-        "operationId" : "update_3",
+        "operationId" : "update_5",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -773,7 +1015,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "API client with its keys (id and last four characters only) and daily usage",
-        "operationId" : "get_3",
+        "operationId" : "get_5",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -799,7 +1041,7 @@
       "put" : {
         "tags" : [ "API clients" ],
         "summary" : "Change name, description, IP allow-list or expiry (scopes are fixed)",
-        "operationId" : "update_4",
+        "operationId" : "update_6",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1182,7 +1424,7 @@
       "post" : {
         "tags" : [ "Users" ],
         "summary" : "Suspend, reactivate, deactivate or activate an account (also enables/disables the login)",
-        "operationId" : "status_1",
+        "operationId" : "status_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1248,7 +1490,7 @@
       },
       "post" : {
         "tags" : [ "Users" ],
-        "summary" : "Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there)",
+        "summary" : "Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there). Roles with question.approve or question.key.read are not assigned directly: 202 with status PENDING_APPROVAL and the approval request id",
         "operationId" : "assignRole",
         "parameters" : [ {
           "name" : "id",
@@ -2119,7 +2361,7 @@
       "post" : {
         "tags" : [ "Students" ],
         "summary" : "Change the lifecycle status (only valid transitions; reason required; history kept)",
-        "operationId" : "status_2",
+        "operationId" : "status_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -3275,7 +3517,7 @@
       "post" : {
         "tags" : [ "Roles" ],
         "summary" : "Activate or deactivate a custom role; deactivation suspends all of its assignments at once",
-        "operationId" : "status_3",
+        "operationId" : "status_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -3302,6 +3544,846 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/RoleDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/versions" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Start a new draft version from the approved one (the approved version is unchanged)",
+        "operationId" : "newVersion",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/versions/{no}/marking-preview" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Mark sample responses against a version (needs answer-key access; audited)",
+        "operationId" : "markingPreview",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MarkingPreviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/MarkingPreviewResult"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/submit" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Submit the draft for review",
+        "operationId" : "submit",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionReasonRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/reviews" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Record a review of the version in review (authors cannot review their own questions)",
+        "operationId" : "review",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionReviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/retire" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Retire a question from future use (versions already used stay intact)",
+        "operationId" : "retire",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionRequiredReasonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/request-changes" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Approver returns the version to its author with a reason (reviewers use a CHANGES_REQUESTED review)",
+        "operationId" : "requestChanges",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionRequiredReasonRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/approve" : {
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Approve a reviewed version (never the author's own; the bank's policy is enforced by the service and the database)",
+        "operationId" : "approve_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionReasonRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy/topics" : {
+      "post" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Create a topic, or a subtopic when parentId names a topic",
+        "operationId" : "topic",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionTopicRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionTopic"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy/subjects" : {
+      "post" : {
+        "tags" : [ "Question banks" ],
+        "operationId" : "subject",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionSubjectRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionSubject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy/learning-outcomes" : {
+      "post" : {
+        "tags" : [ "Question banks" ],
+        "operationId" : "outcome",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/LearningOutcomeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LearningOutcome"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy/difficulty-levels" : {
+      "post" : {
+        "tags" : [ "Question banks" ],
+        "operationId" : "difficulty",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DifficultyLevelRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DifficultyLevel"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy/attributes" : {
+      "post" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Define an institution metadata field for questions",
+        "operationId" : "attribute",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionAttributeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionAttributeDefinition"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-imports/{id}/commit" : {
+      "post" : {
+        "tags" : [ "Question import" ],
+        "summary" : "Create drafts from valid rows (optionally near duplicates); only the uploader may commit; repeating returns the same result",
+        "operationId" : "commit",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "includeNearDuplicates",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionImport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-banks" : {
+      "get" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Question banks of the units the caller may read",
+        "operationId" : "list_6",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionBank"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Create a bank (admission banks are always high-stakes; institution floors apply)",
+        "operationId" : "create_6",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionBankRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionBank"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-banks/{bankId}/questions" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Search a bank (full text over statements and options only; answer keys and explanations are never searched)",
+        "operationId" : "search_1",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "state",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "DRAFT|IN_REVIEW|REVIEWED|APPROVED|SUPERSEDED|RETIRED"
+          }
+        }, {
+          "name" : "type",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "subjectId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "topicId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "subtopicId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "difficultyId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "outcomeId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "tag",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 60,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "attributeKey",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 60,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "attributeValue",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "ACTIVE|RETIRED"
+          }
+        }, {
+          "name" : "approvedOnly",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : false
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 25,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionPage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Create a draft question (version 1)",
+        "operationId" : "create_7",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QuestionDraftRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-banks/{bankId}/imports" : {
+      "get" : {
+        "tags" : [ "Question import" ],
+        "operationId" : "list_7",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionImport"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Question import" ],
+        "summary" : "Upload a CSV or XLSX (scanned first); every row is validated and checked for duplicates before anything is created",
+        "operationId" : "upload_2",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionImport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-banks/{bankId}/assets" : {
+      "get" : {
+        "tags" : [ "Question images" ],
+        "operationId" : "list_8",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionAsset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Question images" ],
+        "summary" : "Upload a PNG or JPEG (max 5 MB, 4096×4096). It is quarantined and scanned; only clean images are re-encoded without metadata and served",
+        "operationId" : "upload_3",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "altText",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 250,
+            "minLength" : 0
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                },
+                "required" : [ "file" ]
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionAsset"
                 }
               }
             }
@@ -3364,7 +4446,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "List organization units visible to the caller (search, filters, sort, pagination)",
-        "operationId" : "list_6",
+        "operationId" : "list_9",
         "parameters" : [ {
           "name" : "type",
           "in" : "query",
@@ -3452,7 +4534,7 @@
       "post" : {
         "tags" : [ "Organization" ],
         "summary" : "Create a unit (requires org_unit.manage on the parent; tenant-wide for top-level units)",
-        "operationId" : "create_6",
+        "operationId" : "create_8",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -3681,7 +4763,7 @@
       "get" : {
         "tags" : [ "Integrations" ],
         "summary" : "Integrations with connection status, last check, last success and last sync",
-        "operationId" : "list_7",
+        "operationId" : "list_10",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -3701,7 +4783,7 @@
       "post" : {
         "tags" : [ "Integrations" ],
         "summary" : "Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked",
-        "operationId" : "create_7",
+        "operationId" : "create_9",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -4306,7 +5388,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "API clients with status, last use and 30-day usage",
-        "operationId" : "list_8",
+        "operationId" : "list_11",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -4326,7 +5408,7 @@
       "post" : {
         "tags" : [ "API clients" ],
         "summary" : "Register an API client; returns the key once",
-        "operationId" : "create_8",
+        "operationId" : "create_10",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -5872,7 +6954,7 @@
       "patch" : {
         "tags" : [ "Users" ],
         "summary" : "Edit profile fields (email only before the first sign-in)",
-        "operationId" : "update_5",
+        "operationId" : "update_7",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -6085,7 +7167,7 @@
       "patch" : {
         "tags" : [ "Students" ],
         "summary" : "Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged)",
-        "operationId" : "update_6",
+        "operationId" : "update_8",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -6175,7 +7257,7 @@
       "patch" : {
         "tags" : [ "Roles" ],
         "summary" : "Edit a custom role (system roles are protected); changes apply to every holder immediately",
-        "operationId" : "update_7",
+        "operationId" : "update_9",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -6213,7 +7295,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Unit details with ancestors (breadcrumb), child counts and dependents",
-        "operationId" : "get_4",
+        "operationId" : "get_6",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -6266,7 +7348,7 @@
       "patch" : {
         "tags" : [ "Organization" ],
         "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
-        "operationId" : "update_8",
+        "operationId" : "update_10",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -6304,7 +7386,7 @@
       "get" : {
         "tags" : [ "Academic structure" ],
         "summary" : "Subject with prerequisites, dependants and the courses/terms that teach it",
-        "operationId" : "subject",
+        "operationId" : "subject_1",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7248,7 +8330,7 @@
       "get" : {
         "tags" : [ "Service identities" ],
         "summary" : "Identity with role assignments, API clients and current effective permissions",
-        "operationId" : "get_5",
+        "operationId" : "get_7",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7704,6 +8786,368 @@
         }
       }
     },
+    "/api/v1/questions/{id}/versions/{no}" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "operationId" : "version",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/versions/{no}/answer-key" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "summary" : "The answer key and explanation of a version, only to permitted staff (every view and refusal is audited; never cached)",
+        "operationId" : "answerKey",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionAnswerKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/transitions" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "operationId" : "transitions",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionTransition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/questions/{id}/history" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Audit history of the question (no content or answer key values)",
+        "operationId" : "history_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionHistoryEvent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-types" : {
+      "get" : {
+        "tags" : [ "Question banks" ],
+        "operationId" : "types",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionTypeInfo"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-taxonomy" : {
+      "get" : {
+        "tags" : [ "Question banks" ],
+        "operationId" : "taxonomy",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionTaxonomy"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-review-queue" : {
+      "get" : {
+        "tags" : [ "Questions" ],
+        "summary" : "Versions waiting for the caller's review or approval (never the caller's own)",
+        "operationId" : "queue",
+        "parameters" : [ {
+          "name" : "stage",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "review",
+            "pattern" : "review|approval"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QueueItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-policy-floors" : {
+      "get" : {
+        "tags" : [ "Question banks" ],
+        "summary" : "Minimum approval policies set by institutions (banks may be stricter, never weaker)",
+        "operationId" : "floors",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionPolicyFloor"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-imports/{id}" : {
+      "get" : {
+        "tags" : [ "Question import" ],
+        "operationId" : "read_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionImport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-imports/{id}/rows" : {
+      "get" : {
+        "tags" : [ "Question import" ],
+        "summary" : "Row outcomes (no answer keys)",
+        "operationId" : "rows_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/QuestionImportRow"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-imports/template" : {
+      "get" : {
+        "tags" : [ "Question import" ],
+        "summary" : "CSV template with one example row per question type",
+        "operationId" : "template_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-banks/{bankId}/asset-quota" : {
+      "get" : {
+        "tags" : [ "Question images" ],
+        "summary" : "Image storage quota applying to the bank's institution, with current usage",
+        "operationId" : "quota",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QuestionAssetQuota"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/question-assets/{id}/content" : {
+      "get" : {
+        "tags" : [ "Question images" ],
+        "summary" : "A clean, re-encoded image to readers of its bank (unscanned, infected or failed images are refused)",
+        "operationId" : "content",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/permissions" : {
       "get" : {
         "tags" : [ "Roles" ],
@@ -7730,7 +9174,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Change history of a unit (newest first)",
-        "operationId" : "history_2",
+        "operationId" : "history_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7818,7 +9262,7 @@
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first); state ALL, UNREAD or READ; optional category",
-        "operationId" : "list_9",
+        "operationId" : "list_12",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -7924,7 +9368,7 @@
       "get" : {
         "tags" : [ "Invitations" ],
         "summary" : "Invitations of users visible to the caller",
-        "operationId" : "list_10",
+        "operationId" : "list_13",
         "parameters" : [ {
           "name" : "status",
           "in" : "query",
@@ -8365,7 +9809,7 @@
       "get" : {
         "tags" : [ "Audit" ],
         "summary" : "Search the tenant audit trail (newest first)",
-        "operationId" : "search_1",
+        "operationId" : "search_2",
         "parameters" : [ {
           "name" : "action",
           "in" : "query",
@@ -8463,7 +9907,7 @@
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "view=decide: pending requests I may decide (never my own); view=requests: requests I made",
-        "operationId" : "list_11",
+        "operationId" : "list_14",
         "parameters" : [ {
           "name" : "view",
           "in" : "query",
@@ -8495,7 +9939,7 @@
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "One request (requester or eligible approvers only)",
-        "operationId" : "get_6",
+        "operationId" : "get_8",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -9940,6 +11384,618 @@
           }
         }
       },
+      "QuestionDraftRequest" : {
+        "type" : "object",
+        "properties" : {
+          "type" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "content" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "body" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "marking" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "answerKey" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "explanation" : {
+            "type" : "string",
+            "maxLength" : 20000,
+            "minLength" : 0
+          },
+          "marks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          },
+          "negativeMarks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "topicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subtopicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "difficultyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "outcomeIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 60,
+              "minLength" : 0
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "language" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "body", "content", "type" ]
+      },
+      "QuestionActions" : {
+        "type" : "object",
+        "properties" : {
+          "edit" : {
+            "type" : "boolean"
+          },
+          "submit" : {
+            "type" : "boolean"
+          },
+          "review" : {
+            "type" : "boolean"
+          },
+          "requestChanges" : {
+            "type" : "boolean"
+          },
+          "approve" : {
+            "type" : "boolean"
+          },
+          "retire" : {
+            "type" : "boolean"
+          },
+          "newVersion" : {
+            "type" : "boolean"
+          },
+          "viewKey" : {
+            "type" : "boolean"
+          },
+          "blockedReason" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionBankPolicy" : {
+        "type" : "object",
+        "properties" : {
+          "approvalPolicy" : {
+            "type" : "string"
+          },
+          "requiredReviews" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "approverDistinct" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "QuestionDetail" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "current" : {
+            "$ref" : "#/components/schemas/QuestionVersion"
+          },
+          "approved" : {
+            "$ref" : "#/components/schemas/QuestionVersion"
+          },
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionVersionSummary"
+            }
+          },
+          "effectivePolicy" : {
+            "$ref" : "#/components/schemas/QuestionBankPolicy"
+          },
+          "actions" : {
+            "$ref" : "#/components/schemas/QuestionActions"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "QuestionImageUse" : {
+        "type" : "object",
+        "properties" : {
+          "assetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "usage" : {
+            "type" : "string"
+          },
+          "optionId" : {
+            "type" : "string"
+          },
+          "altText" : {
+            "type" : "string"
+          },
+          "decorative" : {
+            "type" : "boolean"
+          },
+          "scanStatus" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionReview" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reviewerId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reviewerName" : {
+            "type" : "string"
+          },
+          "decision" : {
+            "type" : "string"
+          },
+          "checklist" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "comment" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "valid" : {
+            "type" : "boolean"
+          },
+          "invalidatedReason" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionVersion" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "body" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "marking" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "negativeMarks" : {
+            "type" : "number"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "topicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subtopicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "difficultyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "outcomeIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            }
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "attributes" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "language" : {
+            "type" : "string"
+          },
+          "images" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionImageUse"
+            }
+          },
+          "authorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "approvedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "approvedByName" : {
+            "type" : "string"
+          },
+          "approvedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "retiredAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "reviews" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionReview"
+            }
+          },
+          "validReviews" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reviewHash" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "keyVisible" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "QuestionVersionSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "approvedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TaxonomyStatusRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "QuestionPolicyInput" : {
+        "type" : "object",
+        "properties" : {
+          "approvalPolicy" : {
+            "type" : "string",
+            "pattern" : "STANDARD|HIGH_STAKES"
+          },
+          "requiredReviews" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 3,
+            "minimum" : 1
+          },
+          "approverDistinct" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "approvalPolicy" ]
+      },
+      "QuestionPolicyFloor" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "policy" : {
+            "$ref" : "#/components/schemas/QuestionBankPolicy"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "QuestionBankRequest" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0,
+            "pattern" : "[A-Za-z0-9._-]+"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "intendedUses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "pattern" : "ADMISSION_EXAM|ADMISSION_SCREENING|ACADEMIC|PLACEMENT|PRACTICE"
+            },
+            "maxItems" : 6,
+            "minItems" : 0
+          },
+          "policy" : {
+            "$ref" : "#/components/schemas/QuestionPolicyInput"
+          },
+          "freeTags" : {
+            "type" : "boolean"
+          },
+          "defaultMarks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          },
+          "defaultNegativeMarks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          },
+          "status" : {
+            "type" : "string",
+            "pattern" : "ACTIVE|ARCHIVED"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "code", "name", "policy" ]
+      },
+      "QuestionBank" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "intendedUses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "policy" : {
+            "$ref" : "#/components/schemas/QuestionBankPolicy"
+          },
+          "effectivePolicy" : {
+            "$ref" : "#/components/schemas/QuestionBankPolicy"
+          },
+          "freeTags" : {
+            "type" : "boolean"
+          },
+          "defaultMarks" : {
+            "type" : "number"
+          },
+          "defaultNegativeMarks" : {
+            "type" : "number"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "counts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "canManage" : {
+            "type" : "boolean"
+          },
+          "canAuthor" : {
+            "type" : "boolean"
+          },
+          "pendingPolicyApprovalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "QuestionAssetQuotaRequest" : {
+        "type" : "object",
+        "properties" : {
+          "limitBytes" : {
+            "type" : "integer",
+            "format" : "int64",
+            "maximum" : 1099511627776,
+            "minimum" : 5242880
+          }
+        }
+      },
+      "QuestionAssetQuota" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "limitBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "usedBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "NotificationPreference" : {
         "type" : "object",
         "properties" : {
@@ -10764,6 +12820,13 @@
           },
           "systemRole" : {
             "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "approvalRequestId" : {
+            "type" : "string",
+            "format" : "uuid"
           }
         }
       },
@@ -12013,6 +14076,430 @@
           }
         },
         "required" : [ "status", "version" ]
+      },
+      "MarkingPreviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "responses" : {
+            "type" : "array",
+            "items" : { },
+            "maxItems" : 50,
+            "minItems" : 1
+          }
+        },
+        "required" : [ "responses" ]
+      },
+      "MarkingPreviewResult" : {
+        "type" : "object",
+        "properties" : {
+          "response" : { },
+          "outcome" : {
+            "type" : "string"
+          },
+          "awarded" : {
+            "type" : "number"
+          },
+          "detail" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionReasonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        }
+      },
+      "QuestionReviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "decision" : {
+            "type" : "string",
+            "pattern" : "REVIEWED|CHANGES_REQUESTED"
+          },
+          "checklist" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "decision" ]
+      },
+      "QuestionRequiredReasonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "QuestionTopicRequest" : {
+        "type" : "object",
+        "properties" : {
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "name", "subjectId" ]
+      },
+      "QuestionTopic" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "parentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "level" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionSubjectRequest" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "name" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "academicSubjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "code", "name" ]
+      },
+      "QuestionSubject" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "academicSubjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        }
+      },
+      "LearningOutcomeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "bloomLevel" : {
+            "type" : "string",
+            "maxLength" : 20,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "code", "description", "subjectId" ]
+      },
+      "LearningOutcome" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "bloomLevel" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        }
+      },
+      "DifficultyLevelRequest" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string",
+            "maxLength" : 30,
+            "minLength" : 0,
+            "pattern" : "[A-Za-z0-9_]+"
+          },
+          "label" : {
+            "type" : "string",
+            "maxLength" : 60,
+            "minLength" : 0
+          },
+          "rank" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "code", "label" ]
+      },
+      "DifficultyLevel" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "rank" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionAttributeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "key" : {
+            "type" : "string",
+            "maxLength" : 60,
+            "minLength" : 0,
+            "pattern" : "[a-z][a-z0-9_]*"
+          },
+          "label" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          },
+          "type" : {
+            "type" : "string",
+            "pattern" : "TEXT|NUMBER|BOOLEAN|CHOICE|DATE"
+          },
+          "allowedValues" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "maxLength" : 100,
+              "minLength" : 0
+            },
+            "maxItems" : 50,
+            "minItems" : 0
+          },
+          "requiredForApproval" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "key", "label", "type" ]
+      },
+      "QuestionAttributeDefinition" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "allowedValues" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "requiredForApproval" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionImport" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "format" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "totalRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "validRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "invalidRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "duplicateRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nearDuplicateRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdRows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdByName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "committedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "QuestionAsset" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mediaType" : {
+            "type" : "string"
+          },
+          "width" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "height" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "scanStatus" : {
+            "type" : "string"
+          },
+          "fileName" : {
+            "type" : "string"
+          },
+          "altText" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "usedByVersions" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
       },
       "InvitationTokenRequest" : {
         "type" : "object",
@@ -14865,6 +17352,9 @@
           },
           "organizationOnly" : {
             "type" : "boolean"
+          },
+          "requiresApproval" : {
+            "type" : "boolean"
           }
         }
       },
@@ -15052,6 +17542,294 @@
           },
           "personalIncluded" : {
             "type" : "boolean"
+          }
+        }
+      },
+      "QuestionAnswerKey" : {
+        "type" : "object",
+        "properties" : {
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "key" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "explanation" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionTransition" : {
+        "type" : "object",
+        "properties" : {
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fromState" : {
+            "type" : "string"
+          },
+          "toState" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "QuestionHistoryEvent" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          }
+        }
+      },
+      "QuestionTypeInfo" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionTag" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "QuestionTaxonomy" : {
+        "type" : "object",
+        "properties" : {
+          "subjects" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionSubject"
+            }
+          },
+          "topics" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionTopic"
+            }
+          },
+          "outcomes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/LearningOutcome"
+            }
+          },
+          "difficulties" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/DifficultyLevel"
+            }
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionTag"
+            }
+          },
+          "attributes" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionAttributeDefinition"
+            }
+          }
+        }
+      },
+      "QueueItem" : {
+        "type" : "object",
+        "properties" : {
+          "questionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bankName" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "excerpt" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validReviews" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "requiredReviews" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "QuestionImportRow" : {
+        "type" : "object",
+        "properties" : {
+          "rowNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "outcome" : {
+            "type" : "string"
+          },
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "excerpt" : {
+            "type" : "string"
+          },
+          "matchedQuestionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "similarity" : {
+            "type" : "number"
+          },
+          "createdQuestionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "QuestionPage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/QuestionSummary"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "page" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "QuestionSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "excerpt" : {
+            "type" : "string"
+          },
+          "subjectName" : {
+            "type" : "string"
+          },
+          "difficultyLabel" : {
+            "type" : "string"
+          },
+          "tags" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "negativeMarks" : {
+            "type" : "number"
+          },
+          "approvedVersionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       },

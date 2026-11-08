@@ -266,19 +266,70 @@ and the exam app (2.5). Rendering failures show the source text, never raw HTML.
 
 All mutating endpoints take the optimistic `version` and support `Idempotency-Key` like the rest of the API.
 
-## 10. Permission matrix (P2-07)
+## 10. Permission matrix (P2-07, revised by P2-08 on 2026-11-08)
 
 | Permission | Meaning | ORG_ADMIN | INSTITUTION_ADMIN | EXAM_CONTROLLER | ASSESSMENT_DESIGNER | FACULTY |
 |---|---|---|---|---|---|---|
 | `question.read` | view banks, questions, assets (no keys) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `question.author` | create/edit own drafts, upload assets, import, submit; key of own drafts | — | — | — | ✓ | ✓ |
-| `question.review` | review others' versions; keys of versions in review | — | — | ✓ | ✓ | — |
-| `question.approve` | approve, retire, request changes; keys of versions in review and approved | — | — | ✓ | — | — |
-| `question.key.read` | view keys of approved, superseded, retired versions | — | — | ✓ | — | — |
-| `question.bank.manage` | banks, policies, taxonomy, attribute definitions (**no key access**) | ✓ | ✓ | ✓ | — | — |
+| `question.author` | create/edit own drafts, upload assets, import, submit; key of own drafts | ✓ | ✓ | — | ✓ | ✓ |
+| `question.review` | review others' versions; keys of versions in review | ✓ | ✓ | ✓ | ✓ | — |
+| `question.approve` | approve, retire, request changes; keys of versions in review and approved — **privileged** | — | — | ✓ | — | — |
+| `question.key.read` | view keys of approved, superseded, retired versions — **privileged** | — | — | ✓ | — | — |
+| `question.bank.manage` | banks, policies, taxonomy, attribute definitions, image quotas (**no key access**) | ✓ | ✓ | ✓ | — | — |
 
-All UNIT-scoped (inherit down the hierarchy). Custom roles can combine them within the assigner's ceiling (1.3). The
-placeholders `assessment.read/manage` stay PLANNED for 2.2. ADMISSION_OFFICER and others get nothing by default.
+All UNIT-scoped (inherit down the hierarchy). The placeholders `assessment.read/manage` stay PLANNED for 2.2.
+ADMISSION_OFFICER and others get nothing by default.
+
+Why administrators hold author and review (P2-08): the Phase 1.3 privilege ceiling lets an administrator assign only
+roles whose permissions they hold. With the original matrix, administrators could no longer assign FACULTY or
+ASSESSMENT_DESIGNER (regression KI-74). Administrators therefore hold read, author, review and bank management. They
+never hold `question.approve` or `question.key.read` by default. Through review they can see the keys of versions
+**in review**, never of approved versions. `question.bank.manage` on its own still grants no key access.
+
+### 10.1 Privileged role assignment (P2-08)
+
+`question.approve` and `question.key.read` are **privileged permissions**. Any role containing one of them (for
+example EXAM_CONTROLLER, or a custom role) is a **privileged role**.
+
+| Rule | Enforcement |
+|---|---|
+| Assigning a privileged role never takes effect directly; it opens a four-eyes request of type `role.privileged_assignment` in the 2.0 approval framework | Service (`AssignmentService`) and database (trigger on `role_assignment`) |
+| The requester must hold `role.assign` and every **non-privileged** permission of the role at the scope. This is the unchanged 1.3 ceiling, except that the privileged permissions are not required of the requester | Service; database re-check at activation |
+| The requester can never decide their own request; the target user can never approve their own elevation | Service; `approval_four_eyes` constraint; trigger |
+| The approver must currently hold **every** privileged permission of the role at the assignment's scope (that unit or an ancestor; the organization for organization-wide assignments) | Service hook (live); SQL check with row locks in the activation transaction; trigger |
+| The assignment exists only after approval: no inactive or pending row in `role_assignment` | Trigger: an application-role insert of a privileged role needs an APPROVED, unused request whose payload matches user, role and scope exactly |
+| Live checks at approval **and** at activation (the same transaction): approver, requester, target account active, role active and unchanged | Service (`unchanged` hook, permission hash) and trigger |
+| If the requester or approver lost the required permissions, or the role or target changed, the approval is invalidated: the request becomes CANCELLED with reason "invalidated" and nothing is assigned | Framework (handler veto) |
+| A concurrent revocation of the approver's grants cannot slip past: the activation check locks the approver's assignment rows (`FOR SHARE`) | Database row locks |
+| Cross-institution: an Institution Admin can only request within their scope; an approver from another institution does not hold the permissions at the scope and is refused | Service and trigger |
+| Changing a role so that it gains a privileged permission while it has active assignments is refused for the application role (create a new role and assign it through approval) | Service ceiling (1.3) and trigger on `role` |
+| Revoking a privileged role needs `role.assign` and the non-privileged ceiling only, so an administrator can always remove an Exam Controller. Revocation never grants anything | Service |
+| Every request, decision, refusal, invalidation, activation and bootstrap is audited (`approval.*`, `role.privileged_assignment_*`, `role.assigned`, `role.privileged_bootstrap`) | AuditLog |
+| One pending privileged-assignment request per target user at a time | `approval_open_uq` index |
+
+**Existing holders.** Assignments of EXAM_CONTROLLER that existed before this migration gain the question permissions
+through the system role and are kept as they are. They are eligible approvers.
+
+**Bootstrap of the first privileged role.** An organization (or an institution) with no current holder of the
+privileged permissions at or above the scope cannot obtain an approver. The bootstrap is an operator procedure, not
+an administrator self-service exception:
+
+1. The organization requests it through the support process. The request names the person, the role and the scope,
+   and identifies the requesting administrator.
+2. A platform operator with database operations access runs the one-shot bootstrap command
+   (`--ivorovi.ops.bootstrap-privileged-role=…`, see `docs/runbooks/privileged-role-bootstrap.md`). The command
+   records the operator's name and a support ticket reference.
+3. The command, and the database trigger as a backstop, refuse if any current holder of the privileged permissions
+   exists at or above the scope. A bootstrap is possible only when no approver exists.
+4. It is audited as `role.privileged_bootstrap`, with the operator, ticket, reason, target, role and scope, and an
+   outbox event notifies the organization administrators.
+
+There is no automatic self-approval for administrators. Once one holder exists, every further privileged assignment
+goes through approval.
+
+**Database owner.** The triggers bind the application database role. The schema owner (migrations, the operator
+bootstrap) is exempt because it can change the schema anyway. Access to that role is an operational control,
+restricted and logged (runbook).
 
 ## 11. Database migration strategy
 
@@ -398,7 +449,8 @@ renderer not yet loaded in the exam app in 2.1).
 | Frontend: 9 screens, content editor with math and images, renderer | 9–11 |
 | Security test matrix, integration tests, performance benchmark | 4–5 |
 | E2E, accessibility, docs, ADRs, demo, CI, review fixes | 4 |
-| **Total** | **40–48 engineering days (≈ 4–5 weeks for 2 engineers)** |
+| P2-08 privileged role assignment through approval, bootstrap, regression tests (added 2026-11-08) | 3–5 |
+| **Total** | **43–53 engineering days** |
 
 The increase over the first plan (14–16 days) comes from numeric questions, math and images with scanning,
 configurable approval policies with database enforcement, the answer-key access layers and the negative test matrix.

@@ -261,6 +261,16 @@ public class RoleService {
                         "This role is assigned within units. Organization-only permissions cannot be added; create a separate organization-wide role.");
             }
         }
+        // a role in use cannot gain a privileged permission: that would elevate its holders without approval (P2-08)
+        if (perms.stream().anyMatch(p -> Permission.PRIVILEGED.contains(p) && !r.permissions.contains(p))) {
+            long active = jdbc.sql("SELECT count(*) FROM role_assignment WHERE role_id = ? AND revoked_at IS NULL AND (valid_to IS NULL OR valid_to > now())")
+                    .param(id).query(Long.class).single();
+            if (active > 0) {
+                audit.recordDenied("role.change_denied", Map.of("operation", "update", "role", r.summary.code(), "reason", "privileged_gain_in_use"));
+                throw ApiException.conflict("privileged_role_in_use",
+                        "This role is assigned. Approval or answer-key permissions cannot be added to it; create a new role and assign it through approval.");
+            }
+        }
         int n = jdbc.sql("""
                 UPDATE role SET name = ?, description = ?, permissions = ?, updated_at = now(), updated_by = ?, version = version + 1
                 WHERE id = ? AND version = ?""")

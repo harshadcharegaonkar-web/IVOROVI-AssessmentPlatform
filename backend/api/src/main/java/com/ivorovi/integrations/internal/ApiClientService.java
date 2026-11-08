@@ -49,8 +49,12 @@ public class ApiClientService {
     static final int MAX_GRACE_HOURS = 168;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    /** Scopes an API client can never hold. */
-    static final List<String> EXCLUDED = List.of(Permission.AUDIT_READ.key(), Permission.STUDENT_PERSONAL_READ.key(), READ);
+    /**
+     * Scopes an API client can never hold. Question content and answer keys are confidential examination material (Increment
+     * 2.1, ADR-0009): no integration use is approved, so clients get no question access at all.
+     */
+    static final List<String> EXCLUDED = List.of(Permission.AUDIT_READ.key(), Permission.STUDENT_PERSONAL_READ.key(), READ,
+            Permission.QUESTION_READ.key(), Permission.QUESTION_KEY_READ.key());
 
     @Schema(name = "ApiScope")
     public record Scope(String key, String name, String description, String domain) {}

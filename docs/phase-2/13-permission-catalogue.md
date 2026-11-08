@@ -5,6 +5,8 @@ are bounded by the assigner's ceiling; PLANNED permissions become AVAILABLE only
 catalogue placeholders (`assessment.*`, `exam.*`, `evaluation.*`, `result.*`, `placement.*`, `ai.*`) are **refined** into
 the codes below (decision P2-07: replace the coarse placeholders before they were ever grantable, so no data migration).
 
+> **2.1 update (P2-08, 2026-11-08):** the implemented question permissions are `question.read`, `question.author`, `question.review`, `question.approve`, `question.key.read` and `question.bank.manage`. `question.approve` and `question.key.read` are privileged and are assigned only through four-eyes approval or the operator bootstrap; the matrix in force is the 2.1 plan §10.
+
 ## Available since Increment 2.0
 
 | Code | Level | Scope | Granted to (system roles) | Purpose |

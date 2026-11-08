@@ -1,0 +1,73 @@
+{
+  "bank": "01a1ba5f-2369-725b-8c6a-faee40092087",
+  "size": 20000,
+  "create_via_api": {
+    "runs": 300,
+    "p50_ms": 82.3,
+    "p95_ms": 104.8,
+    "max_ms": 196.7
+  },
+  "create_throughput_per_s_single_client": 11.9,
+  "bulk_fill_seconds": 4.2,
+  "questions_in_bank": 20000,
+  "search": {
+    "first_page": {
+      "runs": 30,
+      "p50_ms": 160.0,
+      "p95_ms": 226.1,
+      "max_ms": 229.4
+    },
+    "word_common": {
+      "runs": 30,
+      "p50_ms": 234.9,
+      "p95_ms": 270.6,
+      "max_ms": 293.4
+    },
+    "word_and_number": {
+      "runs": 30,
+      "p50_ms": 240.8,
+      "p95_ms": 299.1,
+      "max_ms": 310.9
+    },
+    "phrase_rare": {
+      "runs": 30,
+      "p50_ms": 250.9,
+      "p95_ms": 286.0,
+      "max_ms": 286.2
+    },
+    "type_filter": {
+      "runs": 30,
+      "p50_ms": 55.2,
+      "p95_ms": 68.3,
+      "max_ms": 74.6
+    },
+    "tag_filter": {
+      "runs": 30,
+      "p50_ms": 227.1,
+      "p95_ms": 270.5,
+      "max_ms": 294.6
+    },
+    "deep_page": {
+      "runs": 30,
+      "p50_ms": 176.3,
+      "p95_ms": 241.2,
+      "max_ms": 253.9
+    }
+  },
+  "detail": {
+    "runs": 30,
+    "p50_ms": 61.0,
+    "p95_ms": 80.8,
+    "max_ms": 82.0
+  },
+  "import_preview_200_rows_seconds": 12.19,
+  "import_outcomes": {
+    "totalRows": 200,
+    "validRows": 100,
+    "invalidRows": 0,
+    "duplicateRows": 50,
+    "nearDuplicateRows": 50
+  },
+  "import_commit_seconds": 5.72,
+  "import_created": 100
+}

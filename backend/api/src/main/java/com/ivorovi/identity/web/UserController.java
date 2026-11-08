@@ -179,10 +179,12 @@ class UserController {
 
     @PostMapping("/{id}/role-assignments")
     @PreAuthorize("@authz.hasAnywhere('role.assign')")
-    @Operation(summary = "Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there)")
+    @Operation(summary = "Assign a role at the organization or a unit (anti-escalation: you must hold its permissions there). Roles with "
+            + "question.approve or question.key.read are not assigned directly: 202 with status PENDING_APPROVAL and the approval request id")
     ResponseEntity<AssignmentService.RoleAssignmentView> assignRole(@PathVariable UUID id, @Valid @RequestBody RoleAssignmentRequest r) {
         var view = assignments.assignRole(id, new AssignmentService.RoleAssignmentCommand(r.roleId(), r.orgUnitId(), r.validFrom(), r.validTo()));
-        return ResponseEntity.status(201).body(view);
+        // 202: a role with approval or answer-key permissions waits for a four-eyes approval (P2-08); nothing is assigned yet
+        return ResponseEntity.status("PENDING_APPROVAL".equals(view.status()) ? 202 : 201).body(view);
     }
 
     @PostMapping("/{id}/role-assignments/{assignmentId}/revoke")

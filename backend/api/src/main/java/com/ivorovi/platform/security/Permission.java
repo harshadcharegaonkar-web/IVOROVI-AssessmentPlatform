@@ -96,6 +96,18 @@ public enum Permission {
             Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.PLANNED),
     ASSESSMENT_MANAGE("assessment.manage", "Author and publish assessments", "Create, edit and publish assessments and questions",
             Domain.ASSESSMENTS, Level.MANAGE, ScopeRule.UNIT, Availability.PLANNED),
+    QUESTION_READ("question.read", "View question banks", "View banks, questions and their images (never answer keys)",
+            Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    QUESTION_AUTHOR("question.author", "Author questions", "Create and edit own draft questions, upload images, import, submit for review; see the answer keys of own drafts",
+            Domain.ASSESSMENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
+    QUESTION_REVIEW("question.review", "Review questions", "Review questions written by others; see answer keys of questions in review",
+            Domain.ASSESSMENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
+    QUESTION_APPROVE("question.approve", "Approve and retire questions", "Approve reviewed questions written by others, request changes, retire; see answer keys",
+            Domain.ASSESSMENTS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    QUESTION_KEY_READ("question.key.read", "View answer keys", "View answer keys of approved, superseded and retired questions (every view is audited)",
+            Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    QUESTION_BANK_MANAGE("question.bank.manage", "Manage question banks", "Banks, approval policies, taxonomy, metadata fields and image quotas (no answer-key access)",
+            Domain.ASSESSMENTS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_READ("exam.read", "View examinations", "View examination schedules and sessions",
             Domain.EXAMINATIONS, Level.READ, ScopeRule.UNIT, Availability.PLANNED),
     EXAM_MANAGE("exam.manage", "Conduct examinations", "Schedule examinations, manage sessions and proctoring",
@@ -191,6 +203,12 @@ public enum Permission {
 
     /** Organization roles may contain only available, non-platform permissions. */
     public boolean grantable() { return availability == Availability.AVAILABLE; }
+
+    /**
+     * Privileged permissions (P2-08): never granted by an administrator's own authority. A role containing one is assigned
+     * only through an approved four-eyes request whose approver holds them, or by the operator bootstrap.
+     */
+    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read");
 
     public static Optional<Permission> fromKey(String key) {
         return Arrays.stream(values()).filter(p -> p.key.equals(key)).findFirst();

@@ -114,6 +114,12 @@ ivorovi:
     # one exam hall behind a campus NAT shares an address; per-candidate and per-code limits remain the tight ones
     code-attempts-per-ip-per-minute: ${IVOROVI_DELIVERY_CODE_ATTEMPTS_PER_IP:300}
     code-attempts-per-code-per-minute: 5
+  questions:
+    # image storage per institution (closest quota row wins; this is the organization default when none is set)
+    asset-quota-bytes: ${IVOROVI_QUESTION_ASSET_QUOTA_BYTES:2147483648}
+    # unreferenced images older than 30 days are removed (never images linked to any question version)
+    asset-cleanup-enabled: ${IVOROVI_QUESTION_ASSET_CLEANUP_ENABLED:true}
+    asset-cleanup-cron: "0 41 3 * * *"
   exams:
     exam-app-base-url: ${IVOROVI_EXAM_APP_BASE_URL:http://localhost:5174}
     outage-detector-enabled: ${IVOROVI_OUTAGE_DETECTOR_ENABLED:true}

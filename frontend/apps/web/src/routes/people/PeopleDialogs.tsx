@@ -197,7 +197,13 @@ export function AssignRoleDialog({ open, onOpenChange, userId }: { open: boolean
   const assign = useMutation({
     mutationFn: async () => unwrap(await api.POST("/api/v1/users/{id}/role-assignments", { params: { path: { id: userId } },
       body: { roleId, ...(unitId ? { orgUnitId: unitId } : {}), ...(validTo ? { validTo: new Date(`${validTo}T23:59:59`).toISOString() } : {}) } })),
-    onSuccess: (r) => { invalidatePeople(qc); toast.show("success", "Role assigned", `${r.roleName} · ${r.scopeName}`); onOpenChange(false); },
+    onSuccess: (r) => {
+      invalidatePeople(qc);
+      void qc.invalidateQueries({ queryKey: ["approvals"] });
+      if (r.status === "PENDING_APPROVAL") toast.show("info", "Sent for approval", `${r.roleName} · ${r.scopeName}: active once an Exam Controller approves it under Approvals.`);
+      else toast.show("success", "Role assigned", `${r.roleName} · ${r.scopeName}`);
+      onOpenChange(false);
+    },
     onError: (e) => setError(errorInfo(e).message),
   });
   return (
@@ -205,7 +211,7 @@ export function AssignRoleDialog({ open, onOpenChange, userId }: { open: boolean
       description="You can assign roles only within your own scope and with permissions you hold yourself."
       footer={<>
         <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={assign.isPending}>Cancel</Button>
-        <Button loading={assign.isPending} disabled={!roleId || unitId === "unset"} onClick={() => { setError(null); assign.mutate(); }}>Assign</Button>
+        <Button loading={assign.isPending} disabled={!roleId || unitId === "unset"} onClick={() => { setError(null); assign.mutate(); }}>{role?.requiresApproval ? "Request approval" : "Assign"}</Button>
       </>}>
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
@@ -230,6 +236,8 @@ export function AssignRoleDialog({ open, onOpenChange, userId }: { open: boolean
             <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted">Permissions ({role.permissions?.length ?? 0})</p>
             <p className="mt-1 flex flex-wrap gap-1">{(role.permissions ?? []).map((p) => <code key={p} className="rounded bg-surface px-1.5 py-0.5 text-xs">{p}</code>)}</p>
             {role.scopeOrgUnitId && <p className="mt-2 text-xs text-muted-strong">This custom role is limited to {role.scopeName} and units below it.</p>}
+            {role.requiresApproval && <p className="mt-2 text-xs text-muted-strong">Includes question approval or answer-key access: the assignment takes effect only after
+              a second person who already holds those permissions approves it (four-eyes).</p>}
             {!role.system && role.organizationOnly && <p className="mt-2 text-xs text-muted-strong">Contains organization-wide permissions: it can only be assigned for the whole organization.</p>}
           </div>
         )}

@@ -4,3 +4,9 @@
 
 html, body, #root { min-height: 100%; }
 body { font-family: var(--font-sans); background: var(--ivo-bg); color: var(--ivo-text); }
+
+/* Mathematics (MathML from KaTeX, L-2.1-1): the platform's math font where installed; no web font is loaded. */
+math {
+  font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math;
+  font-size: 1.1em;
+}

@@ -87,7 +87,7 @@ jobs:
     name: End-to-end (compose stack, real Keycloak)
     needs: [backend, frontend]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
@@ -135,7 +135,8 @@ jobs:
         working-directory: frontend
         run: |
           pnpm install --frozen-lockfile
-          pnpm --filter @ivorovi/web exec playwright install --with-deps chromium
+          # Chromium for the suite; Firefox, WebKit (Safari engine) and Edge for the mathematics rendering projects (L-2.1-1)
+          pnpm --filter @ivorovi/web exec playwright install --with-deps chromium firefox webkit msedge
           set -a; . ../deploy/compose/.env; set +a
           CI=1 pnpm e2e
       - name: Playwright (exam application, delivery process)
@@ -143,6 +144,12 @@ jobs:
         run: |
           set -a; . ../deploy/compose/.env; set +a
           CI=1 E2E_BASE_URL=http://localhost:8082 E2E_STAFF_URL=http://localhost:8081 pnpm --filter @ivorovi/exam e2e
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        if: always()
+        with:
+          name: math-rendering-screenshots
+          path: frontend/apps/web/test-results/math-*.png
+          if-no-files-found: warn
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         if: failure()
         with:

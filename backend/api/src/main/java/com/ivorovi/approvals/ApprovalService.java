@@ -83,8 +83,20 @@ public class ApprovalService {
     @Transactional
     public UUID request(String type, String subjectType, String subjectId, String summary, Map<String, Object> payload, String requiredPermission,
                         UUID orgUnitId, Duration ttl) {
+        return request(type, subjectType, subjectId, summary, payload, requiredPermission, orgUnitId, ttl, true);
+    }
+
+    /**
+     * As {@link #request(String, String, String, String, Map, String, UUID, Duration)}; with {@code requesterMustHold}
+     * false the requester need not hold {@code requiredPermission} — used where asking someone who does hold it is the
+     * point (P2-08: an administrator asks a holder of privileged permissions to approve granting them). The caller is
+     * responsible for checking the requester's own authority to ask.
+     */
+    @Transactional
+    public UUID request(String type, String subjectType, String subjectId, String summary, Map<String, Object> payload, String requiredPermission,
+                        UUID orgUnitId, Duration ttl, boolean requesterMustHold) {
         handler(type);
-        if (!authz.hasInOrgUnit(requiredPermission, orgUnitId)) throw new AccessDeniedException("Missing permission " + requiredPermission);
+        if (requesterMustHold && !authz.hasInOrgUnit(requiredPermission, orgUnitId)) throw new AccessDeniedException("Missing permission " + requiredPermission);
         UUID id = Ids.newId();
         String body = json.writeValueAsString(payload == null ? Map.of() : payload);
         try {
@@ -105,7 +117,9 @@ public class ApprovalService {
 
     // ================================================================================================ deciding
 
-    private enum Outcome { EXPIRED, SELF_DECISION }
+    private enum Outcome { EXPIRED, SELF_DECISION, NOT_ELIGIBLE }
+
+    private record Invalidation(String reason) {}
 
     /**
      * Decides a request. Expiry found at decision time is committed (the request becomes EXPIRED) before the refusal is
@@ -115,6 +129,13 @@ public class ApprovalService {
     public Request decide(UUID id, boolean approve, String reason, Long version) {
         Object result = tx.execute(s -> decideInTransaction(id, approve, reason, version));
         if (result == Outcome.EXPIRED) throw ApiException.conflict("approval_expired", "This request has expired.");
+        if (result == Outcome.NOT_ELIGIBLE) {
+            audit.recordDenied("approval.decision_denied", Map.of("approvalId", id.toString(), "reason", "not_eligible"));
+            throw new AccessDeniedException("You are not eligible to decide this request");
+        }
+        if (result instanceof Invalidation inv) {
+            throw ApiException.conflict("approval_invalidated", "The approval could not take effect and was withdrawn: " + inv.reason());
+        }
         if (result == Outcome.SELF_DECISION) {
             audit.recordDenied("approval.self_decision_denied", Map.of("approvalId", id.toString()));
             throw ApiException.conflict("four_eyes_required", "You requested this, so someone else must decide it.");
@@ -137,6 +158,7 @@ public class ApprovalService {
         String why = reason == null || reason.isBlank() ? null : truncate(reason.trim(), 500);
         if (!approve && why == null) throw ApiException.badRequest("reason_required", "Give a reason for rejecting.");
         ApprovalHandler h = handler(r.type());
+        if (!h.mayDecide(r, me)) return Outcome.NOT_ELIGIBLE;
         if (approve && !h.unchanged(r)) throw ApiException.conflict("subject_changed", "The request's subject changed after it was requested; ask for a new approval.");
         int n;
         try {
@@ -149,7 +171,32 @@ public class ApprovalService {
         }
         if (n == 0) throw ApiException.conflict("concurrent_modification", "This request was changed by someone else. Reload and try again.");
         Request decided = find(id, false);
-        if (approve) h.onApproved(decided); else h.onRejected(decided);
+        if (approve) {
+            // SQL savepoint on the transaction's connection (the JPA transaction manager offers no nested transactions)
+            jdbc.sql("SAVEPOINT approval_apply").update();
+            String invalid = null;
+            try {
+                h.onApproved(decided);
+            } catch (ApprovalHandler.Invalidated e) {
+                invalid = e.getMessage();
+            } catch (DataIntegrityViolationException e) {
+                invalid = "a database integrity rule refused the change";
+            }
+            if (invalid != null) {
+                // undo the handler's work, then close the request: nothing is applied, the approval does not stand
+                jdbc.sql("ROLLBACK TO SAVEPOINT approval_apply").update();
+                jdbc.sql("""
+                        UPDATE approval_request SET status = 'CANCELLED', decided_by = NULL, decided_at = NULL, decision_reason = ?, version = version + 1
+                        WHERE id = ?""").params(truncate("invalidated at approval: " + invalid, 500), id).update();
+                audit.record("approval.invalidated", "approval_request", id.toString(), com.ivorovi.platform.audit.AuditOutcome.FAILURE,
+                        Map.of("type", r.type(), "approver", me.toString(), "reason", truncate(invalid, 300)));
+                h.onClosed(find(id, false));
+                return new Invalidation(invalid);
+            }
+            jdbc.sql("RELEASE SAVEPOINT approval_apply").update();
+        } else {
+            h.onRejected(decided);
+        }
         Map<String, String> d = new LinkedHashMap<>();
         d.put("type", r.type());
         d.put("subject", r.subjectType() + ":" + r.subjectId());
@@ -282,11 +329,21 @@ public class ApprovalService {
         UUID unit = rs.getObject("org_unit_id", UUID.class);
         boolean pending = "PENDING".equals(rs.getString("status"));
         boolean canDecide = pending && CurrentUser.get().map(p -> !p.userId().equals(requester)).orElse(false) && authz.hasInOrgUnit(perm, unit);
-        return new Request(rs.getObject("id", UUID.class), type, h == null ? type : h.label(), rs.getString("subject_type"), rs.getString("subject_id"),
-                rs.getString("summary"), json.readValue(rs.getString("payload"), Map.class), perm, unit, rs.getString("unit"), requester,
-                rs.getString("rq_name"), ts(rs, "requested_at"), rs.getString("status"), ts(rs, "expires_at"), rs.getObject("decided_by", UUID.class),
-                rs.getString("dc_name"), ts(rs, "decided_at"), rs.getString("decision_reason"), ts(rs, "escalated_at"), rs.getLong("version"), canDecide,
-                pending ? eligibleApprovers(perm, unit, requester) : 0);
+        java.util.function.Function<Boolean, Request> build = (Boolean decide) -> {
+            try {
+                return new Request(rs.getObject("id", UUID.class), type, h == null ? type : h.label(), rs.getString("subject_type"), rs.getString("subject_id"),
+                        rs.getString("summary"), json.readValue(rs.getString("payload"), Map.class), perm, unit, rs.getString("unit"), requester,
+                        rs.getString("rq_name"), ts(rs, "requested_at"), rs.getString("status"), ts(rs, "expires_at"), rs.getObject("decided_by", UUID.class),
+                        rs.getString("dc_name"), ts(rs, "decided_at"), rs.getString("decision_reason"), ts(rs, "escalated_at"), rs.getLong("version"), decide,
+                        pending ? eligibleApprovers(perm, unit, requester) : 0);
+            } catch (SQLException e) {
+                throw new IllegalStateException(e);
+            }
+        };
+        Request r = build.apply(canDecide);
+        // handler-specific eligibility (e.g. holding every privileged permission of a role) is part of "can decide"
+        if (canDecide && h != null && !h.mayDecide(r, CurrentUser.require().userId())) r = build.apply(false);
+        return r;
     }
 
     private ApprovalHandler handler(String type) {

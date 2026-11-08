@@ -83,11 +83,18 @@ These are technical choices made inside the authorized scope; none of them decid
 | N-2.0-8 | Three permissions became available for the 2.0 foundations: `exam.session.manage`, `exam.incident.manage`, `exam.incident.decide` (granted to ORG_ADMIN, INSTITUTION_ADMIN, EXAM_CONTROLLER). The placeholders `exam.read`/`exam.manage` stay PLANNED | Needed by parts B–D. Under P2-07 (decided 2026-11-08) these become: exam administration (`exam.session.manage`), candidate check-in (`exam.checkin.manage`, new), incident management (`exam.incident.manage`), compensation proposal (`exam.compensation.propose`, new) and compensation approval (`exam.compensation.approve`, replacing `exam.incident.decide`); role grants narrowed (ORG_ADMIN/INSTITUTION_ADMIN lose compensation approval by default). Migration in work package R |
 | N-2.0-7 | Codes can be printed per candidate or released by the invigilator | Confirmed by the Q-05 decision |
 
-## Pending approvals for Increment 2.1
+## Approvals for Increment 2.1
 
 | # | Item | Status |
 |---|---|---|
-| L-2.1-1 | New frontend library **KaTeX 0.16 (MIT)** for mathematical notation, MathML output only, `trust: false` (plan §6.3, ADR-0010 proposal) | **Needs approval** (standing rule: no unapproved libraries) |
+| L-2.1-1 | New frontend library **KaTeX 0.16 (MIT)** for mathematical notation, MathML output only, `trust: false` (plan §6.3, ADR-0010 proposal) | **Approved** 2026-11-08 (final 2.1 approval): MathML only, no HTML output; links, images, HTML commands and unsafe extensions disabled; pinned (0.16.47) and self-hosted, no CDN; exam CSP preserved; no new CSP exception for KaTeX without approval; cross-browser, accessibility and screen-reader testing; documented fallback |
+| L-2.1-2 | Bundle budget exception: the lazily loaded KaTeX chunk (74.6 kB gzip, question pages only) gets its own limit of **≤ 80 kB gzip** instead of the general 40 kB per lazy chunk; KaTeX may never enter the initial payload (enforced). The initial-payload budget (180 kB) is unchanged (159.5 kB) | **Needs approval** (the 1.0 budget was approved by the product owner) |
+
+## Increment 2.1 decisions
+
+| # | Decision | Status |
+|---|---|---|
+| P2-08 | Conflict between the 1.3 privilege ceiling and the P2-07 question matrix (KI-74). **Option 2:** administrators delegate privileged roles through independent approval. ORG_ADMIN and INSTITUTION_ADMIN hold `question.read`, `question.author`, `question.review` and `question.bank.manage`, never `question.approve` or `question.key.read` by default. Assigning a role with a privileged permission opens a four-eyes request in the 2.0 framework. The approver must be an existing holder of the privileged permissions at the scope, never the requester or the target. Checks are live at approval and activation, a revoked approver invalidates the request, and enforcement is in the service and the database. The first holder is bootstrapped by a platform operator with a ticket reference, only when no holder exists, and audited. The 1.3 ceiling is otherwise unchanged. Design: 2.1 plan §10–10.1 | **Decided** 2026-11-08; +3–5 days accepted as a planning estimate |
 
 ## Open design questions
 

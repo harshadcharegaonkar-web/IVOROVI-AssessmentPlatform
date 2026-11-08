@@ -46,11 +46,14 @@ public class AssignmentService {
     public record RoleAssignmentView(UUID id, UUID roleId, String roleCode, String roleName, String scopeType, UUID orgUnitId,
                                      String scopeName, Instant validFrom, Instant validTo, Instant createdAt, String grantedByName,
                                      Instant revokedAt, String revokedByName, String revocationReason, boolean active,
-                                     String roleStatus, boolean systemRole) {}
+                                     String roleStatus, boolean systemRole, String status, UUID approvalRequestId) {}
+
+    /** Type of the four-eyes request that assigns a privileged role (P2-08). */
+    public static final String PRIVILEGED_APPROVAL = "role.privileged_assignment";
 
     @Schema(name = "AssignableRole")
     public record RoleView(UUID id, String code, String name, String description, List<String> permissions, boolean system,
-                           UUID scopeOrgUnitId, String scopeName, boolean organizationOnly) {}
+                           UUID scopeOrgUnitId, String scopeName, boolean organizationOnly, boolean requiresApproval) {}
 
     @Schema(name = "RoleAssignmentOverview")
     public record OverviewRow(UUID assignmentId, UUID userId, String userName, String email, UUID roleId, String roleName,
@@ -78,9 +81,11 @@ public class AssignmentService {
     private final Outbox outbox;
     private final PrincipalCache principals;
     private final UserService users;
+    private final com.ivorovi.approvals.ApprovalService approvals;
 
     AssignmentService(JdbcClient jdbc, Authz authz, PeopleScope scope, AuditLog audit, Outbox outbox,
-                      PrincipalCache principals, UserService users) {
+                      PrincipalCache principals, UserService users, @org.springframework.context.annotation.Lazy com.ivorovi.approvals.ApprovalService approvals) {
+        this.approvals = approvals;
         this.jdbc = jdbc;
         this.authz = authz;
         this.scope = scope;
@@ -173,7 +178,7 @@ public class AssignmentService {
                     List<String> perms = Arrays.stream((String[]) rs.getArray(5).getArray()).sorted().toList();
                     return new RoleView(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4), perms,
                             rs.getBoolean(6), rs.getObject(7, UUID.class), rs.getObject(7) == null ? "Whole organization" : rs.getString(8),
-                            organizationOnly(perms));
+                            organizationOnly(perms), perms.stream().anyMatch(Permission.PRIVILEGED::contains));
                 })
                 .list();
     }
@@ -259,7 +264,9 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "organization_only_role",
                     "This role contains organization-wide permissions and can only be assigned for the whole organization.");
         }
-        requireCanGrant(role, c.orgUnitId(), "role.assignment_denied", userId);
+        List<String> privileged = role.permissions().stream().filter(Permission.PRIVILEGED::contains).sorted().toList();
+        // privileged permissions are never required of (or granted by) the requester: they come from an approver who holds them
+        requireCanGrant(role, c.orgUnitId(), "role.assignment_denied", userId, Permission.PRIVILEGED);
         Instant from = c.validFrom() == null ? Instant.now() : c.validFrom();
         if (c.validTo() != null && !c.validTo().isAfter(from)) {
             throw ApiException.badRequest("invalid_dates", "The end must be after the start.");
@@ -270,6 +277,7 @@ public class AssignmentService {
                 .params(userId, role.id(), c.orgUnitId() == null ? "TENANT" : "ORG_UNIT", scopeId(c.orgUnitId()))
                 .query(Long.class).single() > 0;
         if (duplicate) throw ApiException.conflict("role_already_assigned", "This role is already assigned at that scope.");
+        if (!privileged.isEmpty()) return requestPrivileged(user, role, c, from, privileged);
         UUID id = Ids.newId();
         jdbc.sql("""
                 INSERT INTO role_assignment (id, tenant_id, user_account_id, role_id, scope_type, scope_id, valid_from, valid_to, created_by)
@@ -296,7 +304,8 @@ public class AssignmentService {
                 .optional().orElseThrow(() -> ApiException.notFound("Role assignment"));
         Role role = role(a.roleId());
         UUID unit = "ORG_UNIT".equals(a.scopeType()) ? a.scopeId() : null;
-        requireCanGrant(role, unit, "role.revocation_denied", userId);
+        // revoking never grants anything: privileged permissions are not required of the revoker (P2-08)
+        requireCanGrant(role, unit, "role.revocation_denied", userId, Permission.PRIVILEGED);
         String why = UserService.optional(reason, 500);
         if (why == null) throw ApiException.badRequest("reason_required", "Give a reason; it is recorded in the history.");
         if ("ORG_ADMIN".equals(role.code()) && unit == null) {
@@ -366,13 +375,13 @@ public class AssignmentService {
     }
 
     /** role.assign at the scope, plus every permission of the role at that scope (no escalation). */
-    private void requireCanGrant(Role role, UUID orgUnitId, String deniedAction, UUID userId) {
+    private void requireCanGrant(Role role, UUID orgUnitId, String deniedAction, UUID userId, java.util.Set<String> exempt) {
         if (orgUnitId != null) {
             boolean exists = jdbc.sql("SELECT count(*) FROM org_unit WHERE id = ?").param(orgUnitId).query(Long.class).single() > 0;
             if (!exists) throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "invalid_org_unit", "Choose a unit of your organization.");
         }
         authz.require(Permission.ROLE_ASSIGN.key(), orgUnitId);
-        List<String> missing = role.permissions().stream().filter(p -> !authz.hasInOrgUnit(p, orgUnitId)).sorted().toList();
+        List<String> missing = role.permissions().stream().filter(p -> !exempt.contains(p)).filter(p -> !authz.hasInOrgUnit(p, orgUnitId)).sorted().toList();
         if (!missing.isEmpty()) {
             Map<String, String> details = roleDetails(userId, role, orgUnitId);
             details.put("missingPermissions", String.join(",", missing));
@@ -380,6 +389,36 @@ public class AssignmentService {
             throw new ApiException(HttpStatus.FORBIDDEN, "privilege_escalation",
                     "You can only manage roles whose permissions you hold yourself at this scope. Missing: " + String.join(", ", missing) + ".");
         }
+    }
+
+    /**
+     * P2-08: a role with privileged permissions is not assigned now. A four-eyes request is opened instead; it is
+     * activated by {@link PrivilegedRoleAssignments} once an eligible holder approves.
+     */
+    private RoleAssignmentView requestPrivileged(UserService.Row user, Role role, RoleAssignmentCommand c, Instant from, List<String> privileged) {
+        UUID userId = user.summary().id();
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("userId", userId.toString());
+        payload.put("roleId", role.id().toString());
+        payload.put("roleCode", role.code());
+        payload.put("scopeType", c.orgUnitId() == null ? "TENANT" : "ORG_UNIT");
+        payload.put("scopeId", scopeId(c.orgUnitId()).toString());
+        payload.put("validFrom", from.toString());
+        if (c.validTo() != null) payload.put("validTo", c.validTo().toString());
+        payload.put("privileged", privileged);
+        payload.put("permissionsHash", PrivilegedRoleAssignments.permissionsHash(role.permissions()));
+        String scopeName = c.orgUnitId() == null ? "the whole organization"
+                : jdbc.sql("SELECT name FROM org_unit WHERE id = ?").param(c.orgUnitId()).query(String.class).single();
+        UUID approval = approvals.request(PRIVILEGED_APPROVAL, "user_account", userId.toString(),
+                "Assign " + role.name() + " to " + user.summary().displayName() + " (" + scopeName + ")", payload,
+                privileged.contains("question.approve") ? "question.approve" : privileged.getFirst(), c.orgUnitId(), null, false);
+        Map<String, String> d = roleDetails(userId, role, c.orgUnitId());
+        d.put("approvalId", approval.toString());
+        d.put("privileged", String.join(",", privileged));
+        audit.recordSuccess("role.privileged_assignment_requested", "approval_request", approval.toString(), d);
+        return new RoleAssignmentView(null, role.id(), role.code(), role.name(), c.orgUnitId() == null ? "TENANT" : "ORG_UNIT", c.orgUnitId(),
+                c.orgUnitId() == null ? "Whole organization" : scopeName, from, c.validTo(), Instant.now(), null, null, null, null, false,
+                role.status(), role.system(), "PENDING_APPROVAL", approval);
     }
 
     private void requireNotSelf(UUID userId) {
@@ -406,7 +445,7 @@ public class AssignmentService {
                 SELECT ra.id, r.id, r.code, r.name, ra.scope_type, ra.scope_id, ou.name AS unit_name, ra.valid_from, ra.valid_to,
                        ra.created_at, g.display_name AS granted_by, ra.revoked_at, rv.display_name AS revoked_by, ra.revocation_reason,
                        (ra.revoked_at IS NULL AND (ra.valid_to IS NULL OR ra.valid_to > now())) AS active,
-                       r.status AS role_status, r.system_role
+                       r.status AS role_status, r.system_role, ra.approval_request_id
                 FROM role_assignment ra JOIN role r ON r.id = ra.role_id
                 LEFT JOIN org_unit ou ON ra.scope_type = 'ORG_UNIT' AND ou.id = ra.scope_id
                 LEFT JOIN user_account g ON g.id = ra.created_by
@@ -419,7 +458,9 @@ public class AssignmentService {
                         "TENANT".equals(rs.getString(5)) ? "Whole organization" : rs.getString(7),
                         UserService.instant(rs, "valid_from"), UserService.instant(rs, "valid_to"), UserService.instant(rs, "created_at"),
                         rs.getString("granted_by"), UserService.instant(rs, "revoked_at"), rs.getString("revoked_by"),
-                        rs.getString("revocation_reason"), rs.getBoolean("active"), rs.getString("role_status"), rs.getBoolean("system_role")))
+                        rs.getString("revocation_reason"), rs.getBoolean("active"), rs.getString("role_status"), rs.getBoolean("system_role"),
+                        rs.getBoolean("active") ? "ACTIVE" : rs.getTimestamp("revoked_at") != null ? "REVOKED" : "EXPIRED",
+                        rs.getObject("approval_request_id", UUID.class)))
                 .list();
     }
 

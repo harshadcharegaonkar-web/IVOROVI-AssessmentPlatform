@@ -50,6 +50,7 @@ import org.springframework.test.web.servlet.MockMvc;
         // exams: outage checks and heartbeats run when a test calls them
         "ivorovi.exams.outage-detector-enabled=false",
         "ivorovi.exams.recovery-guard-enabled=false",
+        "ivorovi.questions.asset-cleanup-enabled=false",
         "ivorovi.process.heartbeat-enabled=false",
         "ivorovi.delivery.allowed-origins=https://exam.test"})
 public abstract class IntegrationTest {
