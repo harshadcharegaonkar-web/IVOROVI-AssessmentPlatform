@@ -155,4 +155,49 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
     await page.goto(`/assessments/${id}`);
     await expect(page.getByRole("cell", { name: new RegExp(`question 1: which option is right\\?$`) })).toBeVisible();
   });
+
+  test("4 · the published assessment is scheduled, candidates are enrolled from a file and invited (Day 2 checkpoint)", async ({ page, request }) => {
+    // an exam portal for this run (staff API; the portal screens are covered by the 2.0 suites)
+    const portalKey = `e2e-sched-${RUN}`;
+    const portal = await request.post("/api/v1/exam/portals", { headers: await headers(request, PUBLISHER),
+      data: { portalKey, name: `E2E portal ${RUN}`, mfaPolicy: "OFF", selfRegistration: true } });
+    expect(portal.status(), await portal.text()).toBe(201);
+    const bodies = recordApi(page);
+    await signIn(page, PUBLISHER, "/exams/schedules");
+    await page.getByRole("button", { name: "Schedule examination" }).click();
+    const dialog = page.getByRole("dialog");
+    const option = await dialog.getByLabel("Published assessment").locator("option", { hasText: TITLE }).first().getAttribute("value");
+    await dialog.getByLabel("Published assessment").selectOption(option!);
+    await dialog.getByLabel("Exam portal").selectOption({ label: `E2E portal ${RUN}` });
+    await dialog.getByLabel("Institution").selectOption(COLLEGE);
+    await dialog.getByLabel("Instructions for candidates").fill("Bring your identity card.");
+    await dialog.getByRole("button", { name: "Schedule" }).click();
+    await expect(page.getByRole("heading", { name: TITLE })).toBeVisible();
+    await expect(page.getByText("Scheduled", { exact: true })).toBeVisible();
+
+    const a = `riya.${RUN}@cand.test`;
+    const b = `arjun.${RUN}@cand.test`;
+    await page.getByLabel("Candidates (CSV)").fill(`email,name,extra_minutes,extra_reason\n${a},Riya Sharma\n${b},Arjun K,15,Scribe approved\nnot-an-email,Nobody\n`);
+    await page.getByRole("button", { name: "Check file" }).click();
+    await expect(page.getByText("2 of 3 rows are ready to enrol.")).toBeVisible();
+    await expect(page.getByText("Line 4: Not a valid email address.")).toBeVisible();
+    await page.getByRole("button", { name: "Enrol 2 candidates" }).click();
+    await expect(page.getByText("Enrolled 2 new candidate(s)")).toBeVisible();
+    await expect(page.getByRole("cell", { name: /Arjun K/ })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "15 min (Scribe approved)" })).toBeVisible();
+    await page.getByRole("button", { name: "Send invitations" }).click();
+    await expect(page.getByText("Invitations sent: 2.")).toBeVisible();
+    // the invitation reached the candidate with the portal link
+    const mailpit = process.env.MAILPIT_URL ?? "http://localhost:8025";
+    let text = "";
+    for (let i = 0; i < 20 && !text; i++) {
+      const found = ((await (await request.get(`${mailpit}/api/v1/search?query=${encodeURIComponent(`to:${a}`)}`)).json()) as { messages?: { ID: string }[] }).messages ?? [];
+      if (found.length) text = ((await (await request.get(`${mailpit}/api/v1/message/${found[0]!.ID}`)).json()) as { Text: string }).Text;
+      else await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(text).toContain(TITLE);
+    expect(text).toContain(`/p/${portalKey}`);
+    await axe(page);
+    expectNoAnswers(bodies);
+  });
 });

@@ -94,6 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "exams", label: "Examinations",
     items: [
+      { to: "/exams/schedules", label: "Exam Schedules", icon: CalendarRange, visible: (a) => a.hasAnywhere("exam.schedule.read") },
       { to: "/exams/portals", label: "Exam Portals", icon: MonitorCheck, visible: (a) => a.hasAnywhere("exam.session.manage") },
       { to: "/exams/sessions", label: "Readiness Sessions", icon: ClipboardCheck, visible: (a) => a.hasAnywhere("exam.session.manage") },
       { to: "/exams/candidates", label: "Candidates", icon: UserRound, visible: (a) => a.has("exam.session.manage") },

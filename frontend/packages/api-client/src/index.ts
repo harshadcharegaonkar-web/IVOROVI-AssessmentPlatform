@@ -149,3 +149,8 @@ export type AssessmentPaperItem = Schemas["AssessmentPaperItem"];
 export type AssessmentPaperSummary = Schemas["AssessmentPaperSummary"];
 export type AssessmentPaperReproduction = Schemas["AssessmentPaperReproduction"];
 export type AssessmentPaperSeed = Schemas["AssessmentPaperSeed"];
+// M2 scheduling
+export type ExamSchedule = Schemas["ExamSchedule"];
+export type ExamEnrolment = Schemas["ExamEnrolment"];
+export type EnrolmentUploadResult = Schemas["EnrolmentUploadResult"];
+export type PublishedAssessmentVersion = Schemas["PublishedAssessmentVersion"];

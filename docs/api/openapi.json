@@ -974,6 +974,51 @@
         }
       }
     },
+    "/api/v1/exam/schedules/{id}/enrolments/{enrolmentId}/extra-time" : {
+      "put" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "extraTime",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "enrolmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExtraTimeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamEnrolment"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/portals/{id}" : {
       "put" : {
         "tags" : [ "Exam administration" ],
@@ -5109,6 +5154,254 @@
         }
       }
     },
+    "/api/v1/exam/schedules" : {
+      "get" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "list_11",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamSchedule"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Examination scheduling" ],
+        "summary" : "Schedule a published assessment version (creates its exam session; the version never changes)",
+        "operationId" : "create_10",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExamScheduleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/invitations" : {
+      "post" : {
+        "tags" : [ "Examination scheduling" ],
+        "summary" : "Email every enrolled candidate not yet invited (or whose earlier email failed)",
+        "operationId" : "invite",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnrolmentInvitationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/enrolments/{enrolmentId}/withdraw" : {
+      "post" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "withdraw",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "enrolmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/enrolments/upload" : {
+      "post" : {
+        "tags" : [ "Examination scheduling" ],
+        "summary" : "Bulk enrolment from CSV (email,name,extra_minutes,extra_reason); apply=false previews without storing",
+        "operationId" : "upload_4",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EnrolmentUploadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EnrolmentUploadResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/codes" : {
+      "get" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "listCodes",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/Code"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Examination scheduling" ],
+        "summary" : "Issue single-use session codes (shown once)",
+        "operationId" : "codes_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ScheduleCodesRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/IssuedCode"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/cancel" : {
+      "post" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "cancel_2",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExamScheduleCancelRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/portals" : {
       "get" : {
         "tags" : [ "Exam administration" ],
@@ -5332,7 +5625,7 @@
       "get" : {
         "tags" : [ "Assessments" ],
         "summary" : "Assessments the caller may read (newest first)",
-        "operationId" : "list_11",
+        "operationId" : "list_12",
         "parameters" : [ {
           "name" : "purpose",
           "in" : "query",
@@ -5376,7 +5669,7 @@
       "post" : {
         "tags" : [ "Assessments" ],
         "summary" : "Create an assessment with an empty draft version 1",
-        "operationId" : "create_10",
+        "operationId" : "create_11",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -5731,7 +6024,7 @@
       "post" : {
         "tags" : [ "Approvals" ],
         "summary" : "Cancel my pending request",
-        "operationId" : "cancel_2",
+        "operationId" : "cancel_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -5759,7 +6052,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "API clients with status, last use and 30-day usage",
-        "operationId" : "list_12",
+        "operationId" : "list_13",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -5779,7 +6072,7 @@
       "post" : {
         "tags" : [ "API clients" ],
         "summary" : "Register an API client; returns the key once",
-        "operationId" : "create_11",
+        "operationId" : "create_12",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -9633,7 +9926,7 @@
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first); state ALL, UNREAD or READ; optional category",
-        "operationId" : "list_13",
+        "operationId" : "list_14",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -9739,7 +10032,7 @@
       "get" : {
         "tags" : [ "Invitations" ],
         "summary" : "Invitations of users visible to the caller",
-        "operationId" : "list_14",
+        "operationId" : "list_15",
         "parameters" : [ {
           "name" : "status",
           "in" : "query",
@@ -10128,6 +10421,106 @@
         }
       }
     },
+    "/api/v1/exam/schedules/{id}" : {
+      "get" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "get_8",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/enrolments" : {
+      "get" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "enrolments_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExamEnrolment"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/sources" : {
+      "get" : {
+        "tags" : [ "Examination scheduling" ],
+        "summary" : "Published assessment versions the caller may schedule",
+        "operationId" : "sources",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/PublishedAssessmentVersion"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/portals" : {
+      "get" : {
+        "tags" : [ "Examination scheduling" ],
+        "operationId" : "portals_1",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/SchedulablePortal"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/incidents/{id}" : {
       "get" : {
         "tags" : [ "Exam administration" ],
@@ -10277,7 +10670,7 @@
     "/api/v1/assessments/{id}" : {
       "get" : {
         "tags" : [ "Assessments" ],
-        "operationId" : "get_8",
+        "operationId" : "get_9",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -10662,7 +11055,7 @@
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "view=decide: pending requests I may decide (never my own); view=requests: requests I made",
-        "operationId" : "list_15",
+        "operationId" : "list_16",
         "parameters" : [ {
           "name" : "view",
           "in" : "query",
@@ -10694,7 +11087,7 @@
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "One request (requester or eligible approvers only)",
-        "operationId" : "get_9",
+        "operationId" : "get_10",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -12933,6 +13326,68 @@
           },
           "source" : {
             "type" : "string"
+          }
+        }
+      },
+      "ExtraTimeRequest" : {
+        "type" : "object",
+        "properties" : {
+          "minutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 600,
+            "minimum" : 0
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ExamEnrolment" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "linked" : {
+            "type" : "boolean"
+          },
+          "extraMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "extraReason" : {
+            "type" : "string"
+          },
+          "invitationStatus" : {
+            "type" : "string"
+          },
+          "invitedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "checkedIn" : {
+            "type" : "boolean"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -16146,6 +16601,270 @@
             "format" : "date-time"
           }
         }
+      },
+      "ExamScheduleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "opensAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "closesAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lateEntryUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "instructions" : {
+            "type" : "string",
+            "maxLength" : 4000,
+            "minLength" : 0
+          },
+          "calculator" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "closesAt", "opensAt", "portalId", "versionId" ]
+      },
+      "ExamSchedule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "assessmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "assessmentCode" : {
+            "type" : "string"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "portalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalName" : {
+            "type" : "string"
+          },
+          "portalUrl" : {
+            "type" : "string"
+          },
+          "sessionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "opensAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "closesAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lateEntryUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "instructions" : {
+            "type" : "string"
+          },
+          "calculator" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "enrolled" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "linked" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "invited" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "checkedIn" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdByName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "EnrolmentInvitationResult" : {
+        "type" : "object",
+        "properties" : {
+          "sent" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "failed" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "skipped" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "EnrolmentUploadRequest" : {
+        "type" : "object",
+        "properties" : {
+          "csv" : {
+            "type" : "string",
+            "maxLength" : 600000,
+            "minLength" : 0
+          },
+          "apply" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "csv" ]
+      },
+      "EnrolmentUploadResult" : {
+        "type" : "object",
+        "properties" : {
+          "applied" : {
+            "type" : "boolean"
+          },
+          "rows" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "valid" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "created" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "alreadyEnrolled" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EnrolmentUploadRow"
+            }
+          }
+        }
+      },
+      "EnrolmentUploadRow" : {
+        "type" : "object",
+        "properties" : {
+          "row" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ScheduleCodesRequest" : {
+        "type" : "object",
+        "properties" : {
+          "count" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 2000,
+            "minimum" : 1
+          }
+        }
+      },
+      "IssuedCode" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "hint" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ExamScheduleCancelRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
       },
       "CreateExamPortalRequest" : {
         "type" : "object",
@@ -20424,6 +21143,101 @@
           "saves" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "Code" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "hint" : {
+            "type" : "string"
+          },
+          "validFrom" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "consumedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "consumedByName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PublishedAssessmentVersion" : {
+        "type" : "object",
+        "properties" : {
+          "assessmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "governance" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalMarks" : {
+            "type" : "number"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "SchedulablePortal" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalKey" : {
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : "string"
           }
         }
       },

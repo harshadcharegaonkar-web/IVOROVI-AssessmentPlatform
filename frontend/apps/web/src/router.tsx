@@ -66,6 +66,7 @@ const EXAMS = (a: Access) => a.hasAnywhere("exam.session.manage");
 const INCIDENTS = (a: Access) => a.has("exam.incident.manage") || a.has("exam.incident.decide");
 const QUESTIONS = (a: Access) => a.hasAnywhere("question.read");
 const ASSESSMENTS = (a: Access) => a.hasAnywhere("assessment.read");
+const SCHEDULES = (a: Access) => a.hasAnywhere("exam.schedule.read");
 const ASSESSMENT_AUTHOR = (a: Access) => a.hasAnywhere("assessment.author") || a.hasAnywhere("assessment.author.internal");
 const ASSESSMENT_QUEUE = (a: Access) => a.hasAnywhere("assessment.review") || a.hasAnywhere("assessment.publish");
 const QUESTION_AUTHOR = (a: Access) => a.hasAnywhere("question.author");
@@ -208,6 +209,10 @@ export const routes: RouteObject[] = [
         { path: "exams", handle: { crumb: "Examinations" }, children: [
           { index: true, element: <Navigate to="/exams/portals" replace /> },
           { path: "portals", handle: { crumb: "Portals" }, ...page(() => import("./routes/exams/ExamPortalsPage"), EXAMS) },
+          { path: "schedules", handle: { crumb: "Schedules" }, children: [
+            { index: true, ...page(() => import("./routes/exams/SchedulesPage"), SCHEDULES) },
+            { path: ":id", handle: { crumb: "Schedule" }, ...page(() => import("./routes/exams/ScheduleDetailPage"), SCHEDULES) },
+          ] },
           { path: "sessions", handle: { crumb: "Readiness sessions" }, children: [
             { index: true, ...page(() => import("./routes/exams/ExamSessionsPage"), EXAMS) },
             { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/exams/ExamSessionDetailPage"), EXAMS) },

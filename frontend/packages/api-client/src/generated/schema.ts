@@ -336,6 +336,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/schedules/{id}/enrolments/{enrolmentId}/extra-time": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["extraTime"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/portals/{id}": {
         parameters: {
             query?: never;
@@ -1788,6 +1804,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/schedules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_11"];
+        put?: never;
+        /** Schedule a published assessment version (creates its exam session; the version never changes) */
+        post: operations["create_10"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email every enrolled candidate not yet invited (or whose earlier email failed) */
+        post: operations["invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/enrolments/{enrolmentId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["withdraw"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/enrolments/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk enrolment from CSV (email,name,extra_minutes,extra_reason); apply=false previews without storing */
+        post: operations["upload_4"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCodes"];
+        put?: never;
+        /** Issue single-use session codes (shown once) */
+        post: operations["codes_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancel_2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/portals": {
         parameters: {
             query?: never;
@@ -1896,10 +2012,10 @@ export interface paths {
             cookie?: never;
         };
         /** Assessments the caller may read (newest first) */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         /** Create an assessment with an empty draft version 1 */
-        post: operations["create_10"];
+        post: operations["create_11"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2068,7 +2184,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Cancel my pending request */
-        post: operations["cancel_2"];
+        post: operations["cancel_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2083,10 +2199,10 @@ export interface paths {
             cookie?: never;
         };
         /** API clients with status, last use and 30-day usage */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         /** Register an API client; returns the key once */
-        post: operations["create_11"];
+        post: operations["create_12"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3406,7 +3522,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first); state ALL, UNREAD or READ; optional category */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3457,7 +3573,7 @@ export interface paths {
             cookie?: never;
         };
         /** Invitations of users visible to the caller */
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3651,6 +3767,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/schedules/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_8"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/enrolments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["enrolments_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Published assessment versions the caller may schedule */
+        get: operations["sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/portals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["portals_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/incidents/{id}": {
         parameters: {
             query?: never;
@@ -3724,7 +3905,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3890,7 +4071,7 @@ export interface paths {
             cookie?: never;
         };
         /** view=decide: pending requests I may decide (never my own); view=requests: requests I made */
-        get: operations["list_15"];
+        get: operations["list_16"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3907,7 +4088,7 @@ export interface paths {
             cookie?: never;
         };
         /** One request (requester or eligible approvers only) */
-        get: operations["get_9"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4806,6 +4987,30 @@ export interface components {
             inheritedSource?: string;
             enabled?: boolean;
             source?: string;
+        };
+        ExtraTimeRequest: {
+            /** Format: int32 */
+            minutes?: number;
+            reason?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        ExamEnrolment: {
+            /** Format: uuid */
+            id?: string;
+            email?: string;
+            displayName?: string;
+            linked?: boolean;
+            /** Format: int32 */
+            extraMinutes?: number;
+            extraReason?: string;
+            invitationStatus?: string;
+            /** Format: date-time */
+            invitedAt?: string;
+            status?: string;
+            checkedIn?: boolean;
+            /** Format: int64 */
+            version?: number;
         };
         UpdateExamPortalRequest: {
             name: string;
@@ -6010,6 +6215,115 @@ export interface components {
             validFrom?: string;
             /** Format: date-time */
             validUntil?: string;
+        };
+        ExamScheduleRequest: {
+            /** Format: uuid */
+            versionId: string;
+            /** Format: uuid */
+            portalId: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            title?: string;
+            /** Format: date-time */
+            opensAt: string;
+            /** Format: date-time */
+            closesAt: string;
+            /** Format: date-time */
+            lateEntryUntil?: string;
+            instructions?: string;
+            calculator?: boolean;
+        };
+        ExamSchedule: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: uuid */
+            assessmentId?: string;
+            assessmentCode?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            purpose?: string;
+            /** Format: uuid */
+            portalId?: string;
+            portalName?: string;
+            portalUrl?: string;
+            /** Format: uuid */
+            sessionId?: string;
+            /** Format: date-time */
+            opensAt?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: date-time */
+            lateEntryUntil?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            instructions?: string;
+            calculator?: boolean;
+            status?: string;
+            /** Format: int32 */
+            enrolled?: number;
+            /** Format: int32 */
+            linked?: number;
+            /** Format: int32 */
+            invited?: number;
+            /** Format: int32 */
+            checkedIn?: number;
+            createdByName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        EnrolmentInvitationResult: {
+            /** Format: int32 */
+            sent?: number;
+            /** Format: int32 */
+            failed?: number;
+            /** Format: int32 */
+            skipped?: number;
+        };
+        EnrolmentUploadRequest: {
+            csv: string;
+            apply?: boolean;
+        };
+        EnrolmentUploadResult: {
+            applied?: boolean;
+            /** Format: int32 */
+            rows?: number;
+            /** Format: int32 */
+            valid?: number;
+            /** Format: int32 */
+            created?: number;
+            /** Format: int32 */
+            alreadyEnrolled?: number;
+            errors?: components["schemas"]["EnrolmentUploadRow"][];
+        };
+        EnrolmentUploadRow: {
+            /** Format: int32 */
+            row?: number;
+            message?: string;
+        };
+        ScheduleCodesRequest: {
+            /** Format: int32 */
+            count?: number;
+        };
+        IssuedCode: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            hint?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validUntil?: string;
+        };
+        ExamScheduleCancelRequest: {
+            reason: string;
         };
         CreateExamPortalRequest: {
             portalKey: string;
@@ -7668,6 +7982,46 @@ export interface components {
             /** Format: int64 */
             saves?: number;
         };
+        Code: {
+            /** Format: uuid */
+            id?: string;
+            hint?: string;
+            /** Format: date-time */
+            validFrom?: string;
+            /** Format: date-time */
+            validUntil?: string;
+            status?: string;
+            /** Format: date-time */
+            consumedAt?: string;
+            consumedByName?: string;
+        };
+        PublishedAssessmentVersion: {
+            /** Format: uuid */
+            assessmentId?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            code?: string;
+            title?: string;
+            purpose?: string;
+            governance?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            totalMarks?: number;
+            state?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+        };
+        SchedulablePortal: {
+            /** Format: uuid */
+            id?: string;
+            portalKey?: string;
+            name?: string;
+            url?: string;
+        };
         AuditEvent: {
             /** Format: uuid */
             id?: string;
@@ -8768,6 +9122,33 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FeatureConfigurationView"];
+                };
+            };
+        };
+    };
+    extraTime: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                enrolmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtraTimeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamEnrolment"];
                 };
             };
         };
@@ -11456,6 +11837,193 @@ export interface operations {
             };
         };
     };
+    list_11: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamSchedule"][];
+                };
+            };
+        };
+    };
+    create_10: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamScheduleRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamSchedule"];
+                };
+            };
+        };
+    };
+    invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrolmentInvitationResult"];
+                };
+            };
+        };
+    };
+    withdraw: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                enrolmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    upload_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrolmentUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrolmentUploadResult"];
+                };
+            };
+        };
+    };
+    listCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Code"][];
+                };
+            };
+        };
+    };
+    codes_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleCodesRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["IssuedCode"][];
+                };
+            };
+        };
+    };
+    cancel_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamScheduleCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamSchedule"];
+                };
+            };
+        };
+    };
     portals: {
         parameters: {
             query?: never;
@@ -11638,7 +12206,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: {
                 purpose?: string;
@@ -11662,7 +12230,7 @@ export interface operations {
             };
         };
     };
-    create_10: {
+    create_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -11924,7 +12492,7 @@ export interface operations {
             };
         };
     };
-    cancel_2: {
+    cancel_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -11946,7 +12514,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: never;
             header?: never;
@@ -11966,7 +12534,7 @@ export interface operations {
             };
         };
     };
-    create_11: {
+    create_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -14369,7 +14937,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -14437,7 +15005,7 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    list_15: {
         parameters: {
             query?: {
                 status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
@@ -14705,6 +15273,90 @@ export interface operations {
             };
         };
     };
+    get_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamSchedule"];
+                };
+            };
+        };
+    };
+    enrolments_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamEnrolment"][];
+                };
+            };
+        };
+    };
+    sources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PublishedAssessmentVersion"][];
+                };
+            };
+        };
+    };
+    portals_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SchedulablePortal"][];
+                };
+            };
+        };
+    };
     incident: {
         parameters: {
             query?: never;
@@ -14795,7 +15447,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -15027,7 +15679,7 @@ export interface operations {
             };
         };
     };
-    list_15: {
+    list_16: {
         parameters: {
             query?: {
                 view?: string;
@@ -15049,7 +15701,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;

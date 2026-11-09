@@ -91,6 +91,15 @@ public class ExamSessions {
         return candidates.emailIndex(email);
     }
 
+    /** A candidate account's portal and keyed email index; empty when no active account. No personal data is returned. */
+    public record CandidateIdentity(UUID id, UUID portalId, String emailIndex) {}
+
+    @Transactional(readOnly = true)
+    public Optional<CandidateIdentity> candidate(UUID candidateAccountId) {
+        return jdbc.sql("SELECT id, portal_id, email_index FROM candidate_account WHERE id = ? AND status = 'ACTIVE'").param(candidateAccountId)
+                .query((rs, n) -> new CandidateIdentity(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3))).optional();
+    }
+
     @Transactional(readOnly = true)
     public boolean checkedIn(UUID sessionId, UUID candidateAccountId) {
         return jdbc.sql("SELECT EXISTS (SELECT 1 FROM check_in WHERE session_id = ? AND candidate_id = ?)").params(sessionId, candidateAccountId)
