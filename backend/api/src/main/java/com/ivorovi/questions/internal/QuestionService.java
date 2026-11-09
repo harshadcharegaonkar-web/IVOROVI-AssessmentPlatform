@@ -611,49 +611,40 @@ public class QuestionService {
                 }).single();
     }
 
+    /**
+     * Searches one bank. Matching and paging run in {@code question_search} (KI-75: a SECURITY DEFINER function with the
+     * RLS tenant predicate, limited to the bank, returning ids and a count only) so the indexes can be used; the page's
+     * rows are then loaded by id under row-level security.
+     */
     @Transactional(readOnly = true)
     public Page search(UUID bankId, Filters f, int page, int size) {
         access.bank(bankId);
-        StringBuilder where = new StringBuilder(" WHERE q.bank_id = :bank");
-        Map<String, Object> p = new LinkedHashMap<>();
-        p.put("bank", bankId);
-        String join = f.approvedOnly() ? "q.approved_version_id" : "q.current_version_id";
-        if (f.state() != null) { where.append(" AND v.state = :state"); p.put("state", f.state()); }
-        if (f.type() != null) { where.append(" AND v.type_code = :type"); p.put("type", f.type()); }
-        if (f.status() != null) { where.append(" AND q.status = :status"); p.put("status", f.status()); }
-        if (f.subjectId() != null) { where.append(" AND v.subject_id = :subject"); p.put("subject", f.subjectId()); }
-        if (f.topicId() != null) { where.append(" AND v.topic_id = :topic"); p.put("topic", f.topicId()); }
-        if (f.subtopicId() != null) { where.append(" AND v.subtopic_id = :subtopic"); p.put("subtopic", f.subtopicId()); }
-        if (f.difficultyId() != null) { where.append(" AND v.difficulty_id = :difficulty"); p.put("difficulty", f.difficultyId()); }
-        if (f.outcomeId() != null) { where.append(" AND :outcome = ANY (v.outcome_ids)"); p.put("outcome", f.outcomeId()); }
-        if (f.tag() != null) { where.append(" AND EXISTS (SELECT 1 FROM unnest(v.tags) t WHERE lower(t) = lower(:tag))"); p.put("tag", f.tag()); }
-        if (f.attributeKey() != null && f.attributeValue() != null) {
-            where.append(" AND v.attributes ->> :akey = :avalue");
-            p.put("akey", f.attributeKey());
-            p.put("avalue", f.attributeValue());
-        }
-        if (f.q() != null && !f.q().isBlank()) {
-            where.append(" AND (v.search_vector @@ websearch_to_tsquery('simple', :q) OR v.plain_text ILIKE :like)");
-            p.put("q", f.q().strip());
-            p.put("like", "%" + f.q().strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%");
-        }
-        String from = " FROM question q JOIN question_version v ON v.id = " + join
-                + " LEFT JOIN question_subject s ON s.id = v.subject_id LEFT JOIN difficulty_level d ON d.id = v.difficulty_id"
-                + " LEFT JOIN user_account u ON u.id = v.author_id LEFT JOIN question_version av ON av.id = q.approved_version_id";
-        var count = jdbc.sql("SELECT count(*)" + from + where);
-        for (var e : p.entrySet()) count = count.param(e.getKey(), e.getValue());
-        long total = count.query(Long.class).single();
-        var query = jdbc.sql("SELECT q.id, v.id AS vid, v.version_no, v.state, v.type_code, left(v.plain_text, 200) AS excerpt, s.name AS subject, d.label AS difficulty, v.tags,"
-                + " v.marks, v.negative_marks, av.version_no AS approved_no, q.status, u.display_name AS author, q.updated_at" + from + where
-                + " ORDER BY q.updated_at DESC, q.id LIMIT :size OFFSET :offset");
-        for (var e : p.entrySet()) query = query.param(e.getKey(), e.getValue());
         int sz = Math.max(1, Math.min(100, size));
-        List<Summary> items = query.param("size", sz).param("offset", Math.max(0, page) * sz)
+        int pg = Math.max(0, page);
+        boolean attr = f.attributeKey() != null && f.attributeValue() != null;
+        String q = f.q() == null || f.q().isBlank() ? null : f.q().strip();
+        record Hits(List<UUID> ids, long total) {}
+        Hits hits = jdbc.sql("SELECT ids, total FROM question_search(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                .params(bankId, f.approvedOnly(), f.state(), f.type(), f.status(), f.subjectId(), f.topicId(), f.subtopicId(), f.difficultyId(),
+                        f.outcomeId(), f.tag(), attr ? f.attributeKey() : null, attr ? f.attributeValue() : null, q, sz, (int) Math.min(Integer.MAX_VALUE, (long) pg * sz))
+                .query((rs, n) -> new Hits(uuids(rs.getArray("ids")), rs.getLong("total"))).single();
+        if (hits.ids().isEmpty()) return new Page(List.of(), hits.total(), page, sz);
+        String join = f.approvedOnly() ? "q.approved_version_id" : "q.current_version_id";
+        Map<UUID, Summary> rows = new java.util.HashMap<>();
+        jdbc.sql("SELECT q.id, v.id AS vid, v.version_no, v.state, v.type_code, left(v.plain_text, 200) AS excerpt, s.name AS subject, d.label AS difficulty, v.tags,"
+                        + " v.marks, v.negative_marks, av.version_no AS approved_no, q.status, u.display_name AS author, q.updated_at"
+                        + " FROM question q JOIN question_version v ON v.id = " + join
+                        + " LEFT JOIN question_subject s ON s.id = v.subject_id LEFT JOIN difficulty_level d ON d.id = v.difficulty_id"
+                        + " LEFT JOIN user_account u ON u.id = v.author_id LEFT JOIN question_version av ON av.id = q.approved_version_id"
+                        + " WHERE q.bank_id = ? AND q.id = ANY (?::uuid[])")
+                .params(bankId, hits.ids().stream().map(UUID::toString).toArray(String[]::new))
                 .query((rs, n) -> new Summary(rs.getObject("id", UUID.class), rs.getObject("vid", UUID.class), rs.getInt("version_no"), rs.getString("state"),
                         rs.getString("type_code"), rs.getString("excerpt"), rs.getString("subject"), rs.getString("difficulty"), BankService.strings(rs.getArray("tags")),
                         rs.getBigDecimal("marks"), rs.getBigDecimal("negative_marks"), (Integer) rs.getObject("approved_no"), rs.getString("status"),
-                        rs.getString("author"), ts(rs, "updated_at"))).list();
-        return new Page(items, total, page, sz);
+                        rs.getString("author"), ts(rs, "updated_at")))
+                .list().forEach(r -> rows.put(r.id(), r));
+        List<Summary> items = hits.ids().stream().map(rows::get).filter(java.util.Objects::nonNull).toList();
+        return new Page(items, hits.total(), page, sz);
     }
 
     @Transactional(readOnly = true)
