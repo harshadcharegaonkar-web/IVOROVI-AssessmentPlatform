@@ -190,7 +190,8 @@ public class AttemptService {
             List<Map<String, Object>> items = paperItems(a.paperId());
             if (position < 1 || position > items.size()) throw ApiException.badRequest("invalid_position", "No such question in this paper.");
             if (seq < 0) throw ApiException.badRequest("invalid_seq", "The sequence number must not be negative.");
-            String body = json.writeValueAsString(response == null ? Map.of() : response);
+            validateResponse(String.valueOf(items.get(position - 1).get("questionVersionId")), response);
+            String body = json.writeValueAsString(response);
             if (body.length() > MAX_RESPONSE_CHARS) throw ApiException.badRequest("response_too_large", "This answer is too long.");
             UUID qv = UUID.fromString(String.valueOf(items.get(position - 1).get("questionVersionId")));
             int n = jdbc.sql("""
@@ -208,6 +209,31 @@ public class AttemptService {
             long stored = jdbc.sql("SELECT seq FROM exam_answer WHERE attempt_id = ? AND position = ?").params(attemptId, position).query(Long.class).single();
             return new AnswerAck(position, stored, n > 0, savedAt, Instant.now());
         });
+    }
+
+    /**
+     * A response is {"value": …} with the shape scoring expects: an option id (single choice), a list of option ids
+     * (multiple choice), a boolean (true/false), or text (numeric, short answer); {"value": null} clears an answer.
+     * Option ids must belong to the question; nothing else is stored.
+     */
+    private void validateResponse(String questionVersionId, Map<String, Object> response) {
+        if (response == null || !response.keySet().equals(java.util.Set.of("value"))) throw ApiException.badRequest("invalid_response", "An answer is {\"value\": …}.");
+        Object v = response.get("value");
+        if (v == null) return;
+        Map<String, Object> q = jdbc.sql("SELECT type_code, body::text FROM question_version WHERE id = ?::uuid").param(questionVersionId)
+                .query((rs, n) -> Map.<String, Object>of("type", rs.getString(1), "body", rs.getString(2))).single();
+        @SuppressWarnings("unchecked") Map<String, Object> body = json.readValue(String.valueOf(q.get("body")), Map.class);
+        java.util.Set<String> options = new java.util.HashSet<>();
+        if (body.get("options") instanceof List<?> l) for (Object o : l) if (o instanceof Map<?, ?> m) options.add(String.valueOf(m.get("id")));
+        boolean ok = switch (String.valueOf(q.get("type"))) {
+            case "SINGLE_CHOICE" -> v instanceof String s && options.contains(s);
+            case "MULTIPLE_CHOICE" -> v instanceof List<?> l && l.size() <= options.size() && l.stream().allMatch(o -> o instanceof String s && options.contains(s))
+                    && new java.util.HashSet<>(l).size() == l.size();
+            case "TRUE_FALSE" -> v instanceof Boolean;
+            case "NUMERIC", "SHORT_ANSWER" -> v instanceof String s && s.length() <= 1000;
+            default -> false;
+        };
+        if (!ok) throw ApiException.badRequest("invalid_response", "This answer does not fit the question.");
     }
 
     // ================================================================================================ submission

@@ -159,15 +159,17 @@ class AttemptIT extends QuestionTestSupport {
         assertThat(ownerJdbc().sql("SELECT count(*) FROM assessment_paper WHERE attempt_ref = ?").param("attempt:" + v.id()).query(Long.class).single()).isEqualTo(1);
 
         // durable, ordered saves
-        Map<String, Object> b = Map.of("selected", "B");
+        Map<String, Object> b = Map.of("value", "B");
         assertThat(as(sub, () -> attempts.save(portalKey, v.id(), 1, 5, b)).applied()).isTrue();
-        AttemptService.AnswerAck stale = as(sub, () -> attempts.save(portalKey, v.id(), 1, 4, Map.of("selected", "C")));
+        AttemptService.AnswerAck stale = as(sub, () -> attempts.save(portalKey, v.id(), 1, 4, Map.of("value", "C")));
         assertThat(stale.applied()).isFalse();
         assertThat(stale.seq()).isEqualTo(5);
         assertThat(as(sub, () -> attempts.save(portalKey, v.id(), 1, 5, b)).applied()).isFalse();          // repeated send
-        as(sub, () -> attempts.save(portalKey, v.id(), 2, 1, Map.of("selected", "A")));
+        as(sub, () -> attempts.save(portalKey, v.id(), 2, 1, Map.of("value", "A")));
         assertThatThrownBy(() -> as(sub, () -> attempts.save(portalKey, v.id(), 9, 1, b))).satisfies(t -> assertThat(code(t)).isEqualTo("invalid_position"));
-        assertThat(ownerJdbc().sql("SELECT response->>'selected' FROM exam_answer WHERE attempt_id = ? AND position = 1").param(v.id()).query(String.class).single())
+        assertThatThrownBy(() -> as(sub, () -> attempts.save(portalKey, v.id(), 1, 9, Map.of("value", "Z")))).satisfies(t -> assertThat(code(t)).isEqualTo("invalid_response"));
+        assertThatThrownBy(() -> as(sub, () -> attempts.save(portalKey, v.id(), 1, 9, Map.of("selected", "A")))).satisfies(t -> assertThat(code(t)).isEqualTo("invalid_response"));
+        assertThat(ownerJdbc().sql("SELECT response->>'value' FROM exam_answer WHERE attempt_id = ? AND position = 1").param(v.id()).query(String.class).single())
                 .isEqualTo("B");
         assertThat(ownerJdbc().sql("SELECT count(*) FROM exam_answer_journal WHERE attempt_id = ?").param(v.id()).query(Long.class).single()).isEqualTo(2);
 
@@ -223,7 +225,7 @@ class AttemptIT extends QuestionTestSupport {
         terms(ma, Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, 0);
         UUID attempt = as(a, () -> attempts.start(portalKey, schedule)).id();
         assertThatThrownBy(() -> as(b, () -> attempts.get(portalKey, attempt))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
-        assertThatThrownBy(() -> as(b, () -> attempts.save(portalKey, attempt, 1, 1, Map.of("selected", "A")))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        assertThatThrownBy(() -> as(b, () -> attempts.save(portalKey, attempt, 1, 1, Map.of("value", "A")))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
         assertThatThrownBy(() -> as(b, () -> attempts.submit(portalKey, attempt, null))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
         // another organization's context sees no attempt rows at all
         assertThat(rawAppJdbc().sql("SELECT count(*) FROM exam_attempt").query(Long.class).single()).isZero();
@@ -240,7 +242,7 @@ class AttemptIT extends QuestionTestSupport {
         assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_attempt SET deadline_at = deadline_at + interval '1 hour' WHERE id = ?").param(live).update())
                 .hasMessageContaining("never change");
         assertThatThrownBy(() -> ownerJdbc().sql("DELETE FROM exam_attempt WHERE id = ?").param(live).update()).isInstanceOf(Exception.class);
-        as(sub, () -> attempts.save(portalKey, live, 1, 1, Map.of("selected", "A")));
+        as(sub, () -> attempts.save(portalKey, live, 1, 1, Map.of("value", "A")));
         assertThatThrownBy(() -> ownerJdbc().sql("DELETE FROM exam_answer WHERE attempt_id = ?").param(live).update()).isInstanceOf(Exception.class);
         assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_answer SET seq = 0 WHERE attempt_id = ?").param(live).update()).hasMessageContaining("stale");
         assertThatThrownBy(() -> ownerJdbc().sql("DELETE FROM exam_answer_journal WHERE attempt_id = ?").param(live).update()).hasMessageContaining("append-only");
