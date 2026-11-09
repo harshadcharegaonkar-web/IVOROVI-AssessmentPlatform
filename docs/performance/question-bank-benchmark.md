@@ -36,7 +36,65 @@ Migration `V202611121001` adds `question_near_duplicate`, a SECURITY DEFINER fun
 
 Isolation is tested in `QuestionIsolationIT`.
 
-**Open (KI-75).** Full-text search has the same RLS limitation: its cost grows with the organization's total number of
-versions, not the bank's. All searches meet the < 300 ms target at 20,000 questions per bank, but the worst case is at
-the limit (299 ms) when the organization holds 60,000. The planned mitigation is an equivalent tenant- and bank-scoped
-function for search, to be done before banks of this size are used in production.
+**KI-75 (search under RLS), as found in 2.1.** Full-text search had the same RLS limitation: its cost grew with the
+organization's total number of versions, not the bank's. All searches met the < 300 ms target at 20,000 questions per
+bank, but the worst case was at the limit (299 ms) when the organization held 60,000.
+
+## KI-75 fix: indexed, bank-scoped search (2026-11-09, branch `ws-b/m5-question-bank`)
+
+**Cause.** `EXPLAIN ANALYZE` as the application role showed every search reading **every** `question_version` row of
+the table, even an unfiltered first page. It used a sequential scan plus a hash join to the bank's questions, because
+under RLS the planner may not evaluate the non-leakproof predicates (`@@`, `ILIKE`, the tag subquery) before the policy
+predicate, so their indexes could not be used.
+
+**Fix.** Migration `V202611131010__question_search` adds `question_search()` and three indexes. The function follows
+the `question_near_duplicate` pattern:
+- SECURITY DEFINER, with the RLS tenant predicate `current_tenant_id()` applied on both `question` and
+  `question_version`; no tenant means no rows;
+- limited to one bank (the service still checks bank access first);
+- every value bound with `EXECUTE … USING`;
+- returns only one page of question ids and the match count, never content;
+- `EXECUTE` revoked from PUBLIC and granted to the application role.
+
+The indexes:
+- `question (tenant_id, bank_id, updated_at DESC, id)` for page order and counts;
+- trigram GIN on `plain_text` for substring search;
+- GIN on `question_tags_ci(tags)` for the case-insensitive tag filter.
+
+The service then loads the page's rows by id under RLS. Results, filters, order and paging are unchanged.
+`QuestionSearchIT` covers correctness and isolation: another organization, no tenant and another bank all return
+nothing; the function returns ids and count only, and grants no PUBLIC execute.
+
+**Run.** Same benchmark bank (20,100 questions) measured with `main` (5c3a211) and with the branch:
+- at 60,100 questions in the organization (3 banks) and at 100,000 (5 banks);
+- 60 requests per measure, after 3 warm-up requests;
+- local compose stack, one API instance, 4 vCPU, real Keycloak token;
+- `--org-size` tops the organization up with filler banks; `--bank` re-measures an existing bank.
+
+The "main, 100,000" run used the database after the migration: the new indexes existed but main's query cannot use
+them. Raw results: `question-bank-benchmark.json`.
+
+| Search, p95 (p50) in ms | main, 60,100 in org | **branch, 60,100** | main, 100,000 in org | **branch, 100,000** |
+|---|---|---|---|---|
+| First page | 220 (173) | **24 (14)** | 111 (85) | **11 (9)** |
+| Common word | 323 (258) | **31 (22)** | 261 (227) | **123 (104)** |
+| Word + number | 352 (273) | **33 (23)** | 514 (450) | **52 (34)** |
+| Rare phrase | 312 (269) | **16 (11)** | 538 (451) | **27 (16)** |
+| Type filter | 44 (33) | **64 (49)** | 88 (66) | **61 (52)** |
+| Tag filter | 307 (251) | **28 (21)** | 234 (178) | **27 (19)** |
+| Deep page (700) | 237 (176) | **17 (12)** | 362 (282) | **11 (8)** |
+| Approved only | 179 (148) | **12 (8)** | 149 (130) | **11 (7)** |
+| **Worst p95** | **352** | **64** | **538** | **123** |
+| Target | < 250 | < 250 ✓ | < 300 | < 300 ✓ |
+
+Notes:
+- Both KI-75 targets are met with a wide margin: worst p95 64 ms at 60,000 and 123 ms at 100,000.
+- On main, this run exceeded the targets at both sizes (352 ms and 538 ms). That is worse than 2.1's 299 ms; the
+  hardware differs.
+- **Type filter:** the type filter has no index and is not selective here (2% of rows). It joins the bank's questions
+  to their versions: about 60 ms, flat between 60,000 and 100,000.
+- **Common word:** this query matches 5% of the organization's versions. Its cost grows with the matching rows in the
+  organization (index hits are filtered to the bank afterwards), not with all versions.
+- Other benchmark results at 60,100: creation p95 65 ms; import preview (200 rows) 12.5 s with outcomes as expected;
+  commit 5.7 s; detail p95 86 ms. Detail at 100,000: 107 ms on the branch, 125 ms on main.
+- The migration applied in 1.6 s on the 60,100-question organization; the indexes are built inside it.
