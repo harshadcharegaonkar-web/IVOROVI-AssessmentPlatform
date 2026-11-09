@@ -115,14 +115,27 @@ class KeycloakCandidateMfa implements CandidateMfa {
                 case "UPDATE_PASSWORD" -> {
                     Long req = resetRequested.remove(user);
                     if (req != null && t - req < Duration.ofHours(1).toMillis() && t > since.toEpochMilli()) {
-                        Object sid = e.get("sessionId");
-                        out.add(new PasswordReset(user, Instant.ofEpochMilli(t), loggedOut.remove(user) != null, sid == null ? null : String.valueOf(sid)));
+                        out.add(new PasswordReset(user, Instant.ofEpochMilli(t), loggedOut.remove(user) != null, resetSessionOf(e)));
                     }
                 }
                 default -> { }
             }
         }
         return out;
+    }
+
+    /**
+     * The user session the reset flow continues into (pure; unit-tested). Keycloak records UPDATE_PASSWORD inside the
+     * authentication flow, before the user session exists, so the event's sessionId is empty; the flow's code_id is the
+     * root authentication session id, which Keycloak reuses as the id of the user session it then creates (the LOGIN that
+     * follows carries it as its sessionId). Null when neither is present: the guard then ends every pre-reset session.
+     */
+    @SuppressWarnings("unchecked")
+    static String resetSessionOf(Map<String, Object> event) {
+        Object sid = event.get("sessionId");
+        if (sid != null && !String.valueOf(sid).isBlank()) return String.valueOf(sid);
+        Object code = event.get("details") instanceof Map<?, ?> d ? ((Map<String, Object>) d).get("code_id") : null;
+        return code == null || String.valueOf(code).isBlank() ? null : String.valueOf(code);
     }
 
     @Override

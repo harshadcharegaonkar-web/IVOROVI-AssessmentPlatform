@@ -114,10 +114,15 @@ test.describe("candidate accounts, MFA, session codes and boundaries (C-1, C-4)"
       await expect(device2.locator("#username")).toBeVisible({ timeout: 3000 });
     }).toPass({ timeout: 45_000 });
     // KI-79 (deterministic): the guard has now run (the other device was signed out); the device that performed the reset
-    // keeps its new session — it is still signed in after a reload
+    // keeps its new session. Tokens live only in memory, so a reload shows "Sign in"; signing in again must go straight
+    // through on the surviving sign-in-service session, without the login form (the other device got the form above)
     await page.reload();
+    await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page.getByText(email)).toBeVisible();
+    await expect(page.locator("#username")).toHaveCount(0);
     await other.close();
+    // sign out (ends the sign-in-service session) so the next portal visit signs in with the new password and the authenticator
+    await page.getByRole("button", { name: "Sign out" }).click();
 
     // the same candidate on another organization's portal: a different, empty account; this organization's code is refused there
     const borealis = await examSetup(request, OTHER_ORG_ADMIN, "OFF", 1);
