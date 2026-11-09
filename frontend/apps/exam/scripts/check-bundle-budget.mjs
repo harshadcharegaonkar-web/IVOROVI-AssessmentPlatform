@@ -15,6 +15,11 @@ import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 const DIST = new URL("../dist/", import.meta.url).pathname;
 const INITIAL_BUDGET_KB = 120;
 const LAZY_CHUNK_BUDGET_KB = 40;
+// katex: KaTeX 0.16 (approved L-2.1-1), loaded only when a question contains mathematics (M3 delivery). Its separate 80 kB
+// limit is decision L-2.1-2 (approved 2026-11-08: lazy only, never initial, exam budget 120 kB unchanged); any increase
+// needs separate approval.
+const LIBRARY_CHUNK_BUDGETS_KB = { katex: 80 };
+const budgetOf = (f) => Object.entries(LIBRARY_CHUNK_BUDGETS_KB).find(([name]) => new RegExp(`/${name}-`).test(f))?.[1] ?? LAZY_CHUNK_BUDGET_KB;
 
 const read = (file) => readFileSync(join(DIST, file));
 const sizes = (file) => {
@@ -57,5 +62,6 @@ for (const c of lazy.slice(0, 5)) console.log(`  ${c.f.padEnd(48)} ${fmt(c.raw)}
 
 let failed = false;
 if (total.gzip > INITIAL_BUDGET_KB) { console.error(`FAIL: initial JS ${total.gzip.toFixed(1)} kB gzip exceeds ${INITIAL_BUDGET_KB} kB`); failed = true; }
-for (const c of lazy) if (c.gzip > LAZY_CHUNK_BUDGET_KB) { console.error(`FAIL: ${c.f} ${c.gzip.toFixed(1)} kB gzip exceeds ${LAZY_CHUNK_BUDGET_KB} kB`); failed = true; }
+if (init.some((c) => /katex/.test(c.f))) { console.error("FAIL: KaTeX must never be part of the initial payload"); failed = true; }
+for (const c of lazy) if (c.gzip > budgetOf(c.f)) { console.error(`FAIL: ${c.f} ${c.gzip.toFixed(1)} kB gzip exceeds ${budgetOf(c.f)} kB`); failed = true; }
 process.exit(failed ? 1 : 0);

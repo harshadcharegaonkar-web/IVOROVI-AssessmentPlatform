@@ -1,5 +1,6 @@
 import type { User, UserManager } from "oidc-client-ts";
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { AttemptPage, ExamsCard } from "./Exam";
 import { ApiError, call, type CheckInResult, type CompensationView, type Me, type PortalInfo, type SessionView } from "./api";
 import { CALLBACK_PATH, safeReturnPath } from "./auth";
 import { portalKeyFromPath } from "./config";
@@ -74,7 +75,7 @@ export function App({ manager }: { manager: UserManager }) {
         {!ready ? (
           <p role="status">Loading…</p>
         ) : key ? (
-          <Portal portalKey={key} user={user} signIn={signIn} />
+          <Portal portalKey={key} user={user} signIn={signIn} path={path} go={go} />
         ) : (
           <section>
             <h1 className="text-2xl font-semibold">Exam portal</h1>
@@ -86,7 +87,8 @@ export function App({ manager }: { manager: UserManager }) {
   );
 }
 
-function Portal({ portalKey, user, signIn }: { portalKey: string; user: User | null; signIn: (extra?: Record<string, string>) => void }) {
+function Portal({ portalKey, user, signIn, path, go }: { portalKey: string; user: User | null; signIn: (extra?: Record<string, string>) => void; path: string; go: (p: string) => void }) {
+  const attemptId = /^\/p\/[a-z0-9-]+\/attempts\/([0-9a-f-]{36})$/.exec(path)?.[1] ?? null;
   const [info, setInfo] = useState<PortalInfo | null>(null);
   const [missing, setMissing] = useState(false);
   useEffect(() => {
@@ -112,13 +114,17 @@ function Portal({ portalKey, user, signIn }: { portalKey: string; user: User | n
           </div>
         </section>
       ) : (
-        <Home portalKey={portalKey} user={user} signIn={signIn} />
+        attemptId ? (
+          <div className="mt-6"><AttemptPage portalKey={portalKey} token={user.access_token} attemptId={attemptId} leave={() => go(`/p/${portalKey}`)} /></div>
+        ) : (
+          <Home portalKey={portalKey} user={user} signIn={signIn} open={(id) => go(`/p/${portalKey}/attempts/${id}`)} />
+        )
       )}
     </>
   );
 }
 
-function Home({ portalKey, user, signIn }: { portalKey: string; user: User; signIn: (extra?: Record<string, string>) => void }) {
+function Home({ portalKey, user, signIn, open }: { portalKey: string; user: User; signIn: (extra?: Record<string, string>) => void; open: (attemptId: string) => void }) {
   const token = user.access_token;
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -151,6 +157,7 @@ function Home({ portalKey, user, signIn }: { portalKey: string; user: User; sign
       {me.mfa.satisfied && (
         <>
           <SystemCheckCard check={check} rerun={() => void runSystemCheck().then(setCheck)} />
+          <ExamsCard portalKey={portalKey} token={token} open={open} />
           <Sessions portalKey={portalKey} token={token} sessions={me.sessions} check={check} onChange={reload} />
           {me.compensations.length > 0 && <Compensations portalKey={portalKey} token={token} items={me.compensations} check={check} onChange={reload} />}
         </>
