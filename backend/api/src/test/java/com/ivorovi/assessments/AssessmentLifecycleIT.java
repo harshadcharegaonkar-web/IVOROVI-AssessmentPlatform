@@ -316,6 +316,38 @@ class AssessmentLifecycleIT extends QuestionTestSupport {
         perform(get("/api/v1/assessment-sources/banks/" + bank + "/questions"), student).andExpect(status().isForbidden());
     }
 
+    // ================================================================================================ answer protection (Day 1 closure)
+
+    /**
+     * Answer keys, correct answers and explanations never leave the question module through assessments: not in any
+     * response of the author, review, publication, picker, paper or history endpoints, not in audit details or outbox
+     * payloads, and not in the application's log output. Excerpts never carry option text either.
+     */
+    @Test
+    @org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
+    void answersNeverLeaveTheQuestionModule(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+        UUID a = published("SEMESTER");
+        List<String> bodies = new ArrayList<>();
+        java.util.function.Consumer<JsonNode> keep = n -> bodies.add(String.valueOf(n));
+        keep.accept(call(get("/api/v1/assessments/" + a), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments/" + a + "/versions/1"), controller, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments/" + a + "/history"), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments/" + a + "/transitions"), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments"), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessment-sources/banks/" + bank + "/questions"), designer, status().isOk()));
+        JsonNode paper = call(post("/api/v1/assessments/" + a + "/preview-papers"), controller, status().isCreated());
+        keep.accept(paper);
+        keep.accept(call(get("/api/v1/assessment-papers/" + paper.path("id").asString()), designer, status().isOk()));
+        keep.accept(call(post("/api/v1/assessment-papers/" + paper.path("id").asString() + "/reproduce"), designer, status().isOk()));
+        String audit = ownerJdbc().sql("SELECT coalesce(string_agg(details::text, ' '), '') FROM audit_event WHERE tenant_id = ?").param(org.tenant).query(String.class).single();
+        String outbox = ownerJdbc().sql("SELECT coalesce(string_agg(payload::text, ' '), '') FROM outbox_event WHERE tenant_id = ?").param(org.tenant).query(String.class).single();
+        for (String text : List.of(String.join("\n", bodies), audit, outbox, output.getAll())) {
+            assertThat(text).doesNotContain("Because A is right").doesNotContain("answerKey").doesNotContain("\"correct\"").doesNotContain("answer_key");
+        }
+        // excerpts are the statement only
+        assertThat(bodies.getFirst()).doesNotContain("Option one");
+    }
+
     // ================================================================================================ module API for scheduling
 
     @Autowired PublishedAssessments published;

@@ -25,6 +25,24 @@ async function axe(page: Page) {
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 }
 
+/** Records every API response body the browser receives, to prove no answer information reaches the client. */
+function recordApi(page: Page): string[] {
+  const bodies: string[] = [];
+  page.on("response", (r) => {
+    if (!r.url().includes("/api/")) return;
+    void r.text().then((t) => bodies.push(t)).catch(() => undefined);
+  });
+  return bodies;
+}
+
+function expectNoAnswers(bodies: string[]) {
+  expect(bodies.length).toBeGreaterThan(0);
+  const all = bodies.join("\n");
+  expect(all).not.toContain(`Secret explanation ${RUN}`);
+  expect(all).not.toContain("answerKey");
+  expect(all).not.toContain('"correct"');
+}
+
 async function assessmentId(request: APIRequestContext): Promise<string> {
   const r = await request.get(`/api/v1/assessments?q=${encodeURIComponent(TITLE)}`, { headers: await headers(request, AUTHOR) });
   const a = ((await r.json()) as { id: string; title: string }[]).find((x) => x.title === TITLE);
@@ -55,6 +73,7 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
   });
 
   test("1 · the author creates a semester examination from approved questions and a random rule", async ({ page }) => {
+    const bodies = recordApi(page);
     await signIn(page, AUTHOR, "/assessments");
     await page.getByRole("button", { name: "New assessment" }).click();
     const dialog = page.getByRole("dialog");
@@ -92,9 +111,11 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
     await expect(page.getByRole("button", { name: "Mark as reviewed" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Approve and publish" })).toHaveCount(0);
     await axe(page);
+    expectNoAnswers(bodies);
   });
 
   test("2 · a reviewer reviews it; a third person publishes it", async ({ page }) => {
+    const bodies = recordApi(page);
     await signIn(page, REVIEWER, "/assessments/queue");
     await page.getByRole("link", { name: TITLE }).click();
     await page.getByRole("button", { name: "Mark as reviewed" }).click();
@@ -114,10 +135,12 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
     await expect(page.getByRole("button", { name: "Edit draft" })).toHaveCount(0);   // published versions never change
     await page.getByRole("tab", { name: "History" }).click();
     await expect(page.getByRole("cell", { name: "In review → Published" })).toBeVisible();
+    expectNoAnswers(bodies);
   });
 
   test("3 · a paper is previewed without answers and reproduced from its seed", async ({ page, request }) => {
     const id = await assessmentId(request);
+    const bodies = recordApi(page);
     await signIn(page, AUTHOR, `/assessments/${id}`);
     await page.getByRole("button", { name: "Preview a paper" }).click();
     await expect(page.getByRole("heading", { name: new RegExp(`Paper preview — ${TITLE}`) })).toBeVisible();
@@ -127,5 +150,9 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
     await expect(page.getByText("The stored seed reproduces this paper exactly.")).toBeVisible();
     await expect(page.getByRole("button", { name: /Disclose seed/ })).toHaveCount(0);   // only holders of assessment.publish
     await axe(page);
+    expectNoAnswers(bodies);
+    // excerpts are the statement only: option text is not part of the question line
+    await page.goto(`/assessments/${id}`);
+    await expect(page.getByRole("cell", { name: new RegExp(`question 1: which option is right\\?$`) })).toBeVisible();
   });
 });
