@@ -323,6 +323,26 @@ class DeliveryIT extends IntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"sessionId\":\"" + session + "\"}")).andExpect(status().isConflict());
     }
 
+    @org.springframework.beans.factory.annotation.Autowired com.ivorovi.exams.ExamSessions examSessions;
+
+    @Test
+    void invitedEmailsFindTheirCandidateThroughTheBlindIndexOnly() throws Exception {
+        String email = "Mixed.Case" + UUID.randomUUID().toString().substring(0, 6) + "@c.test";
+        String t = TestTokens.candidate(UUID.randomUUID().toString(), email);
+        mvc.perform(me(t)).andExpect(status().isOk());
+        String stored = ownerJdbc().sql("SELECT email_index FROM candidate_account WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 1").param(org.tenant)
+                .query(String.class).single();
+        assertThat(stored).hasSize(64).doesNotContainIgnoringCase("mixed");
+        com.ivorovi.platform.tenancy.TenantContext.runInTenant(org.tenant, () -> {
+            assertThat(examSessions.candidateByEmail(portalId, "  " + email.toLowerCase() + " ")).isPresent();
+            assertThat(examSessions.candidateByEmail(portalId, "someone.else@c.test")).isEmpty();
+            assertThat(examSessions.candidateByEmail(UUID.randomUUID(), email)).isEmpty();
+        });
+        // another organization never finds this candidate (tenant-bound index and RLS)
+        TestOrg other = new TestOrg(ownerJdbc(), mvc, "other-idx");
+        com.ivorovi.platform.tenancy.TenantContext.runInTenant(other.tenant, () -> assertThat(examSessions.candidateByEmail(portalId, email)).isEmpty());
+    }
+
     // ------------------------------------------------------------------------------------------------ helpers
 
     private String enrolled() throws Exception {

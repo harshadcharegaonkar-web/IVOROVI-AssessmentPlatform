@@ -140,9 +140,9 @@ public class CandidateService {
                 throw new ApiException(HttpStatus.FORBIDDEN, "registration_closed", "This exam portal does not accept new candidates. Contact the institution.");
             }
             id = jdbc.sql("""
-                    INSERT INTO candidate_account (id, tenant_id, subject, email_enc, display_name, portal_id, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, now())
+                    INSERT INTO candidate_account (id, tenant_id, subject, email_enc, email_index, display_name, portal_id, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, now())
                     ON CONFLICT (tenant_id, subject) DO UPDATE SET last_seen_at = now() RETURNING id""")
-                    .params(Ids.newId(), tenant, c.subject(), cipher.encrypt(c.email(), ExamAdminService.EMAIL_FIELD, tenant), truncate(c.name(), 200), p.id())
+                    .params(Ids.newId(), tenant, c.subject(), cipher.encrypt(c.email(), ExamAdminService.EMAIL_FIELD, tenant), emailIndex(c.email()), truncate(c.name(), 200), p.id())
                     .query(UUID.class).single();
             c.link(id);
             audit.recordSuccess("exam.candidate.enrolled", "candidate_account", id.toString(), Map.of("portal", p.key()));
@@ -150,8 +150,8 @@ public class CandidateService {
             id = existing.get().id();
             c.link(id);
             if (!"ACTIVE".equals(existing.get().status())) throw suspended();
-            jdbc.sql("UPDATE candidate_account SET last_seen_at = now(), email_enc = ?, display_name = coalesce(?, display_name) WHERE id = ?")
-                    .params(cipher.encrypt(c.email(), ExamAdminService.EMAIL_FIELD, tenant), truncate(c.name(), 200), id).update();
+            jdbc.sql("UPDATE candidate_account SET last_seen_at = now(), email_enc = ?, email_index = ?, display_name = coalesce(?, display_name) WHERE id = ?")
+                    .params(cipher.encrypt(c.email(), ExamAdminService.EMAIL_FIELD, tenant), emailIndex(c.email()), truncate(c.name(), 200), id).update();
         }
         Mfa m = mfaStatus(p, c);
         List<SessionView> sessions = m.satisfied() ? jdbc.sql("""
@@ -332,6 +332,13 @@ public class CandidateService {
     }
 
     // ================================================================================================ helpers
+
+    static final String EMAIL_INDEX_PURPOSE = "candidate.email";
+
+    /** Blind index of a normalized email within the tenant (no plaintext lookup column exists). */
+    public String emailIndex(String email) {
+        return email == null ? null : cipher.blindIndex(TenantContext.requireTenantId() + ":" + email.strip().toLowerCase(java.util.Locale.ROOT), EMAIL_INDEX_PURPOSE);
+    }
 
     Portal portal(String key) {
         return jdbc.sql("SELECT id, portal_key, name, mfa_policy, self_registration FROM exam_portal WHERE portal_key = ? AND status = 'ACTIVE'").param(key)
