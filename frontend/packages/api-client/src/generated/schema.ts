@@ -352,6 +352,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assessments/{id}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the open version's definition (a version in review returns to draft) */
+        put: operations["update_6"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/api-clients/{id}": {
         parameters: {
             query?: never;
@@ -362,7 +379,7 @@ export interface paths {
         /** API client with its keys (id and last four characters only) and daily usage */
         get: operations["get_5"];
         /** Change name, description, IP allow-list or expiry (scopes are fixed) */
-        put: operations["update_6"];
+        put: operations["update_7"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1871,6 +1888,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assessments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assessments the caller may read (newest first) */
+        get: operations["list_11"];
+        put?: never;
+        /** Create an assessment with an empty draft version 1 */
+        post: operations["create_10"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New draft version from the published one */
+        post: operations["newVersion_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submit_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review the version in review (never by its author); changes requested return it to draft */
+        post: operations["review_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve and publish (independent publisher; high-stakes: publisher is not a reviewer) */
+        post: operations["publish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/preview-papers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["papers"];
+        put?: never;
+        /** Generate and store a preview paper (secure seed; candidate projection; no answer information) */
+        post: operations["preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-papers/{paperId}/seed-disclosures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disclose a paper's seed for independent verification (assessment.publish; audited) */
+        post: operations["seed"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-papers/{paperId}/reproduce": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenerate the paper from its stored seed and compare hashes */
+        post: operations["reproduce"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/approvals/{id}/escalate": {
         parameters: {
             query?: never;
@@ -1930,10 +2083,10 @@ export interface paths {
             cookie?: never;
         };
         /** API clients with status, last use and 30-day usage */
-        get: operations["list_11"];
+        get: operations["list_12"];
         put?: never;
         /** Register an API client; returns the key once */
-        post: operations["create_10"];
+        post: operations["create_11"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2364,7 +2517,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit profile fields (email only before the first sign-in) */
-        patch: operations["update_7"];
+        patch: operations["update_8"];
         trace?: never;
     };
     "/api/v1/students/{studentId}/guardians/{guardianId}": {
@@ -2415,7 +2568,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged) */
-        patch: operations["update_8"];
+        patch: operations["update_9"];
         trace?: never;
     };
     "/api/v1/roles/{id}": {
@@ -2433,7 +2586,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a custom role (system roles are protected); changes apply to every holder immediately */
-        patch: operations["update_9"];
+        patch: operations["update_10"];
         trace?: never;
     };
     "/api/v1/org-units/{id}": {
@@ -2452,7 +2605,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_10"];
+        patch: operations["update_11"];
         trace?: never;
     };
     "/api/v1/academics/subjects/{id}": {
@@ -3253,7 +3406,7 @@ export interface paths {
             cookie?: never;
         };
         /** List my notifications (newest first); state ALL, UNREAD or READ; optional category */
-        get: operations["list_12"];
+        get: operations["list_13"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3304,7 +3457,7 @@ export interface paths {
             cookie?: never;
         };
         /** Invitations of users visible to the caller */
-        get: operations["list_13"];
+        get: operations["list_14"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3564,6 +3717,171 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assessments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_8"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/versions/{no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["version_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Validate the open version (errors block submission and publication; warnings do not) */
+        get: operations["validate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["transitions_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessments/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["history_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-sources/banks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Question banks the caller may read (assessment sources) */
+        get: operations["banks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-sources/banks/{bankId}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Approved question versions of a bank (candidate projection; no answer information) */
+        get: operations["pick"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-sources/banks/{bankId}/pool-size": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Number of approved questions a random rule with these filters would draw from */
+        get: operations["poolSize"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Versions awaiting the caller's review or publication */
+        get: operations["queue_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assessment-papers/{paperId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["paper"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/approvals": {
         parameters: {
             query?: never;
@@ -3572,7 +3890,7 @@ export interface paths {
             cookie?: never;
         };
         /** view=decide: pending requests I may decide (never my own); view=requests: requests I made */
-        get: operations["list_14"];
+        get: operations["list_15"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3589,7 +3907,7 @@ export interface paths {
             cookie?: never;
         };
         /** One request (requester or eligible approvers only) */
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4512,6 +4830,171 @@ export interface components {
             createdAt?: string;
             /** Format: int64 */
             version?: number;
+        };
+        AssessmentDraftRequest: {
+            title: string;
+            description?: string;
+            instructions?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            declaredTotalMarks?: number;
+            negativeMarking?: string;
+            shuffleQuestions?: boolean;
+            shuffleOptions?: boolean;
+            items?: components["schemas"]["AssessmentItemRequest"][];
+            rules?: components["schemas"]["AssessmentRuleRequest"][];
+            /** Format: int64 */
+            version: number;
+        };
+        AssessmentItemRequest: {
+            /** Format: uuid */
+            questionVersionId: string;
+            marks?: number;
+            negativeMarks?: number;
+        };
+        AssessmentRuleRequest: {
+            label?: string;
+            /** Format: uuid */
+            bankId: string;
+            /** Format: uuid */
+            subjectId?: string;
+            /** Format: uuid */
+            topicId?: string;
+            /** Format: uuid */
+            difficultyId?: string;
+            questionType?: string;
+            /** Format: int32 */
+            count?: number;
+            marks: number;
+            negativeMarks?: number;
+        };
+        AssessmentActions: {
+            edit?: boolean;
+            submit?: boolean;
+            review?: boolean;
+            publish?: boolean;
+            newVersion?: boolean;
+            blockedReason?: string;
+        };
+        AssessmentDetail: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            purpose?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            status?: string;
+            current?: components["schemas"]["AssessmentVersion"];
+            published?: components["schemas"]["AssessmentVersion"];
+            versions?: components["schemas"]["AssessmentVersionSummary"][];
+            actions?: components["schemas"]["AssessmentActions"];
+            warnings?: string[];
+            /** Format: int64 */
+            version?: number;
+        };
+        AssessmentItem: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            ordinal?: number;
+            /** Format: uuid */
+            questionVersionId?: string;
+            /** Format: uuid */
+            questionId?: string;
+            /** Format: uuid */
+            bankId?: string;
+            type?: string;
+            excerpt?: string;
+            subjectName?: string;
+            topicName?: string;
+            difficultyLabel?: string;
+            marks?: number;
+            negativeMarks?: number;
+            questionState?: string;
+            usable?: boolean;
+        };
+        AssessmentReview: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            reviewerId?: string;
+            reviewerName?: string;
+            decision?: string;
+            comment?: string;
+            /** Format: date-time */
+            at?: string;
+            valid?: boolean;
+            invalidatedReason?: string;
+        };
+        AssessmentRule: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            ordinal?: number;
+            label?: string;
+            /** Format: uuid */
+            bankId?: string;
+            bankName?: string;
+            /** Format: uuid */
+            subjectId?: string;
+            /** Format: uuid */
+            topicId?: string;
+            /** Format: uuid */
+            difficultyId?: string;
+            questionType?: string;
+            /** Format: int32 */
+            count?: number;
+            marks?: number;
+            negativeMarks?: number;
+            /** Format: int32 */
+            poolSize?: number;
+            poolFrozen?: boolean;
+        };
+        AssessmentVersion: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            state?: string;
+            governance?: string;
+            title?: string;
+            description?: string;
+            instructions?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            declaredTotalMarks?: number;
+            totalMarks?: number;
+            negativeMarking?: string;
+            shuffleQuestions?: boolean;
+            shuffleOptions?: boolean;
+            items?: components["schemas"]["AssessmentItem"][];
+            rules?: components["schemas"]["AssessmentRule"][];
+            reviews?: components["schemas"]["AssessmentReview"][];
+            /** Format: uuid */
+            authorId?: string;
+            authorName?: string;
+            /** Format: uuid */
+            publishedBy?: string;
+            publishedByName?: string;
+            /** Format: date-time */
+            publishedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+        };
+        AssessmentVersionSummary: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            state?: string;
+            authorName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            publishedAt?: string;
         };
         ApiClientRequest: {
             name?: string;
@@ -5615,6 +6098,78 @@ export interface components {
         };
         CandidateMfaResetRequest: {
             reason: string;
+        };
+        AssessmentCreateRequest: {
+            /** Format: uuid */
+            orgUnitId?: string;
+            code: string;
+            purpose: string;
+            title: string;
+            description?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+        };
+        AssessmentReasonRequest: {
+            reason?: string;
+        };
+        AssessmentReviewRequest: {
+            decision: string;
+            comment?: string;
+        };
+        AssessmentPaper: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            assessmentId?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            versionState?: string;
+            purpose?: string;
+            /** Format: int32 */
+            generatorVersion?: number;
+            hash?: string;
+            totalMarks?: number;
+            /** Format: int32 */
+            durationMinutes?: number;
+            title?: string;
+            instructions?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            items?: components["schemas"]["AssessmentPaperItem"][];
+        };
+        AssessmentPaperItem: {
+            /** Format: int32 */
+            position?: number;
+            /** Format: uuid */
+            questionVersionId?: string;
+            type?: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            projection?: {
+                [key: string]: unknown;
+            };
+            optionOrder?: string[];
+            marks?: number;
+            negativeMarks?: number;
+            source?: string;
+        };
+        AssessmentPaperSeed: {
+            /** Format: uuid */
+            paperId?: string;
+            seedBase64?: string;
+            /** Format: int32 */
+            generatorVersion?: number;
+        };
+        AssessmentPaperReproduction: {
+            /** Format: uuid */
+            paperId?: string;
+            identical?: boolean;
+            storedHash?: string;
+            regeneratedHash?: string;
+            note?: string;
         };
         ApprovalRequest: {
             /** Format: uuid */
@@ -7153,6 +7708,136 @@ export interface components {
             /** Format: int64 */
             firstInvalidSeq?: number;
         };
+        AssessmentSummary: {
+            /** Format: uuid */
+            id?: string;
+            code?: string;
+            purpose?: string;
+            title?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            state?: string;
+            /** Format: int32 */
+            publishedVersionNo?: number;
+            totalMarks?: number;
+            /** Format: int32 */
+            durationMinutes?: number;
+            authorName?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        AssessmentIssue: {
+            code?: string;
+            message?: string;
+        };
+        AssessmentValidation: {
+            errors?: components["schemas"]["AssessmentIssue"][];
+            warnings?: components["schemas"]["AssessmentIssue"][];
+            /** Format: int32 */
+            questionCount?: number;
+            totalMarks?: number;
+            byDifficulty?: {
+                [key: string]: number;
+            };
+        };
+        AssessmentTransition: {
+            /** Format: int32 */
+            versionNo?: number;
+            fromState?: string;
+            toState?: string;
+            actorName?: string;
+            reason?: string;
+            /** Format: date-time */
+            at?: string;
+        };
+        AssessmentPaperSummary: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            purpose?: string;
+            hash?: string;
+            totalMarks?: number;
+            /** Format: int32 */
+            questions?: number;
+            createdBy?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AssessmentHistoryEvent: {
+            action?: string;
+            actorName?: string;
+            /** Format: date-time */
+            at?: string;
+            details?: {
+                [key: string]: unknown;
+            };
+        };
+        AssessmentSourceBank: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            name?: string;
+            intendedUses?: string[];
+            highStakes?: boolean;
+        };
+        ApprovedQuestion: {
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: uuid */
+            questionId?: string;
+            /** Format: uuid */
+            bankId?: string;
+            type?: string;
+            content?: {
+                [key: string]: unknown;
+            };
+            projection?: {
+                [key: string]: unknown;
+            };
+            marks?: number;
+            negativeMarks?: number;
+            /** Format: uuid */
+            subjectId?: string;
+            subjectName?: string;
+            /** Format: uuid */
+            topicId?: string;
+            topicName?: string;
+            /** Format: uuid */
+            difficultyId?: string;
+            difficultyLabel?: string;
+            excerpt?: string;
+        };
+        ApprovedQuestionPage: {
+            items?: components["schemas"]["ApprovedQuestion"][];
+            /** Format: int64 */
+            total?: number;
+        };
+        AssessmentPoolSize: {
+            /** Format: int32 */
+            size?: number;
+        };
+        AssessmentQueueItem: {
+            /** Format: uuid */
+            assessmentId?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            code?: string;
+            title?: string;
+            purpose?: string;
+            state?: string;
+            authorName?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: int32 */
+            validReviews?: number;
+        };
         ApiClientDetail: {
             client?: components["schemas"]["ApiClient"];
             keys?: components["schemas"]["ApiClientKey"][];
@@ -8113,6 +8798,32 @@ export interface operations {
             };
         };
     };
+    update_6: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
     get_5: {
         parameters: {
             query?: never;
@@ -8135,7 +8846,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -10927,6 +11638,244 @@ export interface operations {
             };
         };
     };
+    list_11: {
+        parameters: {
+            query?: {
+                purpose?: string;
+                state?: string;
+                q?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentSummary"][];
+                };
+            };
+        };
+    };
+    create_10: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
+    newVersion_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
+    submit_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AssessmentReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
+    review_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessmentReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
+    publish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AssessmentReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
+    papers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentPaperSummary"][];
+                };
+            };
+        };
+    };
+    preview: {
+        parameters: {
+            query?: {
+                versionNo?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentPaper"];
+                };
+            };
+        };
+    };
+    seed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paperId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentPaperSeed"];
+                };
+            };
+        };
+    };
+    reproduce: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paperId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentPaperReproduction"];
+                };
+            };
+        };
+    };
     escalate: {
         parameters: {
             query?: never;
@@ -10997,7 +11946,7 @@ export interface operations {
             };
         };
     };
-    list_11: {
+    list_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -11017,7 +11966,7 @@ export interface operations {
             };
         };
     };
-    create_10: {
+    create_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -11890,7 +12839,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -12035,7 +12984,7 @@ export interface operations {
             };
         };
     };
-    update_8: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -12105,7 +13054,7 @@ export interface operations {
             };
         };
     };
-    update_9: {
+    update_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -12175,7 +13124,7 @@ export interface operations {
             };
         };
     };
-    update_10: {
+    update_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -13420,7 +14369,7 @@ export interface operations {
             };
         };
     };
-    list_12: {
+    list_13: {
         parameters: {
             query?: {
                 unreadOnly?: boolean;
@@ -13488,7 +14437,7 @@ export interface operations {
             };
         };
     };
-    list_13: {
+    list_14: {
         parameters: {
             query?: {
                 status?: "PENDING" | "EXPIRED" | "ACCEPTED" | "REVOKED";
@@ -13846,7 +14795,239 @@ export interface operations {
             };
         };
     };
-    list_14: {
+    get_8: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentDetail"];
+                };
+            };
+        };
+    };
+    version_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentVersion"];
+                };
+            };
+        };
+    };
+    validate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentValidation"];
+                };
+            };
+        };
+    };
+    transitions_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentTransition"][];
+                };
+            };
+        };
+    };
+    history_4: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentHistoryEvent"][];
+                };
+            };
+        };
+    };
+    banks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentSourceBank"][];
+                };
+            };
+        };
+    };
+    pick: {
+        parameters: {
+            query?: {
+                q?: string;
+                subjectId?: string;
+                topicId?: string;
+                difficultyId?: string;
+                type?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApprovedQuestionPage"];
+                };
+            };
+        };
+    };
+    poolSize: {
+        parameters: {
+            query?: {
+                subjectId?: string;
+                topicId?: string;
+                difficultyId?: string;
+                type?: string;
+            };
+            header?: never;
+            path: {
+                bankId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentPoolSize"];
+                };
+            };
+        };
+    };
+    queue_1: {
+        parameters: {
+            query?: {
+                stage?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentQueueItem"][];
+                };
+            };
+        };
+    };
+    paper: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paperId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AssessmentPaper"];
+                };
+            };
+        };
+    };
+    list_15: {
         parameters: {
             query?: {
                 view?: string;
@@ -13868,7 +15049,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;

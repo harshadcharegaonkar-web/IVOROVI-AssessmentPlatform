@@ -40,6 +40,27 @@ public class QuestionReferences {
         }
     }
 
+    /**
+     * Bulk form for a publication (e.g. every fixed and pooled question of an assessment version): one statement, one
+     * audit event with the count. Same rules: only approved, superseded or retired versions; references are permanent.
+     */
+    @Transactional
+    public int referenceAll(java.util.Collection<UUID> versionIds, String referrerType, String referrerId) {
+        if (versionIds.isEmpty()) return 0;
+        int n;
+        try {
+            n = jdbc.sql("""
+                    INSERT INTO question_version_reference (id, tenant_id, version_id, referrer_type, referrer_id)
+                    SELECT gen_random_uuid(), ?, v, ?, ? FROM unnest(?) AS v
+                    ON CONFLICT (tenant_id, version_id, referrer_type, referrer_id) DO NOTHING""")
+                    .params(TenantContext.requireTenantId(), referrerType, referrerId, versionIds.toArray(UUID[]::new)).update();
+        } catch (DataIntegrityViolationException e) {
+            throw ApiException.conflict("version_not_referenceable", "Only approved question versions can be referenced.");
+        }
+        audit.recordSuccess("question.versions_referenced", referrerType, referrerId, Map.of("count", String.valueOf(n)));
+        return n;
+    }
+
     public long referenceCount(UUID versionId) {
         return jdbc.sql("SELECT count(*) FROM question_version_reference WHERE version_id = ?").param(versionId).query(Long.class).single();
     }

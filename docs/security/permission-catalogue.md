@@ -93,8 +93,15 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 
 | Code | Name | Level | Scope | Availability | Description |
 |---|---|---|---|---|---|
-| `assessment.read` | View assessments | READ | UNIT | PLANNED | View assessments and question banks |
-| `assessment.manage` | Author and publish assessments | MANAGE | UNIT | PLANNED | Create, edit and publish assessments and questions |
+| `assessment.read` | View assessments | READ | UNIT | AVAILABLE | View assessment definitions, versions, validation, transitions and history (no question content in papers) |
+| `assessment.author` | Author assessments | MANAGE | UNIT | AVAILABLE | Create and edit drafts of any purpose; submit for review; preview papers |
+| `assessment.author.internal` | Author internal assessments | MANAGE | UNIT | AVAILABLE | As `assessment.author`, for INTERNAL and PRACTICE assessments only (Q-2.2-6, faculty) |
+| `assessment.review` | Review assessments | MANAGE | UNIT | AVAILABLE | Review a version in review (never one's own); request changes |
+| `assessment.publish` | Approve and publish assessments | MANAGE | UNIT | AVAILABLE | **Privileged** (Q-2.2-1, P2-08): approve and publish an independently reviewed version; disclose paper seeds (audited). Granting it requires four-eyes approval |
+
+Increment 2.2 replaced the planned `assessment.manage` placeholder (never available) with the separated permissions above.
+Grants: ORG_ADMIN and INSTITUTION_ADMIN — read, author, author.internal, review; EXAM_CONTROLLER — read, review, publish;
+ASSESSMENT_DESIGNER — read, author, review; FACULTY — read, author.internal.
 
 ## Examination management
 

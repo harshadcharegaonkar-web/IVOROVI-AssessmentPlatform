@@ -92,10 +92,16 @@ public enum Permission {
             Domain.ADMISSIONS, Level.READ, ScopeRule.UNIT, Availability.PLANNED),
     ADMISSION_MANAGE("admission.manage", "Manage admissions", "Configure admission cycles and decide on applicants",
             Domain.ADMISSIONS, Level.MANAGE, ScopeRule.UNIT, Availability.PLANNED),
-    ASSESSMENT_READ("assessment.read", "View assessments", "View assessments and question banks",
-            Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.PLANNED),
-    ASSESSMENT_MANAGE("assessment.manage", "Author and publish assessments", "Create, edit and publish assessments and questions",
-            Domain.ASSESSMENTS, Level.MANAGE, ScopeRule.UNIT, Availability.PLANNED),
+    ASSESSMENT_READ("assessment.read", "View assessments", "View assessments, their versions and previews (never answer keys)",
+            Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    ASSESSMENT_AUTHOR("assessment.author", "Author assessments", "Create and edit assessment drafts of every purpose from approved questions, preview, submit",
+            Domain.ASSESSMENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
+    ASSESSMENT_AUTHOR_INTERNAL("assessment.author.internal", "Author internal assessments", "Create and edit INTERNAL and PRACTICE assessment drafts only (Q-2.2-6)",
+            Domain.ASSESSMENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
+    ASSESSMENT_REVIEW("assessment.review", "Review assessments", "Review assessment versions written by others",
+            Domain.ASSESSMENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
+    ASSESSMENT_PUBLISH("assessment.publish", "Publish assessments", "Approve and publish reviewed assessments written by others; view paper seeds (privileged, Q-2.2-1)",
+            Domain.ASSESSMENTS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     QUESTION_READ("question.read", "View question banks", "View banks, questions and their images (never answer keys)",
             Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
     QUESTION_AUTHOR("question.author", "Author questions", "Create and edit own draft questions, upload images, import, submit for review; see the answer keys of own drafts",
@@ -208,7 +214,7 @@ public enum Permission {
      * Privileged permissions (P2-08): never granted by an administrator's own authority. A role containing one is assigned
      * only through an approved four-eyes request whose approver holds them, or by the operator bootstrap.
      */
-    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read");
+    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish");
 
     public static Optional<Permission> fromKey(String key) {
         return Arrays.stream(values()).filter(p -> p.key.equals(key)).findFirst();

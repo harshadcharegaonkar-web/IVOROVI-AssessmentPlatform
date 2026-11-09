@@ -1011,6 +1011,44 @@
         }
       }
     },
+    "/api/v1/assessments/{id}/draft" : {
+      "put" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Replace the open version's definition (a version in review returns to draft)",
+        "operationId" : "update_6",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssessmentDraftRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/api-clients/{id}" : {
       "get" : {
         "tags" : [ "API clients" ],
@@ -1041,7 +1079,7 @@
       "put" : {
         "tags" : [ "API clients" ],
         "summary" : "Change name, description, IP allow-list or expiry (scopes are fixed)",
-        "operationId" : "update_6",
+        "operationId" : "update_7",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -5290,6 +5328,339 @@
         }
       }
     },
+    "/api/v1/assessments" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Assessments the caller may read (newest first)",
+        "operationId" : "list_11",
+        "parameters" : [ {
+          "name" : "purpose",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "state",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssessmentSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Create an assessment with an empty draft version 1",
+        "operationId" : "create_10",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssessmentCreateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/versions" : {
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "New draft version from the published one",
+        "operationId" : "newVersion_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/submit" : {
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "submit_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssessmentReasonRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/reviews" : {
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Review the version in review (never by its author); changes requested return it to draft",
+        "operationId" : "review_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssessmentReviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/publish" : {
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Approve and publish (independent publisher; high-stakes: publisher is not a reviewer)",
+        "operationId" : "publish",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AssessmentReasonRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/preview-papers" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "papers",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssessmentPaperSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Generate and store a preview paper (secure seed; candidate projection; no answer information)",
+        "operationId" : "preview",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "versionNo",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentPaper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-papers/{paperId}/seed-disclosures" : {
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Disclose a paper's seed for independent verification (assessment.publish; audited)",
+        "operationId" : "seed",
+        "parameters" : [ {
+          "name" : "paperId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentPaperSeed"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-papers/{paperId}/reproduce" : {
+      "post" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Regenerate the paper from its stored seed and compare hashes",
+        "operationId" : "reproduce",
+        "parameters" : [ {
+          "name" : "paperId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentPaperReproduction"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/approvals/{id}/escalate" : {
       "post" : {
         "tags" : [ "Approvals" ],
@@ -5388,7 +5759,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "API clients with status, last use and 30-day usage",
-        "operationId" : "list_11",
+        "operationId" : "list_12",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -5408,7 +5779,7 @@
       "post" : {
         "tags" : [ "API clients" ],
         "summary" : "Register an API client; returns the key once",
-        "operationId" : "create_10",
+        "operationId" : "create_11",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6954,7 +7325,7 @@
       "patch" : {
         "tags" : [ "Users" ],
         "summary" : "Edit profile fields (email only before the first sign-in)",
-        "operationId" : "update_7",
+        "operationId" : "update_8",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7167,7 +7538,7 @@
       "patch" : {
         "tags" : [ "Students" ],
         "summary" : "Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged)",
-        "operationId" : "update_8",
+        "operationId" : "update_9",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7257,7 +7628,7 @@
       "patch" : {
         "tags" : [ "Roles" ],
         "summary" : "Edit a custom role (system roles are protected); changes apply to every holder immediately",
-        "operationId" : "update_9",
+        "operationId" : "update_10",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -7348,7 +7719,7 @@
       "patch" : {
         "tags" : [ "Organization" ],
         "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
-        "operationId" : "update_10",
+        "operationId" : "update_11",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -9262,7 +9633,7 @@
       "get" : {
         "tags" : [ "Notifications" ],
         "summary" : "List my notifications (newest first); state ALL, UNREAD or READ; optional category",
-        "operationId" : "list_12",
+        "operationId" : "list_13",
         "parameters" : [ {
           "name" : "unreadOnly",
           "in" : "query",
@@ -9368,7 +9739,7 @@
       "get" : {
         "tags" : [ "Invitations" ],
         "summary" : "Invitations of users visible to the caller",
-        "operationId" : "list_13",
+        "operationId" : "list_14",
         "parameters" : [ {
           "name" : "status",
           "in" : "query",
@@ -9903,11 +10274,395 @@
         }
       }
     },
+    "/api/v1/assessments/{id}" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "get_8",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/versions/{no}" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "version_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "no",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentVersion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/validation" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Validate the open version (errors block submission and publication; warnings do not)",
+        "operationId" : "validate",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentValidation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/transitions" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "transitions_1",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssessmentTransition"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessments/{id}/history" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "history_4",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssessmentHistoryEvent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-sources/banks" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Question banks the caller may read (assessment sources)",
+        "operationId" : "banks",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssessmentSourceBank"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-sources/banks/{bankId}/questions" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Approved question versions of a bank (candidate projection; no answer information)",
+        "operationId" : "pick",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "subjectId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "topicId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "difficultyId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "type",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        }, {
+          "name" : "page",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 0,
+            "minimum" : 0
+          }
+        }, {
+          "name" : "size",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32",
+            "default" : 20,
+            "maximum" : 100,
+            "minimum" : 1
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ApprovedQuestionPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-sources/banks/{bankId}/pool-size" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Number of approved questions a random rule with these filters would draw from",
+        "operationId" : "poolSize",
+        "parameters" : [ {
+          "name" : "bankId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "subjectId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "topicId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "difficultyId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "type",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentPoolSize"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-queue" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "summary" : "Versions awaiting the caller's review or publication",
+        "operationId" : "queue_1",
+        "parameters" : [ {
+          "name" : "stage",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "review",
+            "pattern" : "review|publication"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/AssessmentQueueItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assessment-papers/{paperId}" : {
+      "get" : {
+        "tags" : [ "Assessments" ],
+        "operationId" : "paper",
+        "parameters" : [ {
+          "name" : "paperId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AssessmentPaper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/approvals" : {
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "view=decide: pending requests I may decide (never my own); view=requests: requests I made",
-        "operationId" : "list_14",
+        "operationId" : "list_15",
         "parameters" : [ {
           "name" : "view",
           "in" : "query",
@@ -9939,7 +10694,7 @@
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "One request (requester or eligible approvers only)",
-        "operationId" : "get_8",
+        "operationId" : "get_9",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -12243,6 +12998,466 @@
           "version" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "AssessmentDraftRequest" : {
+        "type" : "object",
+        "properties" : {
+          "title" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "instructions" : {
+            "type" : "string",
+            "maxLength" : 10000,
+            "minLength" : 0
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 600,
+            "minimum" : 1
+          },
+          "declaredTotalMarks" : {
+            "type" : "number",
+            "maximum" : 100000,
+            "minimum" : 0
+          },
+          "negativeMarking" : {
+            "type" : "string",
+            "pattern" : "OFF|QUESTION|CUSTOM"
+          },
+          "shuffleQuestions" : {
+            "type" : "boolean"
+          },
+          "shuffleOptions" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentItemRequest"
+            },
+            "maxItems" : 500,
+            "minItems" : 0
+          },
+          "rules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentRuleRequest"
+            },
+            "maxItems" : 50,
+            "minItems" : 0
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "title", "version" ]
+      },
+      "AssessmentItemRequest" : {
+        "type" : "object",
+        "properties" : {
+          "questionVersionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "marks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          },
+          "negativeMarks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          }
+        },
+        "required" : [ "questionVersionId" ]
+      },
+      "AssessmentRuleRequest" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "topicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "difficultyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "questionType" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 500,
+            "minimum" : 1
+          },
+          "marks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          },
+          "negativeMarks" : {
+            "type" : "number",
+            "maximum" : 1000,
+            "minimum" : 0
+          }
+        },
+        "required" : [ "bankId", "marks" ]
+      },
+      "AssessmentActions" : {
+        "type" : "object",
+        "properties" : {
+          "edit" : {
+            "type" : "boolean"
+          },
+          "submit" : {
+            "type" : "boolean"
+          },
+          "review" : {
+            "type" : "boolean"
+          },
+          "publish" : {
+            "type" : "boolean"
+          },
+          "newVersion" : {
+            "type" : "boolean"
+          },
+          "blockedReason" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AssessmentDetail" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "current" : {
+            "$ref" : "#/components/schemas/AssessmentVersion"
+          },
+          "published" : {
+            "$ref" : "#/components/schemas/AssessmentVersion"
+          },
+          "versions" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentVersionSummary"
+            }
+          },
+          "actions" : {
+            "$ref" : "#/components/schemas/AssessmentActions"
+          },
+          "warnings" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AssessmentItem" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ordinal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "questionVersionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "questionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "excerpt" : {
+            "type" : "string"
+          },
+          "subjectName" : {
+            "type" : "string"
+          },
+          "topicName" : {
+            "type" : "string"
+          },
+          "difficultyLabel" : {
+            "type" : "string"
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "negativeMarks" : {
+            "type" : "number"
+          },
+          "questionState" : {
+            "type" : "string"
+          },
+          "usable" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AssessmentReview" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reviewerId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "reviewerName" : {
+            "type" : "string"
+          },
+          "decision" : {
+            "type" : "string"
+          },
+          "comment" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "valid" : {
+            "type" : "boolean"
+          },
+          "invalidatedReason" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AssessmentRule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ordinal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankName" : {
+            "type" : "string"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "topicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "difficultyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "questionType" : {
+            "type" : "string"
+          },
+          "count" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "negativeMarks" : {
+            "type" : "number"
+          },
+          "poolSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "poolFrozen" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AssessmentVersion" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "governance" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "instructions" : {
+            "type" : "string"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "declaredTotalMarks" : {
+            "type" : "number"
+          },
+          "totalMarks" : {
+            "type" : "number"
+          },
+          "negativeMarking" : {
+            "type" : "string"
+          },
+          "shuffleQuestions" : {
+            "type" : "boolean"
+          },
+          "shuffleOptions" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentItem"
+            }
+          },
+          "rules" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentRule"
+            }
+          },
+          "reviews" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentReview"
+            }
+          },
+          "authorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "publishedBy" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "publishedByName" : {
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AssessmentVersionSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "publishedAt" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       },
@@ -15161,6 +16376,200 @@
           }
         },
         "required" : [ "reason" ]
+      },
+      "AssessmentCreateRequest" : {
+        "type" : "object",
+        "properties" : {
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "purpose" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "ADMISSION|SEMESTER|PLACEMENT|APTITUDE|INTERNAL|PRACTICE"
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 200,
+            "minLength" : 0
+          },
+          "description" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 600,
+            "minimum" : 1
+          }
+        },
+        "required" : [ "code", "purpose", "title" ]
+      },
+      "AssessmentReasonRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        }
+      },
+      "AssessmentReviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "decision" : {
+            "type" : "string",
+            "pattern" : "REVIEWED|CHANGES_REQUESTED"
+          },
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "decision" ]
+      },
+      "AssessmentPaper" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "assessmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "versionState" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "generatorVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "totalMarks" : {
+            "type" : "number"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "instructions" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentPaperItem"
+            }
+          }
+        }
+      },
+      "AssessmentPaperItem" : {
+        "type" : "object",
+        "properties" : {
+          "position" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "questionVersionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "projection" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "optionOrder" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "negativeMarks" : {
+            "type" : "number"
+          },
+          "source" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AssessmentPaperSeed" : {
+        "type" : "object",
+        "properties" : {
+          "paperId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "seedBase64" : {
+            "type" : "string"
+          },
+          "generatorVersion" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AssessmentPaperReproduction" : {
+        "type" : "object",
+        "properties" : {
+          "paperId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "identical" : {
+            "type" : "boolean"
+          },
+          "storedHash" : {
+            "type" : "string"
+          },
+          "regeneratedHash" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          }
+        }
       },
       "ApprovalRequest" : {
         "type" : "object",
@@ -19110,6 +20519,322 @@
           "firstInvalidSeq" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "AssessmentSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "publishedVersionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalMarks" : {
+            "type" : "number"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AssessmentIssue" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "AssessmentValidation" : {
+        "type" : "object",
+        "properties" : {
+          "errors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentIssue"
+            }
+          },
+          "warnings" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentIssue"
+            }
+          },
+          "questionCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalMarks" : {
+            "type" : "number"
+          },
+          "byDifficulty" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          }
+        }
+      },
+      "AssessmentTransition" : {
+        "type" : "object",
+        "properties" : {
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "fromState" : {
+            "type" : "string"
+          },
+          "toState" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AssessmentPaperSummary" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "hash" : {
+            "type" : "string"
+          },
+          "totalMarks" : {
+            "type" : "number"
+          },
+          "questions" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "AssessmentHistoryEvent" : {
+        "type" : "object",
+        "properties" : {
+          "action" : {
+            "type" : "string"
+          },
+          "actorName" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "details" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          }
+        }
+      },
+      "AssessmentSourceBank" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "intendedUses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "highStakes" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ApprovedQuestion" : {
+        "type" : "object",
+        "properties" : {
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "questionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "bankId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "projection" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "negativeMarks" : {
+            "type" : "number"
+          },
+          "subjectId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "subjectName" : {
+            "type" : "string"
+          },
+          "topicId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "topicName" : {
+            "type" : "string"
+          },
+          "difficultyId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "difficultyLabel" : {
+            "type" : "string"
+          },
+          "excerpt" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ApprovedQuestionPage" : {
+        "type" : "object",
+        "properties" : {
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ApprovedQuestion"
+            }
+          },
+          "total" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AssessmentPoolSize" : {
+        "type" : "object",
+        "properties" : {
+          "size" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AssessmentQueueItem" : {
+        "type" : "object",
+        "properties" : {
+          "assessmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "code" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "authorName" : {
+            "type" : "string"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "validReviews" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },

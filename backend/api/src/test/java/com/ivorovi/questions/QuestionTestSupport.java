@@ -17,15 +17,15 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Shared fixture for question-bank tests: an organization with two institutions and the P2-07 role matrix. */
-abstract class QuestionTestSupport extends IntegrationTest {
+public abstract class QuestionTestSupport extends IntegrationTest {
 
-    static final JsonMapper JSON = JsonMapper.builder().build();
+    protected static final JsonMapper JSON = JsonMapper.builder().build();
 
-    TestOrg org;
-    UUID uni, college, otherCollege;
-    TestOrg.Account admin, controller, controller2, controller3, designer, designer2, faculty, faculty2, instAdmin, otherFaculty, otherController, student;
+    protected TestOrg org;
+    protected UUID uni, college, otherCollege;
+    protected TestOrg.Account admin, controller, controller2, controller3, designer, designer2, faculty, faculty2, instAdmin, otherFaculty, otherController, student;
 
-    void setUpOrg(String label) {
+    protected void setUpOrg(String label) {
         org = new TestOrg(ownerJdbc(), mvc, label);
         uni = org.unit("UNIVERSITY", null, "U");
         college = org.unit("COLLEGE", uni, "C1");
@@ -44,17 +44,17 @@ abstract class QuestionTestSupport extends IntegrationTest {
         student = org.account("STUDENT", college);
     }
 
-    JsonNode call(MockHttpServletRequestBuilder r, TestOrg.Account who, ResultMatcher expect) throws Exception {
+    protected JsonNode call(MockHttpServletRequestBuilder r, TestOrg.Account who, ResultMatcher expect) throws Exception {
         String body = mvc.perform(r.header(HttpHeaders.AUTHORIZATION, who.bearer()).contentType(MediaType.APPLICATION_JSON)).andExpect(expect)
                 .andReturn().getResponse().getContentAsString();
         return body.isEmpty() ? null : JSON.readTree(body);
     }
 
-    ResultActions perform(MockHttpServletRequestBuilder r, TestOrg.Account who) throws Exception {
+    protected ResultActions perform(MockHttpServletRequestBuilder r, TestOrg.Account who) throws Exception {
         return mvc.perform(r.header(HttpHeaders.AUTHORIZATION, who.bearer()).contentType(MediaType.APPLICATION_JSON));
     }
 
-    UUID bank(TestOrg.Account by, UUID unit, String policy, int reviews, boolean distinct, String uses) throws Exception {
+    protected UUID bank(TestOrg.Account by, UUID unit, String policy, int reviews, boolean distinct, String uses) throws Exception {
         JsonNode b = call(post("/api/v1/question-banks").content("""
                 {"orgUnitId":%s,"code":"B%s","name":"Bank %s","intendedUses":[%s],
                  "policy":{"approvalPolicy":"%s","requiredReviews":%d,"approverDistinct":%s}}"""
@@ -62,61 +62,61 @@ abstract class QuestionTestSupport extends IntegrationTest {
         return UUID.fromString(b.path("id").asString());
     }
 
-    UUID standardBank() throws Exception {
+    protected UUID standardBank() throws Exception {
         return bank(admin, college, "STANDARD", 1, false, "\"ACADEMIC\"");
     }
 
-    static String rnd() {
+    protected static String rnd() {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    static String content(String text) {
+    protected static String content(String text) {
         return "{\"format\":\"ivorovi.content.v1\",\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":" + JSON.writeValueAsString(text) + "}]}]}";
     }
 
-    static String mcq(String stem, String correct) {
+    protected static String mcq(String stem, String correct) {
         return """
                 {"type":"SINGLE_CHOICE","content":%s,"body":{"options":[{"id":"A","content":%s},{"id":"B","content":%s},{"id":"C","content":%s}]},
                  "answerKey":{"correct":"%s"},"explanation":"Because %s is right","marks":2,"negativeMarks":0.5}"""
                 .formatted(content(stem), content("Option one"), content("Option two"), content("Option three"), correct, correct);
     }
 
-    static String numeric(String stem, String value) {
+    protected static String numeric(String stem, String value) {
         return """
                 {"type":"NUMERIC","content":%s,"body":{"precision":2,"unit":"m/s"},
                  "answerKey":{"value":"%s","tolerance":{"type":"ABSOLUTE","value":"0.05"}},"marks":4}""".formatted(content(stem), value);
     }
 
-    UUID create(UUID bank, TestOrg.Account by, String draft) throws Exception {
+    protected UUID create(UUID bank, TestOrg.Account by, String draft) throws Exception {
         return UUID.fromString(call(post("/api/v1/question-banks/" + bank + "/questions").content(draft), by, status().isCreated()).path("id").asString());
     }
 
-    JsonNode detail(UUID q, TestOrg.Account by) throws Exception {
+    protected JsonNode detail(UUID q, TestOrg.Account by) throws Exception {
         return call(get("/api/v1/questions/" + q), by, status().isOk());
     }
 
-    JsonNode submit(UUID q, TestOrg.Account by) throws Exception {
+    protected JsonNode submit(UUID q, TestOrg.Account by) throws Exception {
         return call(post("/api/v1/questions/" + q + "/submit").content("{}"), by, status().isOk());
     }
 
-    ResultActions review(UUID q, TestOrg.Account by, String decision, String comment) throws Exception {
+    protected ResultActions review(UUID q, TestOrg.Account by, String decision, String comment) throws Exception {
         return perform(post("/api/v1/questions/" + q + "/reviews").content("{\"decision\":\"" + decision + "\",\"comment\":"
                 + (comment == null ? "null" : "\"" + comment + "\"") + ",\"checklist\":{\"accurate\":true}}"), by);
     }
 
-    ResultActions approve(UUID q, TestOrg.Account by) throws Exception {
+    protected ResultActions approve(UUID q, TestOrg.Account by) throws Exception {
         return perform(post("/api/v1/questions/" + q + "/approve").content("{\"reason\":\"ok\"}"), by);
     }
 
     /** Edits the open version, sending the current optimistic-lock version as a client would. */
-    ResultActions update(UUID q, TestOrg.Account by, String draft) throws Exception {
+    protected ResultActions update(UUID q, TestOrg.Account by, String draft) throws Exception {
         long v = ownerJdbc().sql("SELECT v.version FROM question q JOIN question_version v ON v.id = q.current_version_id WHERE q.id = ?").param(q)
                 .query(Long.class).single();
         return perform(put("/api/v1/questions/" + q).content("{\"version\":" + v + "," + draft.strip().substring(1)), by);
     }
 
     /** Draft by {@code author}, reviewed by {@code reviewer}, approved by {@code approver} (standard bank). */
-    UUID approved(UUID bank, TestOrg.Account author, TestOrg.Account reviewer, TestOrg.Account approver, String draft) throws Exception {
+    protected UUID approved(UUID bank, TestOrg.Account author, TestOrg.Account reviewer, TestOrg.Account approver, String draft) throws Exception {
         UUID q = create(bank, author, draft);
         submit(q, author);
         review(q, reviewer, "REVIEWED", null).andExpect(status().isOk());
@@ -124,11 +124,11 @@ abstract class QuestionTestSupport extends IntegrationTest {
         return q;
     }
 
-    long audits(String action) {
+    protected long audits(String action) {
         return ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = ?").params(org.tenant, action).query(Long.class).single();
     }
 
-    UUID versionId(UUID q, int no) {
+    protected UUID versionId(UUID q, int no) {
         return ownerJdbc().sql("SELECT id FROM question_version WHERE question_id = ? AND version_no = ?").params(q, no).query(UUID.class).single();
     }
 }
