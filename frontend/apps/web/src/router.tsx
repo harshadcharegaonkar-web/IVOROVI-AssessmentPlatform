@@ -65,6 +65,9 @@ const INTEGRATIONS = (a: Access) => a.has("integration.read");
 const EXAMS = (a: Access) => a.hasAnywhere("exam.session.manage");
 const INCIDENTS = (a: Access) => a.has("exam.incident.manage") || a.has("exam.incident.decide");
 const QUESTIONS = (a: Access) => a.hasAnywhere("question.read");
+const ASSESSMENTS = (a: Access) => a.hasAnywhere("assessment.read");
+const ASSESSMENT_AUTHOR = (a: Access) => a.hasAnywhere("assessment.author") || a.hasAnywhere("assessment.author.internal");
+const ASSESSMENT_QUEUE = (a: Access) => a.hasAnywhere("assessment.review") || a.hasAnywhere("assessment.publish");
 const QUESTION_AUTHOR = (a: Access) => a.hasAnywhere("question.author");
 const QUESTION_QUEUE = (a: Access) => a.hasAnywhere("question.review") || a.hasAnywhere("question.approve");
 
@@ -182,6 +185,13 @@ export const routes: RouteObject[] = [
         { path: "approvals", handle: { crumb: "Approvals" }, children: [
           { index: true, ...page(() => import("./routes/approvals/ApprovalsPage")) },
           { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/approvals/ApprovalDetailPage")) },
+        ] },
+        { path: "assessments", handle: { crumb: "Assessments" }, children: [
+          { index: true, ...page(() => import("./routes/assessments/AssessmentsPage"), ASSESSMENTS) },
+          { path: "queue", handle: { crumb: "Review & publication" }, ...page(() => import("./routes/assessments/AssessmentQueuePage"), ASSESSMENT_QUEUE) },
+          { path: ":id", handle: { crumb: "Assessment" }, ...page(() => import("./routes/assessments/AssessmentPage"), ASSESSMENTS) },
+          { path: ":id/edit", handle: { crumb: "Edit" }, ...page(() => import("./routes/assessments/AssessmentEditorPage"), ASSESSMENT_AUTHOR) },
+          { path: "papers/:paperId", handle: { crumb: "Paper preview" }, ...page(() => import("./routes/assessments/PaperPreviewPage"), ASSESSMENTS) },
         ] },
         { path: "questions", handle: { crumb: "Question bank" }, children: [
           { index: true, ...page(() => import("./routes/questions/QuestionBanksPage"), QUESTIONS) },

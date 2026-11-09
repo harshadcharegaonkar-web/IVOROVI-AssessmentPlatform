@@ -84,6 +84,14 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "assessments", label: "Assessments",
+    items: [
+      { to: "/assessments", label: "Assessments", icon: ListChecks, visible: (a) => a.hasAnywhere("assessment.read") },
+      { to: "/assessments/queue", label: "Review & Publication", icon: Stamp,
+        visible: (a) => a.hasAnywhere("assessment.review") || a.hasAnywhere("assessment.publish") },
+    ],
+  },
+  {
     id: "exams", label: "Examinations",
     items: [
       { to: "/exams/portals", label: "Exam Portals", icon: MonitorCheck, visible: (a) => a.hasAnywhere("exam.session.manage") },
