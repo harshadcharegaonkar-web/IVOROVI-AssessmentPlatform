@@ -17,4 +17,14 @@ class ProcessConfiguration {
         bean.addUrlPatterns("/*");
         return bean;
     }
+
+    /** Outermost after the boundary: every API request this instance serves counts, including refused ones. */
+    @Bean
+    @ConditionalOnWebApplication
+    FilterRegistrationBean<RequestStatsFilter> requestStatsFilter(RequestStats stats) {
+        var bean = new FilterRegistrationBean<>(new RequestStatsFilter(stats));
+        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 6);
+        bean.addUrlPatterns("/api/*");
+        return bean;
+    }
 }

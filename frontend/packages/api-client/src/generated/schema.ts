@@ -336,6 +336,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/sessions/{id}/venue-networks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["venueNetworks"];
+        /** Register the exam venue's network addresses: check-ins from them are never slowed by the address layer (KI-66) */
+        put: operations["replaceVenueNetworks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/portals/{id}": {
         parameters: {
             query?: never;
@@ -4807,6 +4824,17 @@ export interface components {
             enabled?: boolean;
             source?: string;
         };
+        VenueNetworkInput: {
+            network: string;
+            label?: string;
+        };
+        VenueNetworksRequest: {
+            networks: components["schemas"]["VenueNetworkInput"][];
+        };
+        VenueNetwork: {
+            network?: string;
+            label?: string;
+        };
         UpdateExamPortalRequest: {
             name: string;
             mfaPolicy: string;
@@ -8768,6 +8796,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["FeatureConfigurationView"];
+                };
+            };
+        };
+    };
+    venueNetworks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VenueNetwork"][];
+                };
+            };
+        };
+    };
+    replaceVenueNetworks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VenueNetworksRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["VenueNetwork"][];
                 };
             };
         };

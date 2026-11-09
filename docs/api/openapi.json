@@ -974,6 +974,75 @@
         }
       }
     },
+    "/api/v1/exam/sessions/{id}/venue-networks" : {
+      "get" : {
+        "tags" : [ "Exam administration" ],
+        "operationId" : "venueNetworks",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/VenueNetwork"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Exam administration" ],
+        "summary" : "Register the exam venue's network addresses: check-ins from them are never slowed by the address layer (KI-66)",
+        "operationId" : "replaceVenueNetworks",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VenueNetworksRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/VenueNetwork"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/portals/{id}" : {
       "put" : {
         "tags" : [ "Exam administration" ],
@@ -12932,6 +13001,47 @@
             "type" : "boolean"
           },
           "source" : {
+            "type" : "string"
+          }
+        }
+      },
+      "VenueNetworkInput" : {
+        "type" : "object",
+        "properties" : {
+          "network" : {
+            "type" : "string",
+            "maxLength" : 50,
+            "minLength" : 0
+          },
+          "label" : {
+            "type" : "string",
+            "maxLength" : 100,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "network" ]
+      },
+      "VenueNetworksRequest" : {
+        "type" : "object",
+        "properties" : {
+          "networks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/VenueNetworkInput"
+            },
+            "maxItems" : 50,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "networks" ]
+      },
+      "VenueNetwork" : {
+        "type" : "object",
+        "properties" : {
+          "network" : {
+            "type" : "string"
+          },
+          "label" : {
             "type" : "string"
           }
         }

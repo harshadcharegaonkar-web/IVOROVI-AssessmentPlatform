@@ -34,15 +34,26 @@ public final class DeliveryFilters {
         return slash < 0 ? rest : rest.substring(0, slash);
     }
 
+    /**
+     * Unknown portal keys are counted per address; once {@code portalMissesPerIpPerMinute} is exceeded the address gets 429
+     * for unknown keys only (enumeration), so a hall using the right portal is never affected.
+     */
     public static final class PortalTenant extends OncePerRequestFilter {
         private final PortalDirectory portals;
         private final TenantDirectory tenants;
         private final ProblemResponses problems;
+        private final RateLimiter limiter;
+        private final RateLimitProperties rateLimits;
+        private final DeliveryProperties props;
 
-        PortalTenant(PortalDirectory portals, TenantDirectory tenants, ProblemResponses problems) {
+        PortalTenant(PortalDirectory portals, TenantDirectory tenants, ProblemResponses problems, RateLimiter limiter, RateLimitProperties rateLimits,
+                     DeliveryProperties props) {
             this.portals = portals;
             this.tenants = tenants;
             this.problems = problems;
+            this.limiter = limiter;
+            this.rateLimits = rateLimits;
+            this.props = props;
         }
 
         @Override
@@ -55,6 +66,14 @@ public final class DeliveryFilters {
             }
             Optional<UUID> tenant = portals.tenantOf(key).filter(t -> tenants.find(t).map(i -> i.status().allowsAccess()).orElse(false));
             if (tenant.isEmpty()) {
+                if (rateLimits.enabled()) {
+                    RateLimiter.Decision d = limiter.acquire("delivery-portal-miss:" + request.getRemoteAddr(), props.portalMissesPerIpPerMinute(), true);
+                    if (!d.allowed()) {
+                        response.setHeader("Retry-After", String.valueOf(d.retryAfterSeconds()));
+                        problems.write(response, HttpStatus.TOO_MANY_REQUESTS, "rate_limited", "Too many requests. Retry after " + d.retryAfterSeconds() + " seconds.");
+                        return;
+                    }
+                }
                 problems.write(response, HttpStatus.NOT_FOUND, "portal_not_found", "This exam portal does not exist or is not available.");
                 return;
             }
@@ -64,7 +83,11 @@ public final class DeliveryFilters {
         }
     }
 
-    /** Per-candidate and per-organization ceilings for authenticated delivery calls; per-IP limit for the public ones. */
+    /**
+     * Ceilings for delivery calls (KI-66, layers L1 and L6): per candidate (candidate-realm subject within the organization)
+     * and per organization for authenticated calls. The unauthenticated portal and time lookups get only a coarse per-address
+     * ceiling high enough for a whole hall behind one NAT address (unknown portal keys are limited in {@link PortalTenant}).
+     */
     public static final class Limits extends OncePerRequestFilter {
         private final RateLimiter limiter;
         private final RateLimitProperties rateLimits;
@@ -88,11 +111,13 @@ public final class DeliveryFilters {
             Optional<CandidateAuthentication> candidate = CandidateAuthentication.current();
             RateLimiter.Decision d;
             if (candidate.isEmpty()) {
-                d = limiter.acquire("delivery-public:" + request.getRemoteAddr(), Math.max(rateLimits.publicPerIpPerMinute(), 60), true);
+                d = limiter.acquire("delivery-public:" + request.getRemoteAddr(), props.publicPerIpPerMinute(), true);
             } else {
                 UUID tenant = TenantContext.currentTenantId().orElse(null);
                 d = tenant == null ? null : limiter.acquire("delivery-tenant:" + tenant, props.tenantPerMinute(), true);
-                if (d == null || d.allowed()) d = limiter.acquire("candidate:" + candidate.get().subject(), props.candidatePerMinute(), true);
+                if (d == null || d.allowed()) {
+                    d = limiter.acquire("candidate:" + (tenant == null ? "-" : tenant) + ":" + candidate.get().subject(), props.candidatePerMinute(), true);
+                }
             }
             if (!d.allowed()) {
                 response.setHeader("Retry-After", String.valueOf(d.retryAfterSeconds()));

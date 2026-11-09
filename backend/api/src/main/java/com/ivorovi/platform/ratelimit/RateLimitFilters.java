@@ -38,16 +38,27 @@ public final class RateLimitFilters {
         response.setHeader("RateLimit-Reset", String.valueOf(d.resetSeconds()));
     }
 
-    /** Before authentication: blocks an IP that produced too many failed authentications; counts new failures. */
+    /**
+     * Before authentication: blocks an IP that produced too many failed authentications; counts new failures. With
+     * {@code refuse=false} (exam delivery, KI-66) failures are only counted and reported: candidate tokens are signed
+     * and cannot be guessed, and a pre-authentication address block would let anyone on a campus network lock out every
+     * candidate behind the same NAT address.
+     */
     public static final class FailedAuthentication extends OncePerRequestFilter {
         private final RateLimiter limiter;
         private final RateLimitProperties props;
         private final ProblemResponses problems;
+        private final boolean refuse;
 
         public FailedAuthentication(RateLimiter limiter, RateLimitProperties props, ProblemResponses problems) {
+            this(limiter, props, problems, true);
+        }
+
+        public FailedAuthentication(RateLimiter limiter, RateLimitProperties props, ProblemResponses problems, boolean refuse) {
             this.limiter = limiter;
             this.props = props;
             this.problems = problems;
+            this.refuse = refuse;
         }
 
         @Override
@@ -57,9 +68,9 @@ public final class RateLimitFilters {
                 chain.doFilter(request, response);
                 return;
             }
-            String key = "authfail:" + request.getRemoteAddr();
+            String key = (refuse ? "authfail:" : "authfail-report:") + request.getRemoteAddr();
             RateLimiter.Decision check = limiter.acquire(key, props.failedAuthPerIpPerMinute(), false);
-            if (!check.allowed()) {
+            if (refuse && !check.allowed()) {
                 reject(response, problems, check);
                 return;
             }
