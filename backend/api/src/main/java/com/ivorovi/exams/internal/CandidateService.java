@@ -108,6 +108,11 @@ public class CandidateService {
         }
     }
 
+    /** Runs candidate work in a transaction; refusals raised as {@link Denial} are audited after the rollback. */
+    <T> T runGuarded(java.util.function.Supplier<T> work) {
+        return run(work);
+    }
+
     private <T> T run(java.util.function.Supplier<T> work) {
         try {
             return tx.execute(s -> work.get());

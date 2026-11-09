@@ -35,6 +35,11 @@ public class PublishedAssessments {
     public record Published(UUID assessmentId, UUID versionId, int versionNo, String code, String title, String purpose, String governance,
                             UUID orgUnitId, int durationMinutes, BigDecimal totalMarks, String state, Instant publishedAt) {}
 
+    /** One question of a candidate's paper: candidate projection (options in drawn order) and marks. Nothing else. */
+    @Schema(name = "CandidatePaperItem")
+    public record CandidateItem(int position, UUID questionVersionId, String type, Map<String, Object> content, Map<String, Object> projection,
+                                BigDecimal marks, BigDecimal negativeMarks) {}
+
     private final JdbcClient jdbc;
     private final Authz authz;
     private final AuditLog audit;
@@ -85,6 +90,13 @@ public class PublishedAssessments {
         } catch (DataIntegrityViolationException e) {
             throw ApiException.conflict("version_not_referenceable", "Only published assessment versions can be scheduled.");
         }
+    }
+
+    /** The candidate's paper (delivery only, for the paper bound to the candidate's own attempt). */
+    @Transactional(readOnly = true)
+    public List<CandidateItem> candidatePaper(UUID paperId) {
+        return papers.candidateItems(paperId).stream().map(i -> new CandidateItem(i.position(), i.questionVersionId(), i.type(), i.content(), i.projection(),
+                i.marks(), i.negativeMarks())).toList();
     }
 
     /** The paper of one candidate attempt from the published version (delivery, Increment 2.5); same reference → same paper. */
