@@ -224,6 +224,32 @@ public class PaperService {
                 (Integer) meta[2], (String) meta[3], (String) meta[4], r.createdAt(), items);
     }
 
+    /** One question of a candidate's paper: candidate projection, drawn option order, marks. Nothing else. */
+    public record CandidateItem(int position, UUID questionVersionId, String type, Map<String, Object> content, Map<String, Object> projection,
+                                BigDecimal marks, BigDecimal negativeMarks) {}
+
+    /**
+     * The paper as delivered to its candidate. No authorization here: the delivery module calls it only for the paper
+     * bound to the candidate's own attempt. Contains the candidate projection only (never answer information).
+     */
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public List<CandidateItem> candidateItems(UUID paperId) {
+        Row r = row(paperId);
+        List<Map<String, Object>> entries = json.readValue(r.itemsJson(), List.class);
+        Map<UUID, ApprovedQuestions.Approved> q = questions.versions(entries.stream().map(e -> UUID.fromString(String.valueOf(e.get("questionVersionId")))).toList());
+        List<CandidateItem> items = new ArrayList<>();
+        int pos = 0;
+        for (Map<String, Object> e : entries) {
+            UUID qv = UUID.fromString(String.valueOf(e.get("questionVersionId")));
+            ApprovedQuestions.Approved a = q.get(qv);
+            List<String> order = e.get("options") instanceof List<?> l ? l.stream().map(String::valueOf).toList() : null;
+            items.add(new CandidateItem(++pos, qv, a == null ? null : a.type(), a == null ? null : a.content(), a == null ? null : reorder(a.projection(), order),
+                    new BigDecimal(String.valueOf(e.get("marks"))), new BigDecimal(String.valueOf(e.get("negativeMarks")))));
+        }
+        return items;
+    }
+
     /** Projection with its options in the drawn order (other projection fields unchanged). */
     @SuppressWarnings("unchecked")
     static Map<String, Object> reorder(Map<String, Object> projection, List<String> order) {

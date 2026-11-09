@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 
@@ -312,6 +314,80 @@ class AssessmentLifecycleIT extends QuestionTestSupport {
         assertThat(page.toString()).doesNotContain("answerKey").doesNotContain("\"correct\"").doesNotContain("Because");
         assertThat(call(get("/api/v1/assessment-sources/banks/" + bank + "/pool-size"), designer, status().isOk()).path("size").asInt()).isEqualTo(8);
         perform(get("/api/v1/assessment-sources/banks/" + bank + "/questions"), student).andExpect(status().isForbidden());
+    }
+
+    // ================================================================================================ answer protection (Day 1 closure)
+
+    /**
+     * Answer keys, correct answers and explanations never leave the question module through assessments: not in any
+     * response of the author, review, publication, picker, paper or history endpoints, not in audit details or outbox
+     * payloads, and not in the application's log output. Excerpts never carry option text either.
+     */
+    @Test
+    @org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
+    void answersNeverLeaveTheQuestionModule(org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+        UUID a = published("SEMESTER");
+        List<String> bodies = new ArrayList<>();
+        java.util.function.Consumer<JsonNode> keep = n -> bodies.add(String.valueOf(n));
+        keep.accept(call(get("/api/v1/assessments/" + a), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments/" + a + "/versions/1"), controller, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments/" + a + "/history"), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments/" + a + "/transitions"), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessments"), designer, status().isOk()));
+        keep.accept(call(get("/api/v1/assessment-sources/banks/" + bank + "/questions"), designer, status().isOk()));
+        JsonNode paper = call(post("/api/v1/assessments/" + a + "/preview-papers"), controller, status().isCreated());
+        keep.accept(paper);
+        keep.accept(call(get("/api/v1/assessment-papers/" + paper.path("id").asString()), designer, status().isOk()));
+        keep.accept(call(post("/api/v1/assessment-papers/" + paper.path("id").asString() + "/reproduce"), designer, status().isOk()));
+        String audit = ownerJdbc().sql("SELECT coalesce(string_agg(details::text, ' '), '') FROM audit_event WHERE tenant_id = ?").param(org.tenant).query(String.class).single();
+        String outbox = ownerJdbc().sql("SELECT coalesce(string_agg(payload::text, ' '), '') FROM outbox_event WHERE tenant_id = ?").param(org.tenant).query(String.class).single();
+        for (String text : List.of(String.join("\n", bodies), audit, outbox, output.getAll())) {
+            assertThat(text).doesNotContain("Because A is right").doesNotContain("answerKey").doesNotContain("\"correct\"").doesNotContain("answer_key");
+        }
+        // excerpts are the statement only
+        assertThat(bodies.getFirst()).doesNotContain("Option one");
+    }
+
+    // ================================================================================================ module API for scheduling
+
+    @Autowired PublishedAssessments published;
+    @Autowired com.ivorovi.platform.security.PrincipalResolver principals;
+
+    /** Runs module-API calls as a staff member (tenant context and principal as the web filter would set them). */
+    void asUser(TestOrg.Account who, Runnable work) {
+        com.ivorovi.platform.tenancy.TenantContext.runInTenant(org.tenant, () -> {
+            var principal = principals.resolve(org.tenant, who.caller().subject()).orElseThrow();
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new com.ivorovi.platform.security.IvoroviAuthentication(principal, null));
+            try {
+                work.run();
+            } finally {
+                SecurityContextHolder.clearContext();
+            }
+        });
+    }
+
+    @Test
+    void schedulingSeesPublishedVersionsOnlyAndReferencesArePermanent() throws Exception {
+        UUID a = published("SEMESTER");
+        UUID vid = versionOf(a);
+        UUID draft = createAssessment(designer, "INTERNAL");
+        UUID draftVid = versionOf(draft);
+        asUser(controller, () -> {
+            assertThat(published.publishedVersions()).extracting(PublishedAssessments.Published::versionId).contains(vid).doesNotContain(draftVid);
+            PublishedAssessments.Published p = published.version(vid);
+            assertThat(p.totalMarks()).isEqualByComparingTo("7");
+            assertThatThrownBy(() -> published.version(draftVid)).hasMessageContaining("not found");
+            published.reference(vid, "exam_schedule", "S-1");
+            published.reference(vid, "exam_schedule", "S-1");          // idempotent
+            assertThatThrownBy(() -> published.reference(draftVid, "exam_schedule", "S-2")).hasMessageContaining("published");
+            UUID p1 = published.paperForAttempt(vid, "attempt-1");
+            assertThat(published.paperForAttempt(vid, "attempt-1")).isEqualTo(p1);   // same attempt, same paper
+        });
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM assessment_version_reference WHERE version_id = ?").param(vid).query(Long.class).single()).isEqualTo(1);
+        assertThatThrownBy(() -> ownerJdbc().sql("DELETE FROM assessment_version_reference WHERE version_id = ?").param(vid).update()).isInstanceOf(Exception.class);
+        // other institution: not visible
+        asUser(otherController, () -> assertThatThrownBy(() -> published.version(vid)).hasMessageContaining("not found"));
     }
 
     // ================================================================================================ isolation

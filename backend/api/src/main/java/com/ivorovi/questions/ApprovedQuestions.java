@@ -92,7 +92,39 @@ public class ApprovedQuestions {
         return new Approved(rs.getObject("id", UUID.class), rs.getObject("qid", UUID.class), rs.getObject("bank_id", UUID.class), type,
                 json.readValue(rs.getString("content"), Map.class), questions.type(type).deliveryProjection(body), rs.getBigDecimal("marks"),
                 rs.getBigDecimal("negative_marks"), rs.getObject("subject_id", UUID.class), rs.getString("subject"), rs.getObject("topic_id", UUID.class),
-                rs.getString("topic"), rs.getObject("difficulty_id", UUID.class), rs.getString("difficulty"), rs.getString("excerpt"));
+                rs.getString("topic"), rs.getObject("difficulty_id", UUID.class), rs.getString("difficulty"), excerpt(json.readValue(rs.getString("content"), Map.class)));
+    }
+
+    /**
+     * Excerpt of the question statement only (paragraph text, mathematics as $…$, list items, image descriptions), at
+     * most 200 characters. Options are never included: the stored plain text also contains option text, which made
+     * excerpts read as if the options were part of the question.
+     */
+    static String excerpt(Map<String, Object> content) {
+        StringBuilder sb = new StringBuilder();
+        appendText(content == null ? null : content.get("blocks"), sb);
+        String s = sb.toString().replaceAll("\\s+", " ").strip();
+        return s.length() > 200 ? s.substring(0, 199).stripTrailing() + "…" : s;
+    }
+
+    private static void appendText(Object node, StringBuilder sb) {
+        if (node instanceof List<?> l) {
+            for (Object o : l) appendText(o, sb);
+        } else if (node instanceof Map<?, ?> m) {
+            String type = String.valueOf(m.get("type"));
+            if ("math".equals(type) && m.get("tex") != null) {
+                sb.append(" $").append(m.get("tex")).append("$ ");
+            } else if ("image".equals(type) && m.get("alt") != null) {
+                sb.append(" [").append(m.get("alt")).append("] ");
+            } else if (m.get("math") instanceof String tex) {
+                sb.append('$').append(tex).append('$');
+            } else if (m.get("text") instanceof String t) {
+                sb.append(t);
+            }
+            if (m.get("runs") != null) { appendText(m.get("runs"), sb); sb.append(' '); }
+            if (m.get("items") != null) { appendText(m.get("items"), sb); sb.append(' '); }
+            if (m.get("blocks") != null) appendText(m.get("blocks"), sb);
+        }
     }
 
     /** Current approved versions of active questions in a readable bank, filtered (text, subject, topic, difficulty, type). */

@@ -1,21 +1,25 @@
 package com.ivorovi.exams.web;
 
+import com.ivorovi.exams.internal.AttemptService;
 import com.ivorovi.exams.internal.CandidateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,10 +49,47 @@ class CandidateDeliveryController {
     @Schema(name = "PracticeSaveRequest")
     record Save(@NotNull UUID sessionId, long seq, @Size(max = 4096) String payload) {}
 
-    private final CandidateService candidates;
+    @Schema(name = "AnswerSaveRequest")
+    record AnswerSave(@Min(0) long seq, @NotNull Map<String, Object> response) {}
 
-    CandidateDeliveryController(CandidateService candidates) {
+    @Schema(name = "AttemptSubmitRequest")
+    record Submit(@Size(max = 100) String submitKey) {}
+
+    private final CandidateService candidates;
+    private final AttemptService attempts;
+
+    CandidateDeliveryController(CandidateService candidates, AttemptService attempts) {
         this.candidates = candidates;
+        this.attempts = attempts;
+    }
+
+    @GetMapping("/portals/{key}/exams")
+    @Operation(summary = "The candidate's scheduled examinations and what they can do now (start, resume, check in first, closed)")
+    List<AttemptService.ExamView> exams(@PathVariable String key) {
+        return attempts.exams(key);
+    }
+
+    @PostMapping("/portals/{key}/exams/{scheduleId}/attempt")
+    @Operation(summary = "Start or resume the attempt (one per candidate and schedule; requires check-in; deadline fixed at start)")
+    AttemptService.AttemptView start(@PathVariable String key, @PathVariable UUID scheduleId) {
+        return attempts.start(key, scheduleId);
+    }
+
+    @GetMapping("/portals/{key}/attempts/{attemptId}")
+    AttemptService.AttemptView attempt(@PathVariable String key, @PathVariable UUID attemptId) {
+        return attempts.get(key, attemptId);
+    }
+
+    @PutMapping("/portals/{key}/attempts/{attemptId}/answers/{position}")
+    @Operation(summary = "Save one answer; acknowledged only once durable; an older or repeated sequence number changes nothing")
+    AttemptService.AnswerAck save(@PathVariable String key, @PathVariable UUID attemptId, @PathVariable int position, @Valid @RequestBody AnswerSave r) {
+        return attempts.save(key, attemptId, position, r.seq(), r.response());
+    }
+
+    @PostMapping("/portals/{key}/attempts/{attemptId}/submit")
+    @Operation(summary = "Submit the attempt (idempotent: a retried submission returns the same result)")
+    AttemptService.SubmitResult submit(@PathVariable String key, @PathVariable UUID attemptId, @Valid @RequestBody(required = false) Submit r) {
+        return attempts.submit(key, attemptId, r == null ? null : r.submitKey());
     }
 
     @GetMapping("/time")
