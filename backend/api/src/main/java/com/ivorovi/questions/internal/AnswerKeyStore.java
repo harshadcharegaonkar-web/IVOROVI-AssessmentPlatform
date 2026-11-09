@@ -92,6 +92,14 @@ public class AnswerKeyStore {
                 r.explanation() == null ? null : cipher.decrypt(r.explanation(), EXPLANATION_FIELD, tenant)));
     }
 
+    /**
+     * Key for automatic scoring inside the question module (QuestionMarking): the key is used and discarded there, never
+     * returned to another module; not audited per question (the scoring run is audited by its caller).
+     */
+    public Optional<Map<String, Object>> readForMarking(UUID versionId) {
+        return readForValidation(versionId);
+    }
+
     /** Internal read for marking/validation inside a service call that already authorized the caller; not audited as a view. */
     @SuppressWarnings("unchecked")
     Optional<Map<String, Object>> readForValidation(UUID versionId) {

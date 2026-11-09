@@ -60,6 +60,7 @@ class AttemptIT extends QuestionTestSupport {
 
     private static final JsonMapper MAPPER = JsonMapper.builder().build();
     @Autowired AttemptService attempts;
+    @Autowired com.ivorovi.exams.internal.ScoringService scoring;
     @Autowired FieldCipher cipher;
 
     String portalKey;
@@ -187,6 +188,20 @@ class AttemptIT extends QuestionTestSupport {
         assertThatThrownBy(() -> as(sub, () -> attempts.save(portalKey, v.id(), 3, 9, b))).satisfies(t -> assertThat(code(t)).isEqualTo("attempt_submitted"));
         assertThat(as(sub, () -> attempts.exams(portalKey)).getFirst().availability()).isEqualTo("FINISHED");
         assertThat(as(sub, () -> attempts.get(portalKey, v.id())).items()).isEmpty();             // the paper is not shown after submission
+
+        // M4 scoring: marks from the paper (fixed: 2 marks, −0.5 from the question; rule: 1 mark, no negative), keys stay in the question module
+        assertThat(scoring.scoreDue()).isGreaterThanOrEqualTo(1);
+        var score = ownerJdbc().sql("SELECT awarded, max_marks, correct, incorrect, unanswered, not_markable, status FROM exam_score WHERE attempt_id = ?").param(v.id())
+                .query((rs, n) -> List.of(rs.getBigDecimal(1).toPlainString(), rs.getBigDecimal(2).toPlainString(), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getInt(6),
+                        rs.getString(7))).single();
+        assertThat(score).containsExactly("1.50", "6.00", 1, 1, 2, 0, "PROVISIONAL");
+        assertThat(ownerJdbc().sql("SELECT string_agg(outcome, ',' ORDER BY position) FROM exam_answer_score WHERE attempt_id = ?").param(v.id()).query(String.class).single())
+                .isEqualTo("INCORRECT,CORRECT,UNANSWERED,UNANSWERED");
+        assertThat(scoring.scoreDue()).isZero();                                                    // idempotent
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_score SET awarded = 6 WHERE attempt_id = ?").param(v.id()).update()).hasMessageContaining("never change");
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_answer_score SET awarded = 2 WHERE attempt_id = ?").param(v.id()).update()).hasMessageContaining("never change");
+        String auditText = ownerJdbc().sql("SELECT details::text FROM audit_event WHERE tenant_id = ? AND action = 'exam.attempt.scored'").param(org.tenant).query(String.class).single();
+        assertThat(auditText).contains("\"awarded\": \"1.5\"").doesNotContain("correct\": \"A");
     }
 
     @Test
