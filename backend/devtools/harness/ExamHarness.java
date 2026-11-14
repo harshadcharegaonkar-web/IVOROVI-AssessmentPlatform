@@ -302,16 +302,33 @@ public class ExamHarness {
         return false;
     }
 
+    /** Retries on no answer (connection refused, timeout) and 5xx/429 for up to two minutes; counts the retries. */
+    static Res retrying(String endpoint, String method, String url, String token, String json) throws InterruptedException {
+        long until = System.currentTimeMillis() + 120_000, backoff = 500;
+        Res r;
+        while (true) {
+            r = call(endpoint, method, url, token, json);
+            boolean transient_ = r.status() < 0 || r.status() >= 500 || r.status() == 429;
+            if (!transient_ || System.currentTimeMillis() > until) return r;
+            count("retried." + endpoint);
+            Thread.sleep(backoff);
+            backoff = Math.min(4000, backoff * 2);
+        }
+    }
+
     static void candidate(Cand c, String key, String schedule, String code, long endMs) {
         String base = delivery + "/api/v1/delivery/portals/" + key;
         try {
             c.token = candidateToken(c.sub, c.n);
-            if (!call("GET me", "GET", base + "/me", c.token, null).ok()) { problems.add("vc" + c.n + " me"); return; }
-            call("GET exams", "GET", base + "/exams", c.token, null);
-            Res ci = call("POST check-in", "POST", base + "/check-ins", c.token, "{\"code\":\"" + code + "\"}");
+            // sign-in, check-in and start are retried while the delivery process is unreachable or busy (as a candidate retries
+            // in the exam app); an answer from the server (4xx) is final
+            Res me = retrying("GET me", "GET", base + "/me", c.token, null);
+            if (!me.ok()) { problems.add("vc" + c.n + " me " + me.status()); return; }
+            retrying("GET exams", "GET", base + "/exams", c.token, null);
+            Res ci = retrying("POST check-in", "POST", base + "/check-ins", c.token, "{\"code\":\"" + code + "\"}");
             if (!ci.ok()) { count("checkin.failed"); problems.add("vc" + c.n + " check-in " + ci.status() + " " + ci.body()); return; }
             count("checkin.ok");
-            Res st = call("POST start", "POST", base + "/exams/" + schedule + "/attempt", c.token, null);
+            Res st = retrying("POST start", "POST", base + "/exams/" + schedule + "/attempt", c.token, null);
             if (!st.ok()) { count("start.failed"); problems.add("vc" + c.n + " start " + st.status() + " " + st.body()); return; }
             count("start.ok");
             c.attempt = field(st.body(), "id");

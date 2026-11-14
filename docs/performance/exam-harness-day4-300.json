@@ -1,0 +1,106 @@
+{
+  "label": "day4r300",
+  "candidates": 300,
+  "questions": 10,
+  "durationMinutes": 4,
+  "sourceAddresses": 1,
+  "deliveryRestart": "killed at +100 s, ready again after 13 s",
+  "examPhaseSeconds": 245,
+  "counters": {
+    "behaviour.duplicate_submit": 35,
+    "behaviour.left_to_time_up": 60,
+    "behaviour.offline_20s": 30,
+    "checkin.ok": 300,
+    "saves.acknowledged": 18213,
+    "saves.retried": 1973,
+    "start.ok": 300
+  },
+  "verification": {
+    "attemptsStarted": 300,
+    "submittedByCandidate": 240,
+    "autoSubmitted": 60,
+    "stillInProgress": 0,
+    "awaitingScore": 0,
+    "provisionalScores": 300,
+    "acknowledgedAnswersChecked": 3000,
+    "acknowledgedAnswersLost": 0,
+    "storedNewerThanLastAcknowledgement": 0,
+    "concurrentReviewsSucceeded": 1,
+    "concurrentApprovalsSucceeded": 1,
+    "resultsPublished": 300
+  },
+  "latency": {
+    "GET exams": {
+      "p95ms": 40.042,
+      "p50ms": 14.782,
+      "n": 300,
+      "p99ms": 49.885,
+      "maxms": 59.02
+    },
+    "GET me": {
+      "p95ms": 65.398,
+      "p50ms": 17.947,
+      "n": 300,
+      "p99ms": 80.962,
+      "maxms": 119.702
+    },
+    "POST approve": {
+      "p95ms": 39.744,
+      "p50ms": 38.351,
+      "n": 2,
+      "p99ms": 39.744,
+      "maxms": 39.744
+    },
+    "POST check-in": {
+      "p95ms": 81.037,
+      "p50ms": 24.869,
+      "n": 300,
+      "p99ms": 131.376,
+      "maxms": 200.833
+    },
+    "POST review": {
+      "p95ms": 39.058,
+      "p50ms": 38.351,
+      "n": 2,
+      "p99ms": 39.058,
+      "maxms": 39.058
+    },
+    "POST start": {
+      "p95ms": 104.332,
+      "p50ms": 37.319,
+      "n": 300,
+      "p99ms": 164.331,
+      "maxms": 229.425
+    },
+    "POST submit": {
+      "p95ms": 18.757,
+      "p50ms": 11.001,
+      "n": 310,
+      "p99ms": 34.848,
+      "maxms": 72.198
+    },
+    "PUT answers": {
+      "p95ms": 24.279,
+      "p50ms": 8.889,
+      "n": 20186,
+      "p99ms": 443.074,
+      "maxms": 2751.411
+    }
+  },
+  "statuses": {
+    "GET exams 200": 300,
+    "GET me 200": 300,
+    "POST approve 200": 1,
+    "POST approve 409": 1,
+    "POST check-in 200": 300,
+    "POST review 200": 1,
+    "POST review 409": 1,
+    "POST start 200": 300,
+    "POST submit 200": 310,
+    "PUT answers 200": 18213,
+    "PUT answers ConnectException": 1963,
+    "PUT answers IOException": 10
+  },
+  "problems": [],
+  "problemCount": 0
+}
