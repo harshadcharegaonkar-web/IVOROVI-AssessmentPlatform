@@ -56,12 +56,24 @@ public class EnrolmentService {
         this.admissions = admissions;
     }
 
+    /*
+     * KI-86: filter the student's enrolments first, then look each name up by primary key. The former nine-way join let the
+     * planner, without statistics (after a restore or crash recovery), cross-join program × course × batch × year before
+     * filtering on the student (4 ms → minutes). Per-row primary-key lookups cannot be reordered that way.
+     */
     private static final String SELECT = """
-            SELECT e.*, i.name AS institution_name, cp.name AS campus_name, d.name AS department_name, p.name AS program_name, c.name AS course_name,
-                   b.code AS batch_code, b.name AS batch_name, y.name AS year_name, t.name AS term_name, u.display_name AS actor_name
-            FROM enrolment e JOIN org_unit i ON i.id = e.institution_id LEFT JOIN org_unit cp ON cp.id = e.campus_id JOIN org_unit d ON d.id = e.department_id
-            JOIN program p ON p.id = e.program_id JOIN course c ON c.id = e.course_id JOIN batch b ON b.id = e.batch_id
-            JOIN academic_year y ON y.id = e.academic_year_id LEFT JOIN academic_term t ON t.id = e.term_id LEFT JOIN user_account u ON u.id = e.created_by""";
+            SELECT e.*,
+                   (SELECT name FROM org_unit WHERE id = e.institution_id) AS institution_name,
+                   (SELECT name FROM org_unit WHERE id = e.campus_id) AS campus_name,
+                   (SELECT name FROM org_unit WHERE id = e.department_id) AS department_name,
+                   (SELECT name FROM program WHERE id = e.program_id) AS program_name,
+                   (SELECT name FROM course WHERE id = e.course_id) AS course_name,
+                   (SELECT code FROM batch WHERE id = e.batch_id) AS batch_code,
+                   (SELECT name FROM batch WHERE id = e.batch_id) AS batch_name,
+                   (SELECT name FROM academic_year WHERE id = e.academic_year_id) AS year_name,
+                   (SELECT name FROM academic_term WHERE id = e.term_id) AS term_name,
+                   (SELECT display_name FROM user_account WHERE id = e.created_by) AS actor_name
+            FROM enrolment e""";
 
     @Transactional(readOnly = true)
     public List<EnrolmentView> history(UUID studentId) {
