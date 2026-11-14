@@ -15,6 +15,11 @@ staff and delivery processes. **No production readiness is claimed.**
 | `bf7be55` | Merge of Session 2's KI-75 benchmark reproduction (docs only) |
 | `6569c32` | Merge of Session 3's QA branch (tests only): delivery security regression, concurrency, browser attempt and crash-recovery tests, KI-81 test fix |
 | `50bb254` | KI-85 test asserts the fix; KI-86 recorded |
+| `8364c27`, `86150a0` | Merge of Session 3's KI-80 root cause and regression test; my KI-80 fix (immediate cache writes) |
+| `a7af180`, `8df2a03` | Merges of Session 3's image-endpoint and result-workflow security tests and browser edge cases (tests only) |
+| `191c8b9` | First KI-87 attempt (controller only; insufficient); KI-79 reopened |
+| `b7d5e2d` | KI-87 fix in both nginx proxies |
+| `f848544`, `bd1c5fb`, `b51ea2e`, `5967a9c` | This report, KI-88, CI evidence |
 
 **A mistake I made, in the open:** I pushed `48ee4f8` after running only the targeted tests. Exam controllers gained the
 result permissions, which administrators do not hold, so the 1.3 privilege ceiling stopped administrators from assigning that role:
@@ -113,7 +118,7 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
   - outside development and test, unscanned images are never delivered;
   - E2E: no token → 401, `Cache-Control: no-store`, `nosniff`.
 - **Result approval:** self-approval refused (E2E and IT); database guards against release without a published review.
-- **Full backend suite:** 459/459 locally (`86150a0`, including the merged QA tests and the KI-80 regression), plus `AttemptImageSecurityIT` 4/4 after `a7af180`.
+- **Full backend suite:** 466/466 locally before pushing `191c8b9` (all merged QA tests and the KI-80 regression), and green in CI on every push today after `735413a`.
 
 ## Parallel sessions
 
