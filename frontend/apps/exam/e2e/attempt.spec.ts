@@ -22,8 +22,6 @@ const newEmail = (label: string) => `${label}.${RUN}.${Math.random().toString(36
 
 test.describe("candidate examination (QA, D-7)", () => {
   test("KI-85: after checking in, the examination can be started without reloading the page", async ({ page, request }) => {
-    // Known open defect KI-85: expected to fail until fixed; once fixed Playwright reports an unexpected pass, then remove this line.
-    test.fail(true, "KI-85: the examinations list does not follow a check-in");
     test.setTimeout(180_000);
     const email = newEmail("ki85");
     const exam = await schedule(request, thirtyMinutes, `Examination ${RUN}a`, [email]);

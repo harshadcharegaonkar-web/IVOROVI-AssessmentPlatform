@@ -135,14 +135,10 @@ export async function reloadAndSignIn(page: Page) {
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 }
 
-/**
- * Check-in with the code, then start from "Your examinations"; returns the attempt id from the URL. Until KI-85 is fixed the
- * list only offers "Start examination" after a reload (see the KI-85 test below, which asserts the intended behaviour).
- */
+/** Check-in with the code, then start from "Your examinations" without a reload (KI-85); returns the attempt id from the URL. */
 export async function checkInAndStart(page: Page, exam: Exam, code: string): Promise<string> {
   await checkIn(page, exam, code);
   const exams = page.getByRole("region", { name: "Your examinations" });
-  if (!(await exams.getByRole("button", { name: "Start examination" }).isVisible())) await reloadAndSignIn(page);   // KI-85 workaround
   await exams.getByRole("button", { name: "Start examination" }).click();
   await expect(page.getByRole("heading", { name: /^Question 1 of 3$/ })).toBeVisible();
   return /\/attempts\/([0-9a-f-]{36})$/.exec(page.url())![1]!;
