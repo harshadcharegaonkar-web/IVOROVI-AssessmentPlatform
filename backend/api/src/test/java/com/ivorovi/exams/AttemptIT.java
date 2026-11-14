@@ -261,6 +261,78 @@ class AttemptIT extends QuestionTestSupport {
         assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_result_review SET comment = 'changed'").update()).hasMessageContaining("never changes");
     }
 
+    /** One submitted, scored attempt of a fresh candidate (score PROVISIONAL). */
+    UUID scoredAttempt() {
+        String sub = "cand-" + rnd();
+        UUID me = candidate(sub, sub + "@c.test");
+        checkIn(me);
+        terms(me, Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, 0);
+        UUID attempt = as(sub, () -> attempts.start(portalKey, schedule)).id();
+        as(sub, () -> attempts.save(portalKey, attempt, 1, 1, Map.of("value", "A")));
+        as(sub, () -> attempts.submit(portalKey, attempt, "k-" + rnd()));
+        scoring.scoreDue();
+        return attempt;
+    }
+
+    String scoreStatus(UUID attempt) {
+        return ownerJdbc().sql("SELECT status FROM exam_score WHERE attempt_id = ?").param(attempt).query(String.class).single();
+    }
+
+    /**
+     * R-1 as approved by the product owner (Day 3 review): exam controllers and administrators review; only exam controllers
+     * approve; administrators never hold approval by default; the reviewer never approves (application and database); a
+     * second controller who did not review approves; review, approval, rejection, closing and publication are all audited.
+     */
+    @Test
+    void resultGovernanceFollowsTheApprovedSeparationOfDuties() throws Exception {
+        // the system roles: approval is held only by exam controllers and is privileged (granting it needs four-eyes)
+        assertThat(ownerJdbc().sql("SELECT code FROM role WHERE system_role AND 'exam.results.approve' = ANY (permissions) ORDER BY code")
+                .query(String.class).list()).containsExactly("EXAM_CONTROLLER");
+        assertThat(ownerJdbc().sql("SELECT code FROM role WHERE system_role AND 'exam.results.review' = ANY (permissions) ORDER BY code")
+                .query(String.class).list()).contains("EXAM_CONTROLLER", "INSTITUTION_ADMIN", "ORG_ADMIN");
+        assertThat(ownerJdbc().sql("SELECT 'exam.results.approve' = ANY (privileged_permissions())").query(Boolean.class).single()).isTrue();
+
+        // 1. an administrator reviews; administrators cannot approve; the reviewing administrator cannot either; a controller approves
+        UUID a1 = scoredAttempt();
+        var r1 = call(post("/api/v1/exam/results/" + schedule + "/reviews").content("{\"comment\":\"Checked\"}"), instAdmin, status().isOk());
+        String ap1 = r1.path("reviews").get(0).path("approvalId").asString();
+        perform(post("/api/v1/approvals/" + ap1 + "/decision").content("{\"approve\":true,\"reason\":\"self\"}"), instAdmin).andExpect(status().is4xxClientError());
+        perform(post("/api/v1/approvals/" + ap1 + "/decision").content("{\"approve\":true,\"reason\":\"admin\"}"), admin).andExpect(status().is4xxClientError());
+        assertThat(scoreStatus(a1)).isEqualTo("PROVISIONAL");
+        call(post("/api/v1/approvals/" + ap1 + "/decision").content("{\"approve\":true,\"reason\":\"Agreed\"}"), controller, status().isOk());
+        assertThat(scoreStatus(a1)).isEqualTo("RELEASED");
+
+        // 2. a controller reviews, a second controller rejects: nothing is published
+        UUID a2 = scoredAttempt();
+        var r2 = call(post("/api/v1/exam/results/" + schedule + "/reviews").content("{}"), controller, status().isOk());
+        String ap2 = r2.path("reviews").get(0).path("approvalId").asString();
+        call(post("/api/v1/approvals/" + ap2 + "/decision").content("{\"approve\":false,\"reason\":\"Recheck question 2\"}"), controller2, status().isOk());
+        assertThat(scoreStatus(a2)).isEqualTo("PROVISIONAL");
+
+        // 3. the reviewer withdraws a pending review: closed, nothing published
+        var r3 = call(post("/api/v1/exam/results/" + schedule + "/reviews").content("{}"), controller, status().isOk());
+        String ap3 = r3.path("reviews").get(0).path("approvalId").asString();
+        call(post("/api/v1/approvals/" + ap3 + "/cancel").content("{}"), controller, status().isOk());
+        assertThat(scoreStatus(a2)).isEqualTo("PROVISIONAL");
+
+        // 4. the database refuses a publication approved by the reviewer, even when written directly
+        UUID rev = ownerJdbc().sql("SELECT id FROM exam_result_review WHERE approval_id = ?::uuid").param(ap3).query(UUID.class).single();
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_result_review SET status = 'PUBLISHED', approved_by = reviewer_id, decided_at = now() WHERE id = ?")
+                .param(rev).update()).isInstanceOf(org.springframework.dao.DataAccessException.class);
+
+        // every action is audited, with identifiers only (no names, e-mails or scores)
+        assertThat(audits("exam.results.reviewed")).isEqualTo(3);
+        assertThat(audits("exam.results.published")).isEqualTo(1);
+        assertThat(audits("exam.results.publication_rejected")).isEqualTo(1);
+        assertThat(audits("exam.results.review_closed")).isEqualTo(1);
+        assertThat(audits("approval.approved") + audits("approval.rejected") + audits("approval.cancelled")).isEqualTo(3);
+        assertThat(ownerJdbc().sql("SELECT action FROM audit_event WHERE tenant_id = ? AND outcome <> 'SUCCESS' ORDER BY occurred_at").param(org.tenant).query(String.class).list())
+                .contains("approval.self_decision_denied")                         // the reviewing administrator
+                .containsAnyOf("approval.decision_denied", "security.access_denied");  // the administrator without approval rights
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action LIKE 'exam.results.%' AND (details::text ILIKE '%@%' OR details::text ILIKE '%awarded%')")
+                .param(org.tenant).query(Long.class).single()).isZero();
+    }
+
     @Test
     void theDeadlineNeverPassesTheWindowAndLateEntryCloses() {
         String sub = "cand-" + rnd();

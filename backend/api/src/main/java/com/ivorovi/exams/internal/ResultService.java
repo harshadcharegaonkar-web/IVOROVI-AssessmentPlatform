@@ -208,8 +208,11 @@ public class ResultService implements ApprovalHandler {
 
     @Override
     public void onClosed(ApprovalService.Request request) {
-        jdbc.sql("UPDATE exam_result_review SET status = 'CLOSED', decided_at = now() WHERE id = CAST(? AS uuid) AND status = 'PENDING_APPROVAL'")
+        int n = jdbc.sql("UPDATE exam_result_review SET status = 'CLOSED', decided_at = now() WHERE id = CAST(? AS uuid) AND status = 'PENDING_APPROVAL'")
                 .param(request.subjectId()).update();
+        // R-1: every outcome of a review is audited (cancelled, expired or invalidated approvals close it); identifiers only
+        if (n > 0) audit.recordSuccess("exam.results.review_closed", "exam_result_review", request.subjectId(),
+                Map.of("schedule", String.valueOf(request.payload().get("scheduleId")), "approvalStatus", String.valueOf(request.status())));
     }
 
     // ================================================================================================ candidate view
