@@ -1,5 +1,5 @@
-import { expect, test, type Page, type Request } from "@playwright/test";
-import { expectNoAnswerInformation, publishedVersion, recordDelivery, registerCandidate, schedule, type Exam } from "./exam-fixture";
+import { expect, test, type Request } from "@playwright/test";
+import { checkIn, checkInAndStart, expectNoAnswerInformation, goToQuestion, publishedVersion, recordDelivery, registerCandidate, saveStatus as status, schedule } from "./exam-fixture";
 
 /**
  * QA (D-7): the candidate examination in a real browser against the real candidate realm, delivery process, staff API,
@@ -19,40 +19,6 @@ test.beforeAll(async ({ request }) => {
 
 const secret = () => `Exam-${Date.now()}-pw!`;
 const newEmail = (label: string) => `${label}.${RUN}.${Math.random().toString(36).slice(2, 6)}@candidates.test`;
-
-async function checkIn(page: Page, exam: Exam, code: string) {
-  await page.getByLabel("Session code").fill(code);
-  await page.getByRole("button", { name: "Check in" }).click();
-  await expect(page.getByText(/^Checked in to /)).toBeVisible();
-  await expect(page.getByRole("region", { name: "Your examinations" }).getByText(exam.title)).toBeVisible();
-}
-
-/** A full reload; tokens live only in memory (KI-69), so single sign-on brings the candidate back without a password. */
-async function reloadAndSignIn(page: Page) {
-  await page.reload();
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
-}
-
-/**
- * Check-in with the code, then start from "Your examinations"; returns the attempt id from the URL. Until KI-85 is fixed the
- * list only offers "Start examination" after a reload (see the KI-85 test below, which asserts the intended behaviour).
- */
-async function checkInAndStart(page: Page, exam: Exam, code: string): Promise<string> {
-  await checkIn(page, exam, code);
-  const exams = page.getByRole("region", { name: "Your examinations" });
-  if (!(await exams.getByRole("button", { name: "Start examination" }).isVisible())) await reloadAndSignIn(page);   // KI-85 workaround
-  await exams.getByRole("button", { name: "Start examination" }).click();
-  await expect(page.getByRole("heading", { name: /^Question 1 of 3$/ })).toBeVisible();
-  return /\/attempts\/([0-9a-f-]{36})$/.exec(page.url())![1]!;
-}
-
-async function goToQuestion(page: Page, n: number) {
-  await page.getByRole("navigation", { name: "Questions" }).getByRole("button", { name: new RegExp(`^Question ${n}(, answered)?$`) }).click();
-  await expect(page.getByRole("heading", { name: new RegExp(`^Question ${n} of 3$`) })).toBeVisible();
-}
-
-const status = (page: Page) => page.getByText(/^(All answers saved|Saving your answers…)$/);
 
 test.describe("candidate examination (QA, D-7)", () => {
   test("KI-85: after checking in, the examination can be started without reloading the page", async ({ page, request }) => {
