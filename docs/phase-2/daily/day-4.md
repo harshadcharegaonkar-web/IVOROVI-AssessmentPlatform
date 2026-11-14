@@ -16,7 +16,8 @@ priorities 1–4. Synthetic data only, real services. **No production readiness 
 | `5aea60e` | Invigilation: live monitoring and permanent candidate incidents; KI-90; exam load harness |
 | `02b7d65`, `7bb3d77` | Harness fixes and the 300-candidate evidence; register updates |
 | `f591b04` | Staff E2E locator fix (a test defect I introduced with the monitor card) |
-| `DAY4_FINAL` | This report and the 1,000-candidate evidence |
+| `f3e32b2` | **KI-91** (found by the 1,000-candidate run): check-in idempotent for the candidate who used the code |
+| (this commit) | This report and the 1,000-candidate evidence |
 
 **Commit attribution (D-13).** I inspected the hook. It is `~/.claude/stop-hook-git-check.sh`, set by the cloud environment, not by this repository. It
 flags unpushed commits whose committer is not the environment's signing identity (`noreply@anthropic.com`, SSH key in
@@ -112,21 +113,33 @@ Full backend suite locally before each push: 476/476 (KI-66 merge), 477/477 (inv
   - exactly one submission per attempt;
   - two concurrent result reviews and two concurrent approvals, of which exactly one each must succeed.
 
-| | Run A | Run B |
-|---|---|---|
-| Candidates / questions / duration | 300 / 10 / 4 min | 1,000 / 10 / 4 min |
-| Delivery process SIGKILL | at +100 s (mid-exam), back after 13 s | RUN_B_KILL |
-| Checked in / started | 300 / 300 | RUN_B_STARTED |
-| Submitted by candidate / automatically at time-up | 240 / 60 | RUN_B_SUBMITTED |
-| Scored (provisional) / still in progress | 300 / 0 | RUN_B_SCORED |
-| Acknowledged final answers checked / **lost** | 3,000 / **0** | RUN_B_LOST |
-| Saves acknowledged / retried during the outage | 18,213 / 1,973 | RUN_B_SAVES |
-| Duplicate submitters (inconsistent results) | 35 (0) | RUN_B_DUP |
-| Concurrent reviews / approvals succeeded | 1 of 2 / 1 of 2; published once (300) | RUN_B_RACE |
-| Save latency p50 / p95 / p99 / max | 8.9 / 24.3 / 443 / 2,751 ms (max includes the outage) | RUN_B_LAT |
-| Check-in p95 / start p95 | 81 / 104 ms | RUN_B_LAT2 |
+| | Run A | Run B (before the KI-91 fix) | Run C (with the fix) |
+|---|---|---|---|
+| Candidates / questions / duration | 300 / 10 / 4 min | 1,000 / 10 / 4 min | 1,000 / 10 / 4 min |
+| Delivery process SIGKILL | at +100 s (mid-exam), back after 13 s | at +15 s (during check-in and start), back after 14 s | same as B |
+| Checked in / started | 300 / 300 | **998 / 998** (2 refused: KI-91) | **1,000 / 1,000** |
+| Submitted by candidate / automatically at time-up | 240 / 60 | 799 / 199 | 800 / 200 |
+| Scored (provisional) / still in progress | 300 / 0 | 998 / 0 | 1,000 / 0 |
+| Acknowledged final answers checked / **lost** | 3,000 / **0** | 9,980 / **0** | 10,000 / **0** |
+| Saves acknowledged / retried during the outage | 18,213 / 1,973 | 54,702 / 3,313 | 53,562 / 1,877 |
+| Duplicate submitters (inconsistent results) | 35 (0) | 115 (0) | 115 (0) |
+| Concurrent reviews / approvals succeeded | 1 of 2 / 1 of 2; published once (300) | 1 / 1; published 998 | 1 / 1; published 1,000 |
+| Save latency p50 / p95 / p99 / max | 8.9 / 24.3 / 443 / 2,751 ms (max includes the outage) | 8.5 / 1,623 / 4,183 / 11,245 ms | 8.6 / 1,980 / 3,637 / 11,958 ms |
+| Check-in p95 / start p95 | 81 / 104 ms | 8,118 / 4,149 ms | 9,060 / 4,521 ms |
 
-Raw results: `docs/performance/exam-harness-day4-300.json`, `docs/performance/exam-harness-day4-1000.json`.
+Raw results: `docs/performance/exam-harness-day4-300.json`, `exam-harness-day4-1000.json` (run B), `exam-harness-day4-1000-fixed.json` (run C).
+
+**Defect found by run B (KI-91, fixed and re-run as C).** Two candidates were refused at check-in with "code not valid".
+- Cause: their first check-in had committed, but the process was killed before the response arrived; the retry then found
+  the code already consumed by that same candidate. The database held 1,000 check-ins for 998 attempts.
+- In a hall, those candidates would have been told their code was invalid.
+- Fix: a retry by the candidate who used the code returns their existing check-in. Run C: 1,000 of 1,000 started, 0 problems.
+
+**Latency under these runs, stated plainly.** In runs B and C, check-in and start p95 are 4–9 s. Three causes overlap:
+- the 14-second outage;
+- the retry surge after the restart;
+- the deliberate per-address delay of the KI-66 design, because all 1,000 candidates come from **one** address.
+A registered venue network switches that delay off. Saves outside the outage window stay at a p50 of about 9 ms.
 
 **What these runs do and do not prove.**
 - **"0 lost" applies only to these runs:** for every candidate and question, the last answer the server acknowledged is
@@ -154,6 +167,7 @@ merge that script.
 |---|---|---|
 | KI-79 password reset signs out other devices | Medium | Fix in CI (first-attempt pass); open until repeated passes |
 | KI-88 mobile students E2E sign-in callback in CI | Low | Open; hypothesis rejected; cause unknown |
+| KI-91 check-in retry after a lost response refused | Medium | **New, fixed**: the identical harness scenario now gives 1,000/1,000; CI evidence pending |
 | KI-89 code guessing bounded only by the code space during a Valkey outage | Low | Open (new): durable fallback proposed |
 | KI-82 scheduling reads other modules' tables | Low | Deferred (documented) |
 | KI-66, KI-86, KI-90 | Medium | **Fixed, CI-verified** (run 43637392954) |
