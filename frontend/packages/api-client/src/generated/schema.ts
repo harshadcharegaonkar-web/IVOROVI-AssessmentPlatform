@@ -1904,6 +1904,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/results/{scheduleId}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review all provisional results and request their publication from an independent approver */
+        post: operations["review_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/portals": {
         parameters: {
             query?: never;
@@ -2065,7 +2082,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Review the version in review (never by its author); changes requested return it to draft */
-        post: operations["review_1"];
+        post: operations["review_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3824,6 +3841,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["portals_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/results/{scheduleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attempts and scores of a scheduled examination, and its result reviews */
+        get: operations["results"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6324,6 +6358,62 @@ export interface components {
         };
         ExamScheduleCancelRequest: {
             reason: string;
+        };
+        ResultReviewRequest: {
+            comment?: string;
+        };
+        ExamResultReview: {
+            /** Format: uuid */
+            id?: string;
+            status?: string;
+            reviewerName?: string;
+            approverName?: string;
+            /** Format: int32 */
+            attempts?: number;
+            comment?: string;
+            /** Format: uuid */
+            approvalId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            decidedAt?: string;
+        };
+        ExamResultRow: {
+            /** Format: uuid */
+            attemptId?: string;
+            /** Format: uuid */
+            candidateId?: string;
+            candidateName?: string;
+            candidateEmail?: string;
+            attemptStatus?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            awarded?: number;
+            maxMarks?: number;
+            /** Format: int32 */
+            correct?: number;
+            /** Format: int32 */
+            incorrect?: number;
+            /** Format: int32 */
+            unanswered?: number;
+            scoreStatus?: string;
+        };
+        ExamResults: {
+            /** Format: uuid */
+            scheduleId?: string;
+            /** Format: int32 */
+            inProgress?: number;
+            /** Format: int32 */
+            awaitingScore?: number;
+            /** Format: int32 */
+            provisional?: number;
+            /** Format: int32 */
+            released?: number;
+            rows?: components["schemas"]["ExamResultRow"][];
+            reviews?: components["schemas"]["ExamResultReview"][];
+            canReview?: boolean;
         };
         CreateExamPortalRequest: {
             portalKey: string;
@@ -12024,6 +12114,32 @@ export interface operations {
             };
         };
     };
+    review_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ResultReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamResults"];
+                };
+            };
+        };
+    };
     portals: {
         parameters: {
             query?: never;
@@ -12302,7 +12418,7 @@ export interface operations {
             };
         };
     };
-    review_1: {
+    review_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -15353,6 +15469,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["SchedulablePortal"][];
+                };
+            };
+        };
+    };
+    results: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamResults"];
                 };
             };
         };

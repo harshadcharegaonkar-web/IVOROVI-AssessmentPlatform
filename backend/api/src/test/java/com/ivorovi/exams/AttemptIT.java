@@ -3,6 +3,7 @@ package com.ivorovi.exams;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -202,6 +203,59 @@ class AttemptIT extends QuestionTestSupport {
         assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_answer_score SET awarded = 2 WHERE attempt_id = ?").param(v.id()).update()).hasMessageContaining("never change");
         String auditText = ownerJdbc().sql("SELECT details::text FROM audit_event WHERE tenant_id = ? AND action = 'exam.attempt.scored'").param(org.tenant).query(String.class).single();
         assertThat(auditText).contains("\"awarded\": \"1.5\"").doesNotContain("correct\": \"A");
+    }
+
+    @Autowired com.ivorovi.exams.internal.ResultService results;
+
+    @Test
+    void resultsArePublishedOnlyAfterReviewAndIndependentApproval() throws Exception {
+        String sub = "cand-" + rnd();
+        UUID me = candidate(sub, sub + "@c.test");
+        checkIn(me);
+        terms(me, Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, 0);
+        UUID attempt = as(sub, () -> attempts.start(portalKey, schedule)).id();
+        as(sub, () -> attempts.save(portalKey, attempt, 2, 1, Map.of("value", "A")));
+        as(sub, () -> attempts.submit(portalKey, attempt, "k"));
+        scoring.scoreDue();
+
+        // before publication the candidate sees no result
+        assertThatThrownBy(() -> as(sub, () -> results.candidateResult(portalKey, attempt))).satisfies(t -> assertThat(code(t)).isEqualTo("result_not_published"));
+        var view = call(get("/api/v1/exam/results/" + schedule), controller, status().isOk());
+        assertThat(view.path("provisional").asInt()).isEqualTo(1);
+        assertThat(view.path("canReview").asBoolean()).isTrue();
+        // who may see and review
+        perform(get("/api/v1/exam/results/" + schedule), faculty).andExpect(status().isForbidden());
+        perform(get("/api/v1/exam/results/" + schedule), otherController).andExpect(status().isNotFound());
+        perform(post("/api/v1/exam/results/" + schedule + "/reviews").content("{}"), designer).andExpect(status().isForbidden());
+
+        // review by one controller opens an approval; the reviewer cannot approve it
+        var reviewed = call(post("/api/v1/exam/results/" + schedule + "/reviews").content("{\"comment\":\"Totals checked against the paper\"}"), controller, status().isOk());
+        String approval = reviewed.path("reviews").get(0).path("approvalId").asString();
+        assertThat(reviewed.path("reviews").get(0).path("status").asString()).isEqualTo("PENDING_APPROVAL");
+        perform(post("/api/v1/exam/results/" + schedule + "/reviews").content("{}"), controller2).andExpect(status().isConflict());   // one pending review
+        perform(post("/api/v1/approvals/" + approval + "/decision").content("{\"approve\":true,\"reason\":\"mine\"}"), controller).andExpect(status().is4xxClientError());
+        assertThat(ownerJdbc().sql("SELECT status FROM exam_score WHERE attempt_id = ?").param(attempt).query(String.class).single()).isEqualTo("PROVISIONAL");
+        // releasing a score directly in the database is refused without a published review
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_score SET status = 'RELEASED' WHERE attempt_id = ?").param(attempt).update()).hasMessageContaining("independently approved");
+
+        // a second, independent controller approves: published
+        perform(post("/api/v1/approvals/" + approval + "/decision").content("{\"approve\":true,\"reason\":\"Agreed\"}"), controller2).andExpect(status().isOk());
+        assertThat(ownerJdbc().sql("SELECT status FROM exam_score WHERE attempt_id = ?").param(attempt).query(String.class).single()).isEqualTo("RELEASED");
+        var published = call(get("/api/v1/exam/results/" + schedule), controller, status().isOk());
+        assertThat(published.path("released").asInt()).isEqualTo(1);
+        assertThat(published.path("reviews").get(0).path("status").asString()).isEqualTo("PUBLISHED");
+        assertThat(published.path("reviews").get(0).path("approverName").asString()).isNotBlank();
+        var result = as(sub, () -> results.candidateResult(portalKey, attempt));
+        assertThat(result.awarded()).isEqualByComparingTo("2");
+        assertThat(result.maxMarks()).isEqualByComparingTo("6");
+        assertThat(MAPPER.writeValueAsString(result)).doesNotContain("answerKey").doesNotContain("explanation");
+        // another candidate never sees it
+        String other = "cand-" + rnd();
+        candidate(other, other + "@c.test");
+        assertThatThrownBy(() -> as(other, () -> results.candidateResult(portalKey, attempt))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        assertThat(audits("exam.results.reviewed")).isEqualTo(1);
+        assertThat(audits("exam.results.published")).isEqualTo(1);
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_result_review SET comment = 'changed'").update()).hasMessageContaining("never changes");
     }
 
     @Test
