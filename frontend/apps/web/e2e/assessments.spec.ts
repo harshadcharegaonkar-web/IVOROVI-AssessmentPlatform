@@ -183,8 +183,9 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
     await expect(page.getByText("Line 4: Not a valid email address.")).toBeVisible();
     await page.getByRole("button", { name: "Enrol 2 candidates" }).click();
     await expect(page.getByText("Enrolled 2 new candidate(s)")).toBeVisible();
-    await expect(page.getByRole("cell", { name: /Arjun K/ })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "15 min (Scribe approved)" })).toBeVisible();
+    const enrolled = page.getByRole("table", { name: "Enrolled candidates" });      // the live monitor lists the same names
+    await expect(enrolled.getByRole("cell", { name: /Arjun K/ })).toBeVisible();
+    await expect(enrolled.getByRole("cell", { name: "15 min (Scribe approved)" })).toBeVisible();
     await page.getByRole("button", { name: "Send invitations" }).click();
     await expect(page.getByText("Invitations sent: 2.")).toBeVisible();
     // the invitation reached the candidate with the portal link
