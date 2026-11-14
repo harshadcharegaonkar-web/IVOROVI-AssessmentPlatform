@@ -66,7 +66,7 @@ const EXAMS = (a: Access) => a.hasAnywhere("exam.session.manage");
 const INCIDENTS = (a: Access) => a.has("exam.incident.manage") || a.has("exam.incident.decide");
 const QUESTIONS = (a: Access) => a.hasAnywhere("question.read");
 const ASSESSMENTS = (a: Access) => a.hasAnywhere("assessment.read");
-const SCHEDULES = (a: Access) => a.hasAnywhere("exam.schedule.read");
+const SCHEDULES = (a: Access) => a.hasAnywhere("exam.schedule.read") || a.hasAnywhere("exam.invigilate");
 const ASSESSMENT_AUTHOR = (a: Access) => a.hasAnywhere("assessment.author") || a.hasAnywhere("assessment.author.internal");
 const ASSESSMENT_QUEUE = (a: Access) => a.hasAnywhere("assessment.review") || a.hasAnywhere("assessment.publish");
 const QUESTION_AUTHOR = (a: Access) => a.hasAnywhere("question.author");

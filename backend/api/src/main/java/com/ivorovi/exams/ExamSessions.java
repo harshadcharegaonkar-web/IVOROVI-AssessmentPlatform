@@ -2,6 +2,8 @@ package com.ivorovi.exams;
 
 import com.ivorovi.exams.internal.CandidateService;
 import com.ivorovi.exams.internal.ExamAdminService;
+import com.ivorovi.platform.security.Authz;
+import org.springframework.security.access.AccessDeniedException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -35,14 +37,52 @@ public class ExamSessions {
 
     public record CheckIn(UUID candidateId, String displayName, Instant checkedInAt, Instant lastSeenAt) {}
 
+    /**
+     * Invigilation view of one candidate (Day 4): check-in, connection and attempt progress. Never answers, keys or scores:
+     * only how many questions have a saved answer and when the last save happened.
+     */
+    public record Progress(UUID candidateId, Instant checkedInAt, Instant lastSeenAt, String attemptStatus, Instant startedAt, Instant deadlineAt,
+                           Instant submittedAt, int extraMinutes, int questions, int answered, Instant lastSavedAt) {}
+
     private final ExamAdminService admin;
     private final CandidateService candidates;
     private final JdbcClient jdbc;
+    private final Authz authz;
 
-    ExamSessions(ExamAdminService admin, CandidateService candidates, JdbcClient jdbc) {
+    ExamSessions(ExamAdminService admin, CandidateService candidates, JdbcClient jdbc, Authz authz) {
         this.admin = admin;
         this.candidates = candidates;
         this.jdbc = jdbc;
+        this.authz = authz;
+    }
+
+    /**
+     * Progress of the given candidates in a schedule's session and attempts, for invigilators (exam.invigilate) or session
+     * managers of the schedule's institution; the caller passes the candidates it has enrolled.
+     */
+    @Transactional(readOnly = true)
+    public List<Progress> progress(UUID scheduleId, UUID sessionId, UUID orgUnitId, java.util.Collection<UUID> candidateIds) {
+        if (!authz.hasInOrgUnit("exam.invigilate", orgUnitId) && !authz.hasInOrgUnit("exam.session.manage", orgUnitId)) {
+            throw new AccessDeniedException("Missing permission exam.invigilate");
+        }
+        if (candidateIds.isEmpty()) return List.of();
+        return jdbc.sql("""
+                SELECT ca.id, ci.checked_in_at, p.last_seen_at, a.status, a.started_at, a.deadline_at, a.submitted_at, coalesce(a.extra_minutes, 0),
+                       coalesce((SELECT jsonb_array_length(ap.items) FROM assessment_paper ap WHERE ap.id = a.paper_id), 0),
+                       (SELECT count(*) FROM exam_answer x WHERE x.attempt_id = a.id AND jsonb_typeof(x.response -> 'value') IS DISTINCT FROM 'null'),
+                       (SELECT max(x.saved_at) FROM exam_answer x WHERE x.attempt_id = a.id)
+                FROM candidate_account ca
+                LEFT JOIN check_in ci ON ci.candidate_id = ca.id AND ci.session_id = ?
+                LEFT JOIN delivery_presence p ON p.candidate_id = ca.id AND p.session_id = ?
+                LEFT JOIN exam_attempt a ON a.candidate_id = ca.id AND a.schedule_id = ?
+                WHERE ca.id = ANY (?)""").params(sessionId, sessionId, scheduleId, candidateIds.toArray(UUID[]::new))
+                .query((rs, n) -> new Progress(rs.getObject(1, UUID.class), ts(rs.getTimestamp(2)), ts(rs.getTimestamp(3)), rs.getString(4),
+                        ts(rs.getTimestamp(5)), ts(rs.getTimestamp(6)), ts(rs.getTimestamp(7)), rs.getInt(8), rs.getInt(9), rs.getInt(10), ts(rs.getTimestamp(11))))
+                .list();
+    }
+
+    private static Instant ts(java.sql.Timestamp t) {
+        return t == null ? null : t.toInstant();
     }
 
     public Session create(UUID portalId, UUID orgUnitId, String name, Instant startsAt, Instant endsAt) {

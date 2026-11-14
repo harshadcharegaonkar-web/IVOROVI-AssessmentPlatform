@@ -184,15 +184,22 @@ public class ScheduleService {
     @Transactional(readOnly = true)
     public List<Schedule> list() {
         List<UUID> ids = jdbc.sql("SELECT id, org_unit_id FROM exam_schedule ORDER BY opens_at DESC LIMIT 500")
-                .query((rs, n) -> authz.hasInOrgUnit(READ, rs.getObject(2, UUID.class)) ? rs.getObject(1, UUID.class) : null).list()
+                .query((rs, n) -> visible(rs.getObject(2, UUID.class)) ? rs.getObject(1, UUID.class) : null).list()
                 .stream().filter(java.util.Objects::nonNull).toList();
         return ids.stream().map(this::view).toList();
     }
 
     @Transactional(readOnly = true)
     public Schedule get(UUID id) {
-        row(id, false);
+        UUID unit = jdbc.sql("SELECT org_unit_id FROM exam_schedule WHERE id = ?").param(id).query(UUID.class).optional()
+                .orElseThrow(() -> ApiException.notFound("Schedule"));
+        if (!visible(unit)) throw ApiException.notFound("Schedule");
         return view(id);
+    }
+
+    /** Schedules are listed and shown to readers and to invigilators (who never see the enrolment list with e-mails). */
+    private boolean visible(UUID orgUnitId) {
+        return authz.hasInOrgUnit(READ, orgUnitId) || authz.hasInOrgUnit(InvigilationService.INVIGILATE, orgUnitId);
     }
 
     private Schedule view(UUID id) {
@@ -217,11 +224,9 @@ public class ScheduleService {
 
     /** The portal link (not secret); unavailable to readers without exam.session.manage, who then see no link. */
     private String portalUrl(String key) {
-        try {
-            return sessions.portals().stream().filter(p -> key.equals(p.portalKey())).map(ExamSessions.Portal::url).findFirst().orElse(null);
-        } catch (AccessDeniedException e) {
-            return null;
-        }
+        // check first: the refusal inside the transactional call would mark this request's transaction rollback-only (Day 4)
+        if (!authz.hasAnywhere("exam.session.manage")) return null;
+        return sessions.portals().stream().filter(p -> key.equals(p.portalKey())).map(ExamSessions.Portal::url).findFirst().orElse(null);
     }
 
     // ================================================================================================ enrolment

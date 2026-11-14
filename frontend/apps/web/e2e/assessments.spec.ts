@@ -198,6 +198,19 @@ test.describe.serial("assessment authoring, review and publication (M1)", () => 
     expect(text).toContain(TITLE);
     expect(text).toContain(`/p/${portalKey}`);
     await axe(page);
+
+    // Day 4 invigilation: live monitoring of every enrolled candidate and a permanent incident recorded through the dialog
+    const monitor = page.getByRole("table", { name: "Live monitoring" });
+    await expect(monitor.getByRole("row", { name: /Riya Sharma/ })).toContainText("Not signed in");
+    await expect(monitor).not.toContainText(a);                                        // e-mails are masked on the monitor
+    await monitor.getByRole("row", { name: /Arjun K/ }).getByRole("button", { name: "Record incident" }).click();
+    const incident = page.getByRole("dialog");
+    await incident.getByLabel("Category").selectOption("LATE_ARRIVAL");
+    await incident.getByLabel("What happened").fill(`Arrived 12 minutes late ${RUN}`);
+    await incident.getByRole("button", { name: "Record incident" }).click();
+    await expect(page.getByRole("list", { name: "Incidents" })).toContainText(`Late arrival: Arrived 12 minutes late ${RUN}`);
+    await expect(monitor.getByRole("row", { name: /Arjun K/ })).toContainText("1");
+    await axe(page);
     expectNoAnswers(bodies);
   });
 });

@@ -1905,6 +1905,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/schedules/{id}/candidate-incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["incidents"];
+        put?: never;
+        /** Record a candidate incident (permanent; a correction is a new incident referring to the first) */
+        post: operations["record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/schedules/{id}/cancel": {
         parameters: {
             query?: never;
@@ -1962,7 +1979,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["incidents"];
+        get: operations["incidents_1"];
         put?: never;
         /** Report an outage observed by the institution; affected candidates are derived from presence and check-ins */
         post: operations["report"];
@@ -3809,6 +3826,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["get_8"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live state of every enrolled candidate (check-in, connection, progress; never answers or scores) */
+        get: operations["monitor"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6384,6 +6418,28 @@ export interface components {
             /** Format: date-time */
             validUntil?: string;
         };
+        CandidateIncidentRequest: {
+            /** Format: uuid */
+            enrolmentId: string;
+            category: string;
+            note: string;
+            /** Format: uuid */
+            correctsId?: string;
+        };
+        CandidateIncident: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            enrolmentId?: string;
+            candidateName?: string;
+            category?: string;
+            note?: string;
+            /** Format: uuid */
+            correctsId?: string;
+            recordedByName?: string;
+            /** Format: date-time */
+            recordedAt?: string;
+        };
         ExamScheduleCancelRequest: {
             reason: string;
         };
@@ -8099,6 +8155,52 @@ export interface components {
             beats?: number;
             /** Format: int64 */
             saves?: number;
+        };
+        InvigilationCandidate: {
+            /** Format: uuid */
+            enrolmentId?: string;
+            displayName?: string;
+            email?: string;
+            state?: string;
+            online?: boolean;
+            /** Format: date-time */
+            checkedInAt?: string;
+            /** Format: date-time */
+            lastSeenAt?: string;
+            /** Format: date-time */
+            startedAt?: string;
+            /** Format: date-time */
+            deadlineAt?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: int64 */
+            secondsLeft?: number;
+            /** Format: int32 */
+            extraMinutes?: number;
+            /** Format: int32 */
+            questions?: number;
+            /** Format: int32 */
+            answered?: number;
+            /** Format: date-time */
+            lastSavedAt?: string;
+            /** Format: int32 */
+            incidents?: number;
+        };
+        InvigilationMonitor: {
+            /** Format: uuid */
+            scheduleId?: string;
+            title?: string;
+            /** Format: date-time */
+            opensAt?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: date-time */
+            serverTime?: string;
+            counts?: {
+                [key: string]: number;
+            };
+            candidates?: components["schemas"]["InvigilationCandidate"][];
+            canRecordIncidents?: boolean;
         };
         Code: {
             /** Format: uuid */
@@ -12164,6 +12266,54 @@ export interface operations {
             };
         };
     };
+    incidents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CandidateIncident"][];
+                };
+            };
+        };
+    };
+    record: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CandidateIncidentRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CandidateIncident"];
+                };
+            };
+        };
+    };
     cancel_2: {
         parameters: {
             query?: never;
@@ -12260,7 +12410,7 @@ export interface operations {
             };
         };
     };
-    incidents: {
+    incidents_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -15483,6 +15633,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ExamSchedule"];
+                };
+            };
+        };
+    };
+    monitor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["InvigilationMonitor"];
                 };
             };
         };

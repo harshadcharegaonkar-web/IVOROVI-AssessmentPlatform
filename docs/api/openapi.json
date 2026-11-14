@@ -5434,6 +5434,72 @@
         }
       }
     },
+    "/api/v1/exam/schedules/{id}/candidate-incidents" : {
+      "get" : {
+        "tags" : [ "Examination invigilation" ],
+        "operationId" : "incidents",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/CandidateIncident"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "Examination invigilation" ],
+        "summary" : "Record a candidate incident (permanent; a correction is a new incident referring to the first)",
+        "operationId" : "record",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CandidateIncidentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "description" : "Created",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CandidateIncident"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/schedules/{id}/cancel" : {
       "post" : {
         "tags" : [ "Examination scheduling" ],
@@ -5559,7 +5625,7 @@
     "/api/v1/exam/incidents" : {
       "get" : {
         "tags" : [ "Exam administration" ],
-        "operationId" : "incidents",
+        "operationId" : "incidents_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -10547,6 +10613,34 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ExamSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/monitor" : {
+      "get" : {
+        "tags" : [ "Examination invigilation" ],
+        "summary" : "Live state of every enrolled candidate (check-in, connection, progress; never answers or scores)",
+        "operationId" : "monitor",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InvigilationMonitor"
                 }
               }
             }
@@ -17030,6 +17124,62 @@
           }
         }
       },
+      "CandidateIncidentRequest" : {
+        "type" : "object",
+        "properties" : {
+          "enrolmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "category" : {
+            "type" : "string",
+            "minLength" : 1
+          },
+          "note" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "correctsId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        },
+        "required" : [ "category", "enrolmentId", "note" ]
+      },
+      "CandidateIncident" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "enrolmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "candidateName" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "note" : {
+            "type" : "string"
+          },
+          "correctsId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "recordedByName" : {
+            "type" : "string"
+          },
+          "recordedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "ExamScheduleCancelRequest" : {
         "type" : "object",
         "properties" : {
@@ -21456,6 +21606,111 @@
           "saves" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "InvigilationCandidate" : {
+        "type" : "object",
+        "properties" : {
+          "enrolmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "state" : {
+            "type" : "string"
+          },
+          "online" : {
+            "type" : "boolean"
+          },
+          "checkedInAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastSeenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "deadlineAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "secondsLeft" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "extraMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "questions" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "answered" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "lastSavedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "incidents" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "InvigilationMonitor" : {
+        "type" : "object",
+        "properties" : {
+          "scheduleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "opensAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "closesAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "serverTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "counts" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "integer",
+              "format" : "int32"
+            }
+          },
+          "candidates" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InvigilationCandidate"
+            }
+          },
+          "canRecordIncidents" : {
+            "type" : "boolean"
           }
         }
       },

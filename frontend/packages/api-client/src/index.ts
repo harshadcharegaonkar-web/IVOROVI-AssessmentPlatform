@@ -156,3 +156,6 @@ export type EnrolmentUploadResult = Schemas["EnrolmentUploadResult"];
 export type PublishedAssessmentVersion = Schemas["PublishedAssessmentVersion"];
 export type ExamResults = Schemas["ExamResults"];
 export type ExamResultRow = Schemas["ExamResultRow"];
+export type InvigilationMonitor = Schemas["InvigilationMonitor"];
+export type InvigilationCandidate = Schemas["InvigilationCandidate"];
+export type CandidateIncident = Schemas["CandidateIncident"];

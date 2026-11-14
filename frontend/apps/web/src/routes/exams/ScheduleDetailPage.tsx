@@ -1,5 +1,5 @@
-import { unwrap, type EnrolmentUploadResult, type ExamEnrolment, type ExamResultRow } from "@ivorovi/api-client";
-import { Alert, Badge, Button, Card, CardBody, CardHeader, DataTable, Field, Input, Modal, PageHeader, TextArea, type Column } from "@ivorovi/ui";
+import { unwrap, type CandidateIncident, type EnrolmentUploadResult, type ExamEnrolment, type ExamResultRow, type InvigilationCandidate } from "@ivorovi/api-client";
+import { Alert, Badge, Button, Card, CardBody, CardHeader, DataTable, Field, Input, Modal, PageHeader, Select, TextArea, type Column } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
@@ -14,10 +14,11 @@ export function ScheduleDetailPage() {
   const qc = useQueryClient();
   const { access } = useSession();
   const manage = access.hasAnywhere("exam.schedule.manage");
+  const read = access.hasAnywhere("exam.schedule.read");
   const path = { params: { path: { id } } };
   const s = useQuery({ queryKey: ["exam-schedule", id], queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}", path)) });
-  const e = useQuery({ queryKey: ["exam-enrolments", id], queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}/enrolments", path)) });
-  const refresh = () => { void qc.invalidateQueries({ queryKey: ["exam-schedule", id] }); void qc.invalidateQueries({ queryKey: ["exam-enrolments", id] }); };
+  const e = useQuery({ queryKey: ["exam-enrolments", id], enabled: read, queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}/enrolments", path)) });
+  const refresh = () => { for (const k of ["exam-schedule", "exam-enrolments", "exam-monitor"]) void qc.invalidateQueries({ queryKey: [k, id] }); };
   const [csv, setCsv] = useState("");
   const [preview, setPreview] = useState<EnrolmentUploadResult | null>(null);
   const [extraFor, setExtraFor] = useState<ExamEnrolment | null>(null);
@@ -87,7 +88,9 @@ export function ScheduleDetailPage() {
             </CardBody>
           </Card>)}
 
-        <Card>
+        {access.hasAnywhere("exam.invigilate") && open && <MonitorCard scheduleId={id} />}
+
+        {read && <Card>
           <CardHeader title={`Enrolled candidates (${e.data?.filter((r) => r.status === "ACTIVE").length ?? 0})`}
             actions={manage && open && <div className="flex flex-wrap gap-2">
               <Button variant="secondary" loading={invite.isPending} onClick={() => invite.mutate()}>Send invitations</Button>
@@ -97,7 +100,7 @@ export function ScheduleDetailPage() {
           {invite.isError && <div className="px-5 pt-3"><Alert tone="danger">{errorInfo(invite.error).message}</Alert></div>}
           <DataTable caption="Enrolled candidates" columns={columns} rows={e.data} rowKey={(r) => r.id!} loading={e.isPending}
             error={e.isError ? errorInfo(e.error) : null} empty={{ title: "Nobody enrolled yet", description: "Upload a list of candidates above." }} />
-        </Card>
+        </Card>}
         <ResultsCard scheduleId={id} />
       </div>
       {codes && (
@@ -194,6 +197,85 @@ function ResultsCard({ scheduleId }: { scheduleId: string }) {
           <Field label="Comment (optional)">{(p) => <TextArea {...p} rows={2} maxLength={2000} value={comment} onChange={(ev) => setComment(ev.target.value)} />}</Field>
         </Modal>)}
     </Card>
+  );
+}
+
+const STATE: Record<string, { label: string; tone: "neutral" | "info" | "warning" | "success" }> = {
+  NOT_LINKED: { label: "Not signed in", tone: "neutral" }, NOT_CHECKED_IN: { label: "Not checked in", tone: "neutral" },
+  CHECKED_IN: { label: "Checked in", tone: "info" }, IN_PROGRESS: { label: "Writing", tone: "warning" },
+  SUBMITTED: { label: "Submitted", tone: "success" }, AUTO_SUBMITTED: { label: "Submitted at time-up", tone: "success" },
+};
+const CATEGORIES: [string, string][] = [["IDENTITY", "Identity check"], ["SUSPECTED_MALPRACTICE", "Suspected malpractice"], ["TECHNICAL", "Technical problem"],
+  ["DISRUPTION", "Disruption in the room"], ["LATE_ARRIVAL", "Late arrival"], ["OTHER", "Other"]];
+const minutesLeft = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+/**
+ * Live invigilation (exam.invigilate): every enrolled candidate's state, connection and progress, refreshed every 10 seconds;
+ * never answers or scores. Incidents are recorded here and are permanent (a correction is a new incident).
+ */
+function MonitorCard({ scheduleId }: { scheduleId: string }) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const path = { params: { path: { id: scheduleId } } };
+  const [incidentFor, setIncidentFor] = useState<InvigilationCandidate | null>(null);
+  const m = useQuery({ queryKey: ["exam-monitor", scheduleId], refetchInterval: 10_000, retry: false,
+    queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}/monitor", path)) });
+  const inc = useQuery({ queryKey: ["exam-candidate-incidents", scheduleId], refetchInterval: 30_000, retry: false,
+    queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}/candidate-incidents", path)) });
+  if (m.isError) return <Card><CardHeader title="Live monitoring" /><CardBody><Alert tone="danger">{errorInfo(m.error).message}</Alert></CardBody></Card>;
+  const x = m.data;
+  const c = x?.counts ?? {};
+  const columns: Column<InvigilationCandidate>[] = [
+    { key: "n", header: "Candidate", cell: (r) => <span className="flex flex-col"><span>{r.displayName ?? r.email}</span><span className="text-xs text-muted">{r.email}</span></span> },
+    { key: "s", header: "State", cell: (r) => { const st = STATE[r.state ?? ""] ?? { label: r.state ?? "", tone: "neutral" as const }; return <Badge tone={st.tone}>{st.label}</Badge>; } },
+    { key: "o", header: "Connection", cell: (r) => r.online ? <Badge tone="success">Online</Badge> : r.lastSeenAt ? `Last seen ${formatDateTime(r.lastSeenAt)}` : "—", hideOnMobile: true },
+    { key: "p", header: "Progress", cell: (r) => r.startedAt ? `${r.answered} of ${r.questions} answered` : "—" },
+    { key: "t", header: "Time left", cell: (r) => r.state === "IN_PROGRESS" ? <span className="tabular-nums">{minutesLeft(r.secondsLeft ?? 0)}</span> : "—", hideOnMobile: true },
+    { key: "i", header: "Incidents", cell: (r) => r.incidents ? <Badge tone="warning">{r.incidents}</Badge> : "—", hideOnMobile: true },
+    { key: "a", header: "", cell: (r) => <Button variant="ghost" onClick={() => setIncidentFor(r)}>Record incident</Button> },
+  ];
+  return (
+    <Card>
+      <CardHeader title="Live monitoring" description={x ? `${c.IN_PROGRESS ?? 0} writing · ${(c.SUBMITTED ?? 0) + (c.AUTO_SUBMITTED ?? 0)} submitted · ${c.CHECKED_IN ?? 0} checked in, not started · ${(c.NOT_CHECKED_IN ?? 0) + (c.NOT_LINKED ?? 0)} not checked in · ${c.ONLINE ?? 0} online · updated ${formatDateTime(x.serverTime)}` : "Loading…"} />
+      <DataTable caption="Live monitoring" columns={columns} rows={x?.candidates} rowKey={(r) => r.enrolmentId!} loading={m.isPending}
+        empty={{ title: "Nobody enrolled yet", description: "" }} />
+      {(inc.data ?? []).length > 0 && (
+        <CardBody>
+          <h3 className="mb-2 text-sm font-semibold">Incidents</h3>
+          <ul className="space-y-1 text-sm" aria-label="Incidents">{inc.data!.map((i: CandidateIncident) => (
+            <li key={i.id}>{formatDateTime(i.recordedAt)} · {i.candidateName} · {CATEGORIES.find(([k]) => k === i.category)?.[1] ?? i.category}
+              {i.correctsId ? " (correction)" : ""}: {i.note} <span className="text-muted">— {i.recordedByName}</span></li>))}</ul>
+        </CardBody>)}
+      {incidentFor && <IncidentDialog scheduleId={scheduleId} candidate={incidentFor} previous={(inc.data ?? []).filter((i) => i.enrolmentId === incidentFor.enrolmentId)}
+        onClose={() => setIncidentFor(null)}
+        onDone={() => { setIncidentFor(null); void qc.invalidateQueries({ queryKey: ["exam-candidate-incidents", scheduleId] }); void qc.invalidateQueries({ queryKey: ["exam-monitor", scheduleId] }); }} />}
+    </Card>
+  );
+}
+
+function IncidentDialog({ scheduleId, candidate, previous, onClose, onDone }: { scheduleId: string; candidate: InvigilationCandidate; previous: CandidateIncident[]; onClose: () => void; onDone: () => void }) {
+  const api = useApi();
+  const [category, setCategory] = useState("");
+  const [note, setNote] = useState("");
+  const [corrects, setCorrects] = useState("");
+  const save = useMutation({
+    mutationFn: async () => unwrap(await api.POST("/api/v1/exam/schedules/{id}/candidate-incidents", { params: { path: { id: scheduleId } },
+      body: { enrolmentId: candidate.enrolmentId!, category, note, ...(corrects ? { correctsId: corrects } : {}) } })),
+    onSuccess: onDone,
+  });
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} title={`Record an incident for ${candidate.displayName ?? candidate.email}`}
+      description="Incidents are permanent and visible to examination staff. To correct one, record a new incident that refers to it."
+      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!category || !note.trim()} loading={save.isPending} onClick={() => save.mutate()}>Record incident</Button></>}>
+      <div className="space-y-4">
+        {save.isError && <Alert tone="danger">{errorInfo(save.error).message}</Alert>}
+        <Field label="Category">{(p) => <Select {...p} value={category} onChange={(ev) => setCategory(ev.target.value)}>
+          <option value="">Choose…</option>{CATEGORIES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>}</Field>
+        <Field label="What happened">{(p) => <TextArea {...p} rows={3} maxLength={1000} value={note} onChange={(ev) => setNote(ev.target.value)} />}</Field>
+        {previous.length > 0 && <Field label="Corrects an earlier incident (optional)">{(p) => <Select {...p} value={corrects} onChange={(ev) => setCorrects(ev.target.value)}>
+          <option value="">No</option>{previous.map((i) => <option key={i.id} value={i.id}>{formatDateTime(i.recordedAt)}: {i.note?.slice(0, 60)}</option>)}</Select>}</Field>}
+      </div>
+    </Modal>
   );
 }
 

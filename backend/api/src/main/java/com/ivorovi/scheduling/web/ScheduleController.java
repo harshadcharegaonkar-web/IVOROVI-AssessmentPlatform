@@ -64,7 +64,7 @@ class ScheduleController {
     }
 
     @GetMapping
-    @PreAuthorize("@authz.hasAnywhere('exam.schedule.read')")
+    @PreAuthorize("@authz.hasAnywhere('exam.schedule.read') or @authz.hasAnywhere('exam.invigilate')")
     List<ScheduleService.Schedule> list() {
         return schedules.list();
     }
@@ -92,7 +92,7 @@ class ScheduleController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@authz.hasAnywhere('exam.schedule.read')")
+    @PreAuthorize("@authz.hasAnywhere('exam.schedule.read') or @authz.hasAnywhere('exam.invigilate')")
     ScheduleService.Schedule get(@PathVariable UUID id) {
         return schedules.get(id);
     }

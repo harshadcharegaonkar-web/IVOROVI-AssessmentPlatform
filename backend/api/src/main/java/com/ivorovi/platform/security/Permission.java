@@ -130,6 +130,8 @@ public enum Permission {
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_RESULTS_APPROVE("exam.results.approve", "Approve result publication", "Approve or reject the publication of results reviewed by another person (four-eyes)",
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    EXAM_INVIGILATE("exam.invigilate", "Invigilate examinations", "Monitor candidates of scheduled examinations live (check-in, connection, progress; never answers or scores) and record candidate incidents",
+            Domain.EXAMINATIONS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_INCIDENT_MANAGE("exam.incident.manage", "Manage exam incidents", "Record platform outages and propose candidate compensation",
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
     EXAM_INCIDENT_DECIDE("exam.incident.decide", "Approve candidate compensation", "Approve or reject compensation proposed by another person (four-eyes)",

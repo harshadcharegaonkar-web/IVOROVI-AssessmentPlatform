@@ -147,6 +147,16 @@ test.describe("Day 3: candidate examination journey with independent result publ
     await page.getByRole("radio", { name: /Option alpha/ }).check();          // a wrong answer (−0.5)
     await saved(page);
 
+    // Day 4 invigilation: the exam controller (exam.invigilate) sees the candidate writing, with progress, and records an incident;
+    // the monitor never carries answers or scores
+    type Mon = { candidates: { enrolmentId: string; state: string; answered: number; questions: number; email: string; incidents: number }[] };
+    const mon = await staffApi<Mon>(request, s.ctl, "GET", `/api/v1/exam/schedules/${s.scheduleId}/monitor`);
+    expect(mon.candidates[0]).toMatchObject({ state: "IN_PROGRESS", answered: 2, questions: 3 });
+    expect(mon.candidates[0]!.email).not.toBe(email);
+    expect(JSON.stringify(mon)).not.toMatch(/"response"|answerKey|awarded/);
+    await staffApi(request, s.ctl, "POST", `/api/v1/exam/schedules/${s.scheduleId}/candidate-incidents`,
+      { enrolmentId: mon.candidates[0]!.enrolmentId, category: "TECHNICAL", note: "Browser reload requested by the candidate" });
+
     // reload: tokens live in memory, so the candidate signs in again (single sign-on) and resumes with the saved answers
     await page.reload();
     await page.getByRole("button", { name: "Sign in" }).click();
@@ -179,6 +189,9 @@ test.describe("Day 3: candidate examination journey with independent result publ
     expect(await twice.json()).toEqual(await again.json());
     const late = await request.put(`${DELIVERY}/api/v1/delivery/portals/${s.key}/attempts/${attemptId}/answers/1`, { headers: { Authorization: `Bearer ${cand}` }, data: { seq: Date.now() + 1e6, response: { value: "A" } } });
     expect(late.status()).toBe(409);                                           // no change after submission
+
+    const monAfter = await staffApi<Mon>(request, s.ctl, "GET", `/api/v1/exam/schedules/${s.scheduleId}/monitor`);
+    expect(monAfter.candidates[0]).toMatchObject({ state: "SUBMITTED", answered: 3, incidents: 1 });
 
     // scoring (automatic, server side): 2 + (−0.5) + 2 = 3.5 of 6
     let rows: { awarded?: number; maxMarks?: number; scoreStatus?: string }[] = [];
