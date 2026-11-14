@@ -32,7 +32,9 @@ environment's identity (*Claude*, signed; GitHub shows `08d1c3f` as **verified**
 | [43635759685](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/43635759685) | `5aea60e` | Backend, frontend and security green; **E2E failed**: my new monitor card made a staff-test locator ambiguous (two "Arjun K" cells). A test defect, fixed in `f591b04` |
 | [43637392954](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/43637392954) | `f591b04` | **All jobs green, first attempt, no test retried, none flaky**: staff E2E 119 passed; exam E2E 22 passed, 1 skipped (opt-in crash test); the KI-79 password-reset test passed |
 
-Full backend suite locally before each push: 476/476 (KI-66 merge), 477/477 (invigilation).
+| [43640645145](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/43640645145) | `3fc3d8c` | **All jobs green, first attempt, no test retried**: staff E2E 119 passed; exam E2E 22 passed, 1 skipped. Includes the KI-91 fix; the KI-79 test passed for the second consecutive run |
+
+Full backend suite locally before each push: 476/476 (KI-66 merge), 477/477 (invigilation), 477/477 (KI-91).
 
 ## Completed functionality
 
@@ -165,9 +167,9 @@ merge that script.
 
 | Issue | Severity | Status |
 |---|---|---|
-| KI-79 password reset signs out other devices | Medium | Fix in CI (first-attempt pass); open until repeated passes |
+| KI-79 password reset signs out other devices | Medium | Fix passed in 2 consecutive CI runs (first attempt each); kept open for more evidence |
 | KI-88 mobile students E2E sign-in callback in CI | Low | Open; hypothesis rejected; cause unknown |
-| KI-91 check-in retry after a lost response refused | Medium | **New, fixed**: the identical harness scenario now gives 1,000/1,000; CI evidence pending |
+| KI-91 check-in retry after a lost response refused | Medium | **New, fixed, CI-verified** (run 43640645145); the identical harness scenario gives 1,000/1,000 |
 | KI-89 code guessing bounded only by the code space during a Valkey outage | Low | Open (new): durable fallback proposed |
 | KI-82 scheduling reads other modules' tables | Low | Deferred (documented) |
 | KI-66, KI-86, KI-90 | Medium | **Fixed, CI-verified** (run 43637392954) |
