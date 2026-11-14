@@ -7,7 +7,6 @@ import com.ivorovi.support.IntegrationTest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
@@ -21,10 +20,9 @@ import org.springframework.cache.transaction.TransactionAwareCacheDecorator;
  * stays for the cache TTL (10 minutes). Measured on the unfixed configuration: 13–29 % of put → evict sequences left the
  * entry behind; with {@code RedisCacheWriter.create(factory, w -> w.immediateWrites())}: 0.
  *
- * <p>Disabled until the fix in {@code FeatureCacheConfiguration} (production code, primary session) is in: then remove
- * {@code @Disabled}. It fails deterministically on the current configuration, so it is not a flaky test.
+ * <p>The fix ({@code FeatureCacheConfiguration}: immediate writes) went in with this test enabled; it failed on the previous
+ * configuration in the primary session's own run before the fix.
  */
-@Disabled("KI-80: fails until the feature-override cache uses immediate (synchronous) writes — enable together with the fix")
 class FeatureCacheOrderingIT extends IntegrationTest {
 
     @Autowired CacheManager cacheManager;

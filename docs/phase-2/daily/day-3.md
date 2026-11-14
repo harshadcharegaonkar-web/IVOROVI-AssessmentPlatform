@@ -77,7 +77,7 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
 | KI-85 exam list not refreshed after check-in (found by Session 3) | Medium | Fixed in `735413a`; its QA test now asserts the fix; open until CI is green |
 | KI-86 (new) enrolment history degrades to ~17 s without planner statistics | Medium | **Open**. Found while verifying the QA merge, from a virtual-thread dump and `EXPLAIN ANALYZE`. Remedy: `ANALYZE` in the restore and crash-recovery runbook; make the query independent of statistics |
 | KI-75 question search at 60k/100k | Medium | **Open.** Session 2 reproduced it from `main`: p95 130 ms at 60k (target < 250), 122 ms at 100k (target < 300). This is **local, not CI**, and was run by the session that wrote the fix, so it is not independent in person |
-| KI-80 feature-flag cache test failure | Low (test) | Open, no root cause yet. No retries added |
+| KI-80 feature-flag cache | **Medium** (was Low: it is a product defect) | **Root cause found** by Session 3: Spring Data Redis 4 writes the cache asynchronously, so a put can land after its eviction and a changed feature flag can keep its old value for up to 10 minutes. I reproduced it independently: 137 of 500 evicted entries were still readable. Fix: synchronous (immediate) writes, still transaction-aware; `FeatureCacheOrderingIT` now passes, and `FeatureFlagIT` 11/11. Open until CI is green |
 | KI-81 E2E selections by position | Low | Test fix merged (Session 3: selections by this run's records); students and academics 12/12 locally. Open until CI is green |
 | KI-82 scheduling reads other modules' tables | Low | Documented, deferred (D-11): no security, isolation or correctness impact found |
 | KI-66 layered check-in limits (Session 3, `ws-c/m3c-delivery-hardening`) | Medium | Not yet reviewed or merged |
@@ -104,7 +104,7 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
 | Session | Delivered | Merged | Notes |
 |---|---|---|---|
 | Session 2 (`ws-b/`) | Independent reproduction of the KI-75 benchmark (`e254c90`) | `bf7be55` | Docs only. Told to stand down: no further usage approved |
-| Session 3 (`ws-c/`, QA) | Security regression suite, concurrency ITs, browser attempt and recovery specs, QA process script, KI-81 test fix; found KI-85 | `6569c32` | Tests only, as D-7 requires. Reviewed and run by the primary session before merging |
+| Session 3 (`ws-c/`, QA) | Security regression suite, concurrency ITs, browser attempt and recovery specs, QA process script, KI-81 test fix; found KI-85; **root cause of KI-80** with a deterministic regression test | `6569c32`, `8364c27` (the KI-80 production fix is mine) | Tests only, as D-7 requires. Reviewed and run by the primary session before merging |
 
 ## Remaining work (engineering days, one primary session)
 
@@ -112,15 +112,15 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
 |---|---|
 | Invigilator workflows (roster, live status, incident notes) | 1 |
 | Review and merge KI-66 (Session 3's delivery hardening) | 0.5 |
-| KI-80 root cause; KI-86 query robustness and runbook | 0.75 |
+| KI-86 query robustness and runbook | 0.5 |
 | Web E2E for the staff results screen; R-1 adjustments after your decision | 0.5 |
 | Load test at target concurrency on the delivery process; failure drills | 1.5 |
 | Day 7 demo, documentation, final verification | 1 |
-| **Total** | **≈ 5.25 days** |
+| **Total** | **≈ 5 days** |
 
 ## Day 7 feasibility
 
-**At risk: about 5.25 days of work for the 4 remaining days (Day 4–7).** The candidate journey and the result workflow, the two
+**At risk: about 5 days of work for the 4 remaining days (Day 4–7).** The candidate journey and the result workflow, the two
 largest Day 3 items, are built and tested end to end.
 
 If nothing else slips, the most likely to move beyond Day 7 is the **load test at target concurrency** (1.5 days), which needs a
