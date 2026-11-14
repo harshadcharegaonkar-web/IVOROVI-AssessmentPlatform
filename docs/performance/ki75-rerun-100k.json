@@ -1,0 +1,161 @@
+{
+  "bank": "01a1db18-317e-7a62-a56e-2c48cec10435",
+  "n": 300,
+  "clients": 8,
+  "api": "http://localhost:8080",
+  "recordedAt": "2026-11-14T17:29:07Z",
+  "queries": {
+    "first_page": {
+      "query": "size=25",
+      "total_matches": 20100,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 7.2,
+        "p95_ms": 9.9,
+        "p99_ms": 12.4,
+        "max_ms": 20.1
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 19.1,
+        "p95_ms": 33.4,
+        "p99_ms": 43.1,
+        "max_ms": 69.7
+      },
+      "concurrent_requests_per_s": 382.0
+    },
+    "word_common": {
+      "query": "q=velocity&size=25",
+      "total_matches": 1006,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 21.1,
+        "p95_ms": 28.1,
+        "p99_ms": 29.0,
+        "max_ms": 30.4
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 44.8,
+        "p95_ms": 75.9,
+        "p99_ms": 91.3,
+        "max_ms": 105.6
+      },
+      "concurrent_requests_per_s": 166.9
+    },
+    "word_and_number": {
+      "query": "q=momentum%20equals%2042&size=25",
+      "total_matches": 43,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 25.2,
+        "p95_ms": 31.6,
+        "p99_ms": 32.5,
+        "max_ms": 36.8
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 41.3,
+        "p95_ms": 77.1,
+        "p99_ms": 99.5,
+        "max_ms": 114.6
+      },
+      "concurrent_requests_per_s": 176.8
+    },
+    "phrase_rare": {
+      "query": "q=Bench%20question%2019993&size=25",
+      "total_matches": 1,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 21.8,
+        "p95_ms": 28.7,
+        "p99_ms": 32.6,
+        "max_ms": 37.4
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 39.6,
+        "p95_ms": 68.0,
+        "p99_ms": 76.9,
+        "max_ms": 82.1
+      },
+      "concurrent_requests_per_s": 189.5
+    },
+    "type_filter": {
+      "query": "type=SINGLE_CHOICE&size=25",
+      "total_matches": 30,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 55.6,
+        "p95_ms": 74.4,
+        "p99_ms": 78.1,
+        "max_ms": 79.8
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 115.5,
+        "p95_ms": 168.2,
+        "p99_ms": 186.2,
+        "max_ms": 198.5
+      },
+      "concurrent_requests_per_s": 68.3
+    },
+    "tag_filter": {
+      "query": "tag=enzyme&size=25",
+      "total_matches": 1000,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 18.2,
+        "p95_ms": 25.1,
+        "p99_ms": 28.4,
+        "max_ms": 31.4
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 40.1,
+        "p95_ms": 63.9,
+        "p99_ms": 84.2,
+        "max_ms": 117.2
+      },
+      "concurrent_requests_per_s": 189.4
+    },
+    "deep_page": {
+      "query": "page=700&size=25",
+      "total_matches": 20100,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 8.7,
+        "p95_ms": 11.2,
+        "p99_ms": 13.0,
+        "max_ms": 14.0
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 21.8,
+        "p95_ms": 36.4,
+        "p99_ms": 40.9,
+        "max_ms": 58.7
+      },
+      "concurrent_requests_per_s": 347.0
+    },
+    "approved_only": {
+      "query": "approvedOnly=true&size=25",
+      "total_matches": 0,
+      "sequential": {
+        "n": 300,
+        "p50_ms": 7.8,
+        "p95_ms": 9.6,
+        "p99_ms": 11.6,
+        "max_ms": 17.9
+      },
+      "concurrent_8": {
+        "n": 300,
+        "p50_ms": 16.5,
+        "p95_ms": 26.0,
+        "p99_ms": 29.2,
+        "max_ms": 32.3
+      },
+      "concurrent_requests_per_s": 464.2
+    }
+  }
+}
