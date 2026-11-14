@@ -96,8 +96,7 @@ class CandidateDeliveryController {
         return org.springframework.http.ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.parseMediaType(img.mediaType()))
                 .cacheControl(org.springframework.http.CacheControl.noStore().cachePrivate())
-                .header("X-Content-Type-Options", "nosniff")
-                .header("Content-Disposition", "inline")
+                .header("Content-Disposition", "inline")   // nosniff: Spring Security sets it on every response (a second copy duplicated it behind the exam proxy)
                 .body(img.bytes());
     }
 
