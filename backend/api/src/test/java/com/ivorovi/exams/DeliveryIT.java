@@ -312,6 +312,14 @@ class DeliveryIT extends IntegrationTest {
         String code = code(org.tenant, session, Instant.now().minusSeconds(60), Instant.now().plusSeconds(3600));
         mvc.perform(checkIn(token, code.toLowerCase().replace("-", " "), "10.7.0.1")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessionId").value(session.toString()));
+        // KI-91: the same candidate retrying the same code (its first response was lost) gets the existing check-in back, not a
+        // refusal; anyone else using that code is still refused exactly as before
+        long replayedBefore = ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.check_in.replayed'").param(org.tenant)
+                .query(Long.class).single();
+        mvc.perform(checkIn(token, code, "10.7.0.1")).andExpect(status().isOk()).andExpect(jsonPath("$.sessionId").value(session.toString()));
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.check_in.replayed'").param(org.tenant)
+                .query(Long.class).single()).isEqualTo(replayedBefore + 1);
+        mvc.perform(checkIn(enrolled(), code, "10.7.0.1")).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("code_not_valid"));
         mvc.perform(checkIn(token, code(org.tenant, session, Instant.now().minusSeconds(60), Instant.now().plusSeconds(3600)), "10.7.0.1"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("already_checked_in"));
         // the second code was not consumed (rolled back with the duplicate check-in)

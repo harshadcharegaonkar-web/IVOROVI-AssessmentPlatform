@@ -278,7 +278,22 @@ public class CandidateService {
                   AND rs.id = sc.session_id AND rs.status = 'SCHEDULED' AND rs.portal_id = ?
                 RETURNING sc.id, sc.session_id, rs.name""").params(me, attempt.codeHash(), p.id())
                 .query((rs, n) -> new Hit(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3))).optional();
-        if (hit.isEmpty()) throw refused(p, "invalid_used_or_outside_window");
+        if (hit.isEmpty()) {
+            // KI-91: a retry of the candidate's own successful check-in (its response was lost, e.g. the delivery process restarted)
+            // returns that check-in instead of "code not valid". Only the candidate who used the code gets it, so nothing about the
+            // code is revealed to anyone else, and the retry does not count as a failed attempt.
+            Optional<CheckInResult> mine = jdbc.sql("""
+                    SELECT ci.session_id, rs.name, ci.checked_in_at FROM session_code sc
+                    JOIN check_in ci ON ci.code_id = sc.id AND ci.candidate_id = ? AND ci.session_id = sc.session_id
+                    JOIN readiness_session rs ON rs.id = sc.session_id AND rs.portal_id = ?
+                    WHERE sc.code_hash = ? AND sc.consumed_by = ?""").params(me, p.id(), attempt.codeHash(), me)
+                    .query((rs, n) -> new CheckInResult(rs.getObject(1, UUID.class), rs.getString(2), rs.getTimestamp(3).toInstant())).optional();
+            if (mine.isPresent()) {
+                audit.recordSuccess("exam.check_in.replayed", "readiness_session", mine.get().sessionId().toString(), Map.of("portal", p.key()));
+                return mine.get();
+            }
+            throw refused(p, "invalid_used_or_outside_window");
+        }
         Instant at = recordCheckIn(c.tenant(), hit.get().sessionId(), me, hit.get().codeId(), clockOffsetMs, systemCheck, false);
         Map<String, String> details = new LinkedHashMap<>();
         details.put("codeId", hit.get().codeId().toString());

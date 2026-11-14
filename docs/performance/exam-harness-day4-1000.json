@@ -1,0 +1,119 @@
+{
+  "label": "day4m1000",
+  "candidates": 1000,
+  "questions": 10,
+  "durationMinutes": 4,
+  "sourceAddresses": 1,
+  "deliveryRestart": "killed at +15 s, ready again after 14 s",
+  "examPhaseSeconds": 245,
+  "counters": {
+    "behaviour.duplicate_submit": 115,
+    "behaviour.left_to_time_up": 199,
+    "behaviour.offline_20s": 100,
+    "checkin.failed": 2,
+    "checkin.ok": 998,
+    "retried.GET exams": 426,
+    "retried.GET me": 1685,
+    "retried.POST check-in": 841,
+    "retried.POST start": 378,
+    "saves.acknowledged": 54702,
+    "saves.retried": 3313,
+    "start.ok": 998
+  },
+  "verification": {
+    "attemptsStarted": 998,
+    "submittedByCandidate": 799,
+    "autoSubmitted": 199,
+    "stillInProgress": 0,
+    "awaitingScore": 0,
+    "provisionalScores": 998,
+    "acknowledgedAnswersChecked": 9980,
+    "acknowledgedAnswersLost": 0,
+    "storedNewerThanLastAcknowledgement": 0,
+    "concurrentReviewsSucceeded": 1,
+    "concurrentApprovalsSucceeded": 1,
+    "resultsPublished": 998
+  },
+  "latency": {
+    "GET exams": {
+      "p50ms": 715.573,
+      "n": 1426,
+      "p99ms": 7159.05,
+      "maxms": 9586.63,
+      "p95ms": 4829.812
+    },
+    "GET me": {
+      "p50ms": 4.567,
+      "n": 2685,
+      "p99ms": 8033.677,
+      "maxms": 14533.477,
+      "p95ms": 5130.861
+    },
+    "POST approve": {
+      "p50ms": 66.96,
+      "n": 2,
+      "p99ms": 68.039,
+      "maxms": 68.039,
+      "p95ms": 68.039
+    },
+    "POST check-in": {
+      "p50ms": 1176.159,
+      "n": 1841,
+      "p99ms": 10715.047,
+      "maxms": 15002.135,
+      "p95ms": 8118.129
+    },
+    "POST review": {
+      "p50ms": 51.506,
+      "n": 2,
+      "p99ms": 51.847,
+      "maxms": 51.847,
+      "p95ms": 51.847
+    },
+    "POST start": {
+      "p50ms": 1086.444,
+      "n": 1376,
+      "p99ms": 6293.789,
+      "maxms": 9983.262,
+      "p95ms": 4149.469
+    },
+    "POST submit": {
+      "p50ms": 9.53,
+      "n": 1029,
+      "p99ms": 26.607,
+      "maxms": 54.358,
+      "p95ms": 16.894
+    },
+    "PUT answers": {
+      "p50ms": 8.541,
+      "n": 58015,
+      "p99ms": 4183.229,
+      "maxms": 11245.087,
+      "p95ms": 1623.438
+    }
+  },
+  "statuses": {
+    "GET exams 200": 1000,
+    "GET exams ConnectException": 426,
+    "GET me 200": 1000,
+    "GET me ConnectException": 1685,
+    "POST approve 200": 1,
+    "POST approve 409": 1,
+    "POST check-in 200": 998,
+    "POST check-in 409": 2,
+    "POST check-in ConnectException": 700,
+    "POST check-in HttpTimeoutException": 1,
+    "POST check-in IOException": 140,
+    "POST review 200": 1,
+    "POST review 409": 1,
+    "POST start 200": 998,
+    "POST start ConnectException": 315,
+    "POST start IOException": 63,
+    "POST submit 200": 1029,
+    "PUT answers 200": 54702,
+    "PUT answers ConnectException": 3047,
+    "PUT answers IOException": 266
+  },
+  "problems": ["vc111 check-in 409 {\"detail\":\"This code is not valid now. Check it, or ask the invigilator for a new one.\",\"instance\":\"/api/v1/delivery/portals/h-day4m1000/check-ins\",\"status\":409,\"title\":\"Conflict\",\"type\":\"urn:ivorovi:problem:code_not_valid\",\"code\":\"code_not_valid\",\"traceId\":\"01a1dbcbe999778a8a2a184c3a4aece2\"}", "vc902 check-in 409 {\"detail\":\"This code is not valid now. Check it, or ask the invigilator for a new one.\",\"instance\":\"/api/v1/delivery/portals/h-day4m1000/check-ins\",\"status\":409,\"title\":\"Conflict\",\"type\":\"urn:ivorovi:problem:code_not_valid\",\"code\":\"code_not_valid\",\"traceId\":\"01a1dbcc336378bd8612991579d1d5ff\"}"],
+  "problemCount": 2
+}
