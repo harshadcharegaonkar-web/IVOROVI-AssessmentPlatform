@@ -2,6 +2,7 @@ package com.ivorovi.exams.web;
 
 import com.ivorovi.exams.internal.AttemptService;
 import com.ivorovi.exams.internal.CandidateService;
+import com.ivorovi.exams.internal.ResultService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -57,10 +58,18 @@ class CandidateDeliveryController {
 
     private final CandidateService candidates;
     private final AttemptService attempts;
+    private final ResultService results;
 
-    CandidateDeliveryController(CandidateService candidates, AttemptService attempts) {
+    CandidateDeliveryController(CandidateService candidates, AttemptService attempts, ResultService results) {
         this.candidates = candidates;
         this.attempts = attempts;
+        this.results = results;
+    }
+
+    @GetMapping("/portals/{key}/attempts/{attemptId}/result")
+    @Operation(summary = "The candidate's own result, available only after independent approval and publication")
+    ResultService.CandidateResult result(@PathVariable String key, @PathVariable UUID attemptId) {
+        return results.candidateResult(key, attemptId);
     }
 
     @GetMapping("/portals/{key}/exams")

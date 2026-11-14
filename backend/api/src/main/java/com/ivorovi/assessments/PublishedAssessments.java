@@ -78,6 +78,21 @@ public class PublishedAssessments {
         return p;
     }
 
+    /**
+     * KI-83 (decision D-11): true when any question this version can deliver (fixed questions and frozen random pools)
+     * contains an image in its statement or options. Candidates cannot receive images yet, so such versions must not be
+     * scheduled until candidate image delivery is in place and tested.
+     */
+    @Transactional(readOnly = true)
+    public boolean containsImages(UUID versionId) {
+        return jdbc.sql("""
+                SELECT EXISTS (SELECT 1 FROM question_version qv
+                  WHERE qv.id IN (SELECT question_version_id FROM assessment_item WHERE version_id = ?
+                                  UNION SELECT p.question_version_id FROM assessment_rule_pool p JOIN assessment_rule r ON r.id = p.rule_id WHERE r.version_id = ?)
+                    AND (jsonb_path_exists(qv.content, 'strict $.**.type ? (@ == "image")') OR jsonb_path_exists(qv.body, 'strict $.**.type ? (@ == "image")')))""")
+                .params(versionId, versionId).query(Boolean.class).single();
+    }
+
     /** Permanent reference (idempotent). Only published versions can be referenced; references are never removed. */
     @Transactional
     public void reference(UUID versionId, String referrerType, String referrerId) {

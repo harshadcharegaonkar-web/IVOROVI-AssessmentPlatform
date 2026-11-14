@@ -5402,6 +5402,43 @@
         }
       }
     },
+    "/api/v1/exam/results/{scheduleId}/reviews" : {
+      "post" : {
+        "tags" : [ "Examination results" ],
+        "summary" : "Review all provisional results and request their publication from an independent approver",
+        "operationId" : "review_1",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResultReviewRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamResults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/portals" : {
       "get" : {
         "tags" : [ "Exam administration" ],
@@ -5762,7 +5799,7 @@
       "post" : {
         "tags" : [ "Assessments" ],
         "summary" : "Review the version in review (never by its author); changes requested return it to draft",
-        "operationId" : "review_1",
+        "operationId" : "review_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -10514,6 +10551,34 @@
                   "items" : {
                     "$ref" : "#/components/schemas/SchedulablePortal"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/results/{scheduleId}" : {
+      "get" : {
+        "tags" : [ "Examination results" ],
+        "summary" : "Attempts and scores of a scheduled examination, and its result reviews",
+        "operationId" : "results",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamResults"
                 }
               }
             }
@@ -16865,6 +16930,144 @@
           }
         },
         "required" : [ "reason" ]
+      },
+      "ResultReviewRequest" : {
+        "type" : "object",
+        "properties" : {
+          "comment" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        }
+      },
+      "ExamResultReview" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "reviewerName" : {
+            "type" : "string"
+          },
+          "approverName" : {
+            "type" : "string"
+          },
+          "attempts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "comment" : {
+            "type" : "string"
+          },
+          "approvalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ExamResultRow" : {
+        "type" : "object",
+        "properties" : {
+          "attemptId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "candidateId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "candidateName" : {
+            "type" : "string"
+          },
+          "candidateEmail" : {
+            "type" : "string"
+          },
+          "attemptStatus" : {
+            "type" : "string"
+          },
+          "startedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "awarded" : {
+            "type" : "number"
+          },
+          "maxMarks" : {
+            "type" : "number"
+          },
+          "correct" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "incorrect" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "unanswered" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "scoreStatus" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ExamResults" : {
+        "type" : "object",
+        "properties" : {
+          "scheduleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "inProgress" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "awaitingScore" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "provisional" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "released" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rows" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExamResultRow"
+            }
+          },
+          "reviews" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExamResultReview"
+            }
+          },
+          "canReview" : {
+            "type" : "boolean"
+          }
+        }
       },
       "CreateExamPortalRequest" : {
         "type" : "object",

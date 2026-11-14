@@ -135,6 +135,10 @@ public class ScheduleService {
                     .params(v.orgUnitId(), in.orgUnitId()).query(Long.class).single() > 0;
             if (!inside) throw ApiException.badRequest("unit_not_eligible", "Schedule this assessment within its own institution.");
         }
+        if (assessments.containsImages(v.versionId())) {
+            throw ApiException.conflict("images_not_supported_yet",
+                    "This assessment contains questions with images. Candidates cannot receive images yet (KI-83), so it cannot be scheduled.");
+        }
         String title = in.title() == null || in.title().isBlank() ? v.title() : in.title().strip();
         if (title.length() > 200) throw ApiException.badRequest("invalid_title", "The title is longer than 200 characters.");
         if (in.opensAt() == null || in.closesAt() == null || !in.closesAt().isAfter(in.opensAt())) {

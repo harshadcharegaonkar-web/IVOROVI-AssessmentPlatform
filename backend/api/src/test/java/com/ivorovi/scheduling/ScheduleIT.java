@@ -3,6 +3,7 @@ package com.ivorovi.scheduling;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +21,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.JsonNode;
 
@@ -193,5 +196,35 @@ class ScheduleIT extends QuestionTestSupport {
         assertThat(TenantContext.callInTenant(org.tenant, () -> eligibility.stream().flatMap(e -> e.forCandidate(id, kavyaAccount).stream()).toList())).isEmpty();
         perform(post("/api/v1/exam/schedules/" + id + "/invitations"), controller).andExpect(status().isConflict());
         assertThat(audits("exam.schedule.cancelled")).isEqualTo(1);
+    }
+
+    @Test
+    void assessmentsWithImagesCannotBeScheduledUntilCandidatesCanReceiveThem() throws Exception {
+        UUID bank = standardBank();
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(40, 30, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(img, "png", png);
+        String asset = JSON.readTree(mvc.perform(multipart("/api/v1/question-banks/" + bank + "/assets")
+                        .file(new MockMultipartFile("file", "figure.png", "image/png", png.toByteArray())).param("altText", "Triangle")
+                        .header(HttpHeaders.AUTHORIZATION, faculty.bearer()))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("id").asString();
+        UUID q = approved(bank, faculty, designer, controller, """
+                {"type":"TRUE_FALSE","content":{"format":"ivorovi.content.v1","blocks":[{"type":"paragraph","runs":[{"text":"Is this right-angled? %s"}]},
+                  {"type":"image","asset":"%s","alt":"A labelled triangle"}]},"body":{},"answerKey":{"value":true}}""".formatted(rnd(), asset));
+        UUID qv = ownerJdbc().sql("SELECT approved_version_id FROM question WHERE id = ?").param(q).query(UUID.class).single();
+        String a = call(post("/api/v1/assessments").content("""
+                {"orgUnitId":"%s","code":"I-%s","purpose":"INTERNAL","title":"With an image","durationMinutes":30}""".formatted(college, rnd())), designer, status().isCreated())
+                .path("id").asString();
+        long lock = ownerJdbc().sql("SELECT v.version FROM assessment x JOIN assessment_version v ON v.id = x.current_version_id WHERE x.id = ?::uuid").param(a).query(Long.class).single();
+        call(put("/api/v1/assessments/" + a + "/draft").content("""
+                {"title":"With an image","durationMinutes":30,"items":[{"questionVersionId":"%s"}],"version":%d}""".formatted(qv, lock)), designer, status().isOk());
+        call(post("/api/v1/assessments/" + a + "/submit").content("{}"), designer, status().isOk());
+        call(post("/api/v1/assessments/" + a + "/reviews").content("{\"decision\":\"REVIEWED\"}"), controller, status().isOk());
+        call(post("/api/v1/assessments/" + a + "/publish").content("{}"), controller, status().isOk());
+        UUID imageVersion = ownerJdbc().sql("SELECT published_version_id FROM assessment WHERE id = ?::uuid").param(a).query(UUID.class).single();
+        perform(post("/api/v1/exam/schedules").content(schedule(window(Instant.now(), Instant.now().plus(Duration.ofHours(3)))).replace(version.toString(), imageVersion.toString())),
+                controller).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("images_not_supported_yet"));
+        // the text-only assessment of this class is still schedulable
+        create();
     }
 }
