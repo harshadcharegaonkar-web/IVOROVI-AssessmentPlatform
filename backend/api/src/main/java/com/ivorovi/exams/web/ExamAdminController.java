@@ -57,6 +57,12 @@ class ExamAdminController {
     record Propose(@NotNull @Pattern(regexp = "EXTEND_SESSION|NEW_CHECK_IN|NO_ACTION") String action, Integer extensionMinutes,
                    @NotBlank @Size(max = 500) String rationale, long version) {}
 
+    @Schema(name = "VenueNetworksRequest")
+    record VenueNetworks(@NotNull @Size(max = 50) List<@Valid VenueNetwork> networks) {}
+
+    @Schema(name = "VenueNetworkInput")
+    record VenueNetwork(@NotBlank @Size(max = 50) String network, @Size(max = 100) String label) {}
+
     private final ExamAdminService admin;
     private final IncidentService incidents;
 
@@ -124,6 +130,17 @@ class ExamAdminController {
     @GetMapping("/sessions/{id}/check-ins")
     List<ExamAdminService.CheckIn> checkIns(@PathVariable UUID id) {
         return admin.checkIns(id);
+    }
+
+    @GetMapping("/sessions/{id}/venue-networks")
+    List<ExamAdminService.VenueNetwork> venueNetworks(@PathVariable UUID id) {
+        return admin.venueNetworks(id);
+    }
+
+    @PutMapping("/sessions/{id}/venue-networks")
+    @Operation(summary = "Register the exam venue's network addresses: check-ins from them are never slowed by the address layer (KI-66)")
+    List<ExamAdminService.VenueNetwork> replaceVenueNetworks(@PathVariable UUID id, @Valid @RequestBody VenueNetworks r) {
+        return admin.replaceVenueNetworks(id, r.networks().stream().map(n -> new ExamAdminService.VenueNetwork(n.network(), n.label())).toList());
     }
 
     @GetMapping("/candidates")

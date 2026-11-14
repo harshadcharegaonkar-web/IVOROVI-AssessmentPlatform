@@ -58,6 +58,9 @@ public class ExamAdminService {
     public record CheckIn(UUID candidateId, String displayName, String email, Instant checkedInAt, Integer clockOffsetMs, Instant lastSeenAt, Long beats,
                           Long saves) {}
 
+    @Schema(name = "VenueNetwork")
+    public record VenueNetwork(String network, String label) {}
+
     @Schema(name = "CandidateAccount")
     public record Candidate(UUID id, String displayName, String email, String status, String portalName, Instant createdAt, Instant lastSeenAt) {}
 
@@ -226,6 +229,7 @@ public class ExamAdminService {
                 WHERE c.session_id = ? ORDER BY c.created_at, c.id""").param(sessionId).query((rs, n) -> {
                     Instant now = Instant.now();
                     String status = rs.getTimestamp("consumed_at") != null ? "USED" : rs.getTimestamp("revoked_at") != null ? "REVOKED"
+                            : rs.getTimestamp("locked_at") != null ? "LOCKED"
                             : rs.getTimestamp("valid_until").toInstant().isBefore(now) ? "EXPIRED"
                             : rs.getTimestamp("valid_from").toInstant().isAfter(now) ? "NOT_YET_VALID" : "AVAILABLE";
                     return new Code(rs.getObject("id", UUID.class), rs.getString("hint"), rs.getTimestamp("valid_from").toInstant(),
@@ -240,6 +244,54 @@ public class ExamAdminService {
                 .params(codeId, sessionId).update();
         if (n == 0) throw ApiException.conflict("code_not_revocable", "This code was already used or revoked.");
         audit.recordSuccess("exam.session_code.revoked", "session_code", codeId.toString(), Map.of("session", sessionId.toString()));
+    }
+
+    // ================================================================================================ venue networks (KI-66 L5)
+
+    private static final int MAX_VENUE_NETWORKS = 50;
+
+    @Transactional(readOnly = true)
+    public List<VenueNetwork> venueNetworks(UUID sessionId) {
+        session(sessionId);
+        return jdbc.sql("SELECT network::text, label FROM exam_venue_network WHERE session_id = ? ORDER BY network").param(sessionId)
+                .query((rs, n) -> new VenueNetwork(rs.getString(1), rs.getString(2))).list();
+    }
+
+    /**
+     * Replaces the session's venue networks: check-ins from these addresses are never delayed by the address layer (it only
+     * reports). At most 50 networks, none wider than /16 (IPv4) or /48 (IPv6).
+     */
+    @Transactional
+    public List<VenueNetwork> replaceVenueNetworks(UUID sessionId, List<VenueNetwork> networks) {
+        Session s = session(sessionId);
+        if (!"SCHEDULED".equals(s.status())) throw ApiException.conflict("session_cancelled", "This session was cancelled.");
+        if (networks.size() > MAX_VENUE_NETWORKS) throw ApiException.badRequest("too_many_networks", "At most " + MAX_VENUE_NETWORKS + " venue networks per session.");
+        List<String> normalized = new ArrayList<>();
+        for (VenueNetwork v : networks) {
+            String n = v.network() == null ? "" : v.network().trim();
+            String canonical;
+            try {
+                canonical = jdbc.sql("""
+                        SELECT CASE WHEN (family(CAST(? AS cidr)) = 4 AND masklen(CAST(? AS cidr)) >= 16) OR (family(CAST(? AS cidr)) = 6 AND masklen(CAST(? AS cidr)) >= 48)
+                               THEN CAST(CAST(? AS cidr) AS text) END""").params(n, n, n, n, n).query(String.class).single();
+            } catch (RuntimeException e) {
+                throw ApiException.badRequest("invalid_network", "Not a network address: " + (n.length() > 50 ? n.substring(0, 50) : n));
+            }
+            if (canonical == null) throw ApiException.badRequest("network_too_wide", "Use networks no wider than /16 (IPv4) or /48 (IPv6): " + n);
+            if (!normalized.contains(canonical)) normalized.add(canonical);
+        }
+        jdbc.sql("DELETE FROM exam_venue_network WHERE session_id = ?").param(sessionId).update();
+        UUID tenant = TenantContext.requireTenantId();
+        for (int i = 0; i < networks.size(); i++) {
+            VenueNetwork v = networks.get(i);
+            String label = v.label() == null || v.label().isBlank() ? null : v.label().trim();
+            jdbc.sql("""
+                    INSERT INTO exam_venue_network (id, tenant_id, session_id, network, label, created_by) VALUES (?, ?, ?, CAST(? AS cidr), ?, ?)
+                    ON CONFLICT (tenant_id, session_id, network) DO NOTHING""")
+                    .params(Ids.newId(), tenant, sessionId, v.network().trim(), label == null ? null : label.length() > 100 ? label.substring(0, 100) : label, me()).update();
+        }
+        audit.recordSuccess("exam.session.venue_networks.updated", "readiness_session", sessionId.toString(), Map.of("networks", String.join(",", normalized)));
+        return venueNetworks(sessionId);
     }
 
     @Transactional(readOnly = true)

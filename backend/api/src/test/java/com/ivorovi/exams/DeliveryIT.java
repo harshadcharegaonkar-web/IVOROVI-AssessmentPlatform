@@ -42,7 +42,8 @@ import tools.jackson.databind.json.JsonMapper;
  * The delivery process (P2-03, C-4): candidate-realm tokens only, staff endpoints absent, tenant from the portal key,
  * MFA policy, expiring single-use session codes (C-1), presence and acknowledged saves.
  */
-@TestPropertySource(properties = {"ivorovi.process.role=DELIVERY", "ivorovi.delivery.code-attempts-per-ip-per-minute=60"})
+@TestPropertySource(properties = {"ivorovi.process.role=DELIVERY", "ivorovi.delivery.code-attempts-per-ip-per-minute=60",
+        "ivorovi.exams.check-in.address-delay-step=PT0.01S", "ivorovi.exams.check-in.address-max-delay=PT0.1S"})
 class DeliveryIT extends IntegrationTest {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
@@ -222,15 +223,20 @@ class DeliveryIT extends IntegrationTest {
         start.countDown();
         for (Future<?> f : all) f.get();
         pool.shutdown();
-        // exactly one winner; every other attempt is refused as used (409) or, once five failures hit the code, throttled (429)
+        // exactly one winner; every other attempt gets the same answer (409), also once five failures hit the code (KI-66 L2:
+        // the code layer answers exactly like an invalid code)
         assertThat(ok.get()).isEqualTo(1);
-        assertThat(refused.get() + limited.get()).isEqualTo(n - 1);
-        assertThat(refused.get()).isGreaterThanOrEqualTo(5);
+        assertThat(refused.get()).isEqualTo(n - 1);
+        assertThat(limited.get()).isZero();
         assertThat(ownerJdbc().sql("SELECT count(*) FROM check_in WHERE session_id = ?").param(session).query(Long.class).single()).isEqualTo(1);
         assertThat(ownerJdbc().sql("SELECT count(*) FROM session_code WHERE session_id = ? AND consumed_at IS NOT NULL").param(session).query(Long.class).single())
                 .isEqualTo(1);
-        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.session_code.refused'").param(org.tenant)
-                .query(Long.class).single()).isEqualTo(refused.get());
+        long codeRefusals = ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.session_code.refused'").param(org.tenant)
+                .query(Long.class).single();
+        long codeLimited = ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.session_code.rate_limited' AND details->>'bucket' = 'code'")
+                .param(org.tenant).query(Long.class).single();
+        assertThat(codeRefusals).isGreaterThanOrEqualTo(5);
+        assertThat(codeRefusals + codeLimited).isEqualTo(refused.get());
     }
 
     @Test
@@ -269,24 +275,30 @@ class DeliveryIT extends IntegrationTest {
         String code = "QQQQQ-QQQQQ";
         List<String> others = new ArrayList<>();
         for (int i = 0; i < 7; i++) others.add(enrolled());
-        int perCode = 0;
-        for (int i = 0; i < 7; i++) {
-            if (mvc.perform(checkIn(others.get(i), code, "10.5.0." + i)).andReturn().getResponse().getStatus() == 429) perCode++;
-        }
-        assertThat(perCode).isEqualTo(2); // five failed attempts per code per minute
+        List<String> answers = new ArrayList<>();
+        for (int i = 0; i < 7; i++) answers.add(mvc.perform(checkIn(others.get(i), code, "10.5.0." + i)).andReturn().getResponse().getContentAsString());
+        // five failed attempts per code per minute; the code layer answers exactly like an invalid code (uniform refusals)
+        assertThat(answers).allMatch(a -> a.contains("code_not_valid"));
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.session_code.rate_limited' AND details->>'bucket' = 'code'")
+                .param(org.tenant).query(Long.class).single()).isEqualTo(2);
         assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.session_code.rate_limited'").param(org.tenant)
                 .query(Long.class).single()).isEqualTo(4);
     }
 
     @Test
-    void attemptsAreRateLimitedPerAddress() throws Exception {
+    void failuresFromOneAddressDelayNewAccountsButNeverRefuseThem() throws Exception {
         List<String> tokens = new ArrayList<>();
         for (int i = 0; i < 70; i++) tokens.add(enrolled());
         int limited = 0;
-        for (String t : tokens) {   // fresh candidate and fresh code each time: only the per-address bucket can trip
+        for (String t : tokens) {   // fresh candidate and fresh code each time: only the per-address layer could trip
             if (mvc.perform(checkIn(t, com.ivorovi.exams.internal.TestCodes.generate(), "10.6.0.1")).andReturn().getResponse().getStatus() == 429) limited++;
         }
-        assertThat(limited).isGreaterThanOrEqualTo(5); // 60 per address per minute (plus refill while the loop runs)
+        // KI-66 L5: 60 failed attempts per address per minute, then a progressive delay — never a refusal
+        assertThat(limited).isZero();
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND action = 'exam.session_code.refused' AND details->>'delayedMs' IS NOT NULL")
+                .param(org.tenant).query(Long.class).single()).isGreaterThanOrEqualTo(5);
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM platform_signal WHERE kind = 'ADDRESS_THROTTLED' AND tenant_id = ? AND detail->>'address' = '10.6.0.1'")
+                .param(org.tenant).query(Long.class).single()).isPositive();
     }
 
     // ------------------------------------------------------------------------------------------------ presence + saves

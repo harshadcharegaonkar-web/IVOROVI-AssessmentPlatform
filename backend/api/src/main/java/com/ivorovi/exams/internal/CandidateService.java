@@ -2,11 +2,8 @@ package com.ivorovi.exams.internal;
 
 import com.ivorovi.exams.CandidateMfa;
 import com.ivorovi.platform.audit.AuditLog;
-import com.ivorovi.platform.config.DeliveryProperties;
 import com.ivorovi.platform.crypto.FieldCipher;
 import com.ivorovi.platform.ids.Ids;
-import com.ivorovi.platform.ratelimit.RateLimitProperties;
-import com.ivorovi.platform.ratelimit.RateLimiter;
 import com.ivorovi.platform.security.CandidateAuthentication;
 import com.ivorovi.platform.tenancy.TenantContext;
 import com.ivorovi.platform.tenancy.TenantDirectory;
@@ -69,26 +66,24 @@ public class CandidateService {
     private final FieldCipher cipher;
     private final CandidateMfa mfa;
     private final TenantDirectory tenants;
-    private final RateLimiter limiter;
-    private final RateLimitProperties rateLimits;
-    private final DeliveryProperties delivery;
     private final ExamAdminService admin;
     private final JsonMapper json;
     private final TransactionTemplate tx;
+    private final CheckInLimits limits;
+    private final DeliveryTelemetry telemetry;
 
-    CandidateService(JdbcClient jdbc, AuditLog audit, FieldCipher cipher, CandidateMfa mfa, TenantDirectory tenants, RateLimiter limiter,
-                     RateLimitProperties rateLimits, DeliveryProperties delivery, ExamAdminService admin, JsonMapper json, TransactionTemplate tx) {
+    CandidateService(JdbcClient jdbc, AuditLog audit, FieldCipher cipher, CandidateMfa mfa, TenantDirectory tenants, ExamAdminService admin,
+                     JsonMapper json, TransactionTemplate tx, CheckInLimits limits, DeliveryTelemetry telemetry) {
         this.jdbc = jdbc;
         this.audit = audit;
         this.cipher = cipher;
         this.mfa = mfa;
         this.tenants = tenants;
-        this.limiter = limiter;
-        this.rateLimits = rateLimits;
-        this.delivery = delivery;
         this.admin = admin;
         this.json = json;
         this.tx = tx;
+        this.limits = limits;
+        this.telemetry = telemetry;
     }
 
     /**
@@ -99,12 +94,19 @@ public class CandidateService {
         final String action;
         final Map<String, String> details;
         final ApiException error;
+        /** A failed check-in attempt that counts against the failure layers (not a limit refusal or an MFA denial). */
+        final boolean failedAttempt;
 
         Denial(String action, Map<String, String> details, ApiException error) {
+            this(action, details, error, false);
+        }
+
+        Denial(String action, Map<String, String> details, ApiException error, boolean failedAttempt) {
             super(error.getMessage(), null, false, false);
             this.action = action;
             this.details = details;
             this.error = error;
+            this.failedAttempt = failedAttempt;
         }
     }
 
@@ -213,41 +215,84 @@ public class CandidateService {
 
     // ================================================================================================ check-in with a session code
 
+    /** What the limiter needs to know about the caller before an attempt (read in a short transaction of its own). */
+    record Caller(Portal portal, UUID candidate, UUID tenant, boolean established, boolean venue) {}
+
     /**
      * Consumes a session code exactly once (atomic conditional update: of any number of concurrent attempts with the same
-     * code, one wins). Attempts are rate limited per candidate, per IP and per code, and every refusal is audited.
+     * code, one wins). Attempts pass the layered limits of follow-up A (KI-66) first, in this order:
+     * <ol>
+     *   <li>L1 candidate: attempts per minute and failed attempts per day (429 for that candidate only);</li>
+     *   <li>L3 device: failed attempts per minute of the token's sign-in session (429 for that device only);</li>
+     *   <li>L2 code: failed attempts on the presented code per minute and per day; refused with the same answer as an
+     *       invalid code, and an existing code is locked once its daily budget is spent;</li>
+     *   <li>L5 address: only for candidates without a successful check-in in an open session of this portal, and not on a
+     *       registered venue network: failed attempts beyond the address threshold delay further attempts progressively —
+     *       never a refusal;</li>
+     *   <li>L4 portal: failed attempts per minute far above what the expected candidates explain raise an operator alert.</li>
+     * </ol>
+     * Rate limits are applied outside any database transaction (a delayed attempt holds no connection). Every refusal is
+     * audited once, with the layer and any delay.
      */
     public CheckInResult checkIn(String key, String rawCode, Integer clockOffsetMs, Map<String, Object> systemCheck, String ip) {
-        return run(() -> {
-            Portal p = portal(key);
-            UUID me = requireCandidate(p);
-            UUID tenant = TenantContext.requireTenantId();
-            Optional<String> code = SessionCodes.normalize(rawCode);
-            String hash = code.map(c -> admin.codeHash(tenant, c)).orElse(null);
-            throttle("code-candidate:" + tenant + ":" + me, delivery.codeAttemptsPerCandidatePerMinute());
-            throttle("code-ip:" + ip, delivery.codeAttemptsPerIpPerMinute());
-            // per code: only failed attempts count (a code being guessed or shared), checked before and charged after a failure
-            String codeBucket = hash == null ? null : "code-hash:" + hash.substring(0, 32);
-            if (codeBucket != null) throttle(codeBucket, delivery.codeAttemptsPerCodePerMinute(), false);
-            if (hash == null) throw refused(p, "malformed");
-            record Hit(UUID codeId, UUID sessionId, String sessionName) {}
-            Optional<Hit> hit = jdbc.sql("""
-                    UPDATE session_code sc SET consumed_at = now(), consumed_by = ?
-                    FROM readiness_session rs
-                    WHERE sc.code_hash = ? AND sc.consumed_at IS NULL AND sc.revoked_at IS NULL AND sc.issued_for IS NULL
-                      AND now() >= sc.valid_from AND now() < sc.valid_until
-                      AND rs.id = sc.session_id AND rs.status = 'SCHEDULED' AND rs.portal_id = ?
-                    RETURNING sc.id, sc.session_id, rs.name""").params(me, hash, p.id())
-                    .query((rs, n) -> new Hit(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3))).optional();
-            if (hit.isEmpty()) {
-                if (rateLimits.enabled()) limiter.acquire(codeBucket, delivery.codeAttemptsPerCodePerMinute(), true);
-                throw refused(p, "invalid_used_or_outside_window");
-            }
-            Instant at = recordCheckIn(tenant, hit.get().sessionId(), me, hit.get().codeId(), clockOffsetMs, systemCheck, false);
-            audit.recordSuccess("exam.check_in", "readiness_session", hit.get().sessionId().toString(), Map.of("codeId", hit.get().codeId().toString(),
-                    "portal", p.key()));
-            return new CheckInResult(hit.get().sessionId(), hit.get().sessionName(), at);
-        });
+        Caller c = run(() -> caller(key, ip));
+        CheckInLimits.Attempt attempt = limits.begin(c, rawCode == null ? Optional.empty() : SessionCodes.normalize(rawCode).map(n -> admin.codeHash(c.tenant(), n)),
+                deviceKey(), ip);
+        try {
+            if (attempt.refusal() != null) throw attempt.refusal().apply(c.portal());
+            return tx.execute(s -> consume(c, attempt, clockOffsetMs, systemCheck));
+        } catch (Denial d) {
+            if (d.failedAttempt) limits.failed(c, attempt, d.details.getOrDefault("reason", "invalid"));
+            Map<String, String> details = new LinkedHashMap<>(d.details);
+            if (attempt.delayedMs() > 0) details.put("delayedMs", String.valueOf(attempt.delayedMs()));
+            audit.recordDenied(d.action, details);
+            throw d.error;
+        }
+    }
+
+    private Caller caller(String key, String ip) {
+        Portal p = portal(key);
+        UUID me = requireCandidate(p);
+        String inet = CheckInLimits.inetLiteral(ip);
+        record Trust(boolean established, boolean venue) {}
+        Trust t = jdbc.sql("""
+                SELECT EXISTS (SELECT 1 FROM check_in ci JOIN readiness_session s ON s.id = ci.session_id
+                               WHERE ci.candidate_id = ? AND s.portal_id = ? AND s.status = 'SCHEDULED' AND s.ends_at > now()),
+                       CAST(? AS inet) IS NOT NULL AND EXISTS (SELECT 1 FROM exam_venue_network v JOIN readiness_session s ON s.id = v.session_id
+                               WHERE s.portal_id = ? AND s.status = 'SCHEDULED' AND now() >= s.starts_at - interval '2 hours' AND now() < s.ends_at
+                                 AND v.network >>= CAST(? AS inet))""")
+                .params(me, p.id(), inet, p.id(), inet).query((rs, n) -> new Trust(rs.getBoolean(1), rs.getBoolean(2))).single();
+        return new Caller(p, me, TenantContext.requireTenantId(), t.established(), t.venue());
+    }
+
+    private CheckInResult consume(Caller c, CheckInLimits.Attempt attempt, Integer clockOffsetMs, Map<String, Object> systemCheck) {
+        Portal p = c.portal();
+        UUID me = c.candidate();
+        if (attempt.codeHash() == null) throw refused(p, "malformed");
+        record Hit(UUID codeId, UUID sessionId, String sessionName) {}
+        Optional<Hit> hit = jdbc.sql("""
+                UPDATE session_code sc SET consumed_at = now(), consumed_by = ?
+                FROM readiness_session rs
+                WHERE sc.code_hash = ? AND sc.consumed_at IS NULL AND sc.revoked_at IS NULL AND sc.locked_at IS NULL AND sc.issued_for IS NULL
+                  AND now() >= sc.valid_from AND now() < sc.valid_until
+                  AND rs.id = sc.session_id AND rs.status = 'SCHEDULED' AND rs.portal_id = ?
+                RETURNING sc.id, sc.session_id, rs.name""").params(me, attempt.codeHash(), p.id())
+                .query((rs, n) -> new Hit(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3))).optional();
+        if (hit.isEmpty()) throw refused(p, "invalid_used_or_outside_window");
+        Instant at = recordCheckIn(c.tenant(), hit.get().sessionId(), me, hit.get().codeId(), clockOffsetMs, systemCheck, false);
+        Map<String, String> details = new LinkedHashMap<>();
+        details.put("codeId", hit.get().codeId().toString());
+        details.put("portal", p.key());
+        if (attempt.delayedMs() > 0) details.put("delayedMs", String.valueOf(attempt.delayedMs()));
+        audit.recordSuccess("exam.check_in", "readiness_session", hit.get().sessionId().toString(), details);
+        return new CheckInResult(hit.get().sessionId(), hit.get().sessionName(), at);
+    }
+
+    /** The device layer's key: the identity provider's sign-in session of the token (per browser), else the subject. */
+    private static String deviceKey() {
+        CandidateAuthentication c = candidate();
+        String sid = c.token().getClaimAsString("sid");
+        return sid == null || sid.isBlank() ? "sub:" + c.subject() : "sid:" + sid;
     }
 
     /** Uses a compensation entitlement (a code bound to this candidate by an approved compensation; nothing to type). */
@@ -278,10 +323,12 @@ public class CandidateService {
         Integer offset = clockOffsetMs == null ? null : Math.max(-86_400_000, Math.min(86_400_000, clockOffsetMs));
         try {
             return jdbc.sql("""
-                    INSERT INTO check_in (id, tenant_id, session_id, candidate_id, code_id, clock_offset_ms, system_check) VALUES (?, ?, ?, ?, ?, ?, CAST(? AS jsonb))
+                    INSERT INTO check_in (id, tenant_id, session_id, candidate_id, code_id, clock_offset_ms, system_check, instance_id)
+                    VALUES (?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?)
                     """ + (replace ? "ON CONFLICT (tenant_id, session_id, candidate_id) DO UPDATE SET code_id = EXCLUDED.code_id, checked_in_at = now(), "
-                    + "clock_offset_ms = EXCLUDED.clock_offset_ms, system_check = EXCLUDED.system_check " : "") + "RETURNING checked_in_at")
-                    .params(Ids.newId(), tenant, session, me, codeId, offset, check).query(Timestamp.class).single().toInstant();
+                    + "clock_offset_ms = EXCLUDED.clock_offset_ms, system_check = EXCLUDED.system_check, instance_id = EXCLUDED.instance_id " : "")
+                    + "RETURNING checked_in_at")
+                    .params(Ids.newId(), tenant, session, me, codeId, offset, check, telemetry.instanceId()).query(Timestamp.class).single().toInstant();
         } catch (DuplicateKeyException e) {
             // rolls back the code consumption too: the code stays usable by someone else
             throw ApiException.conflict("already_checked_in", "You have already checked in to this session.");
@@ -307,10 +354,7 @@ public class CandidateService {
             Portal p = portal(key);
             UUID me = requireCandidate(p);
             requireCheckedIn(me, sessionId);
-            long beats = jdbc.sql("""
-                    INSERT INTO delivery_presence (tenant_id, candidate_id, session_id) VALUES (?, ?, ?)
-                    ON CONFLICT (tenant_id, candidate_id, session_id) DO UPDATE SET last_seen_at = now(), beats = delivery_presence.beats + 1
-                    RETURNING beats""").params(TenantContext.requireTenantId(), me, sessionId).query(Long.class).single();
+            long beats = telemetry.beat(TenantContext.requireTenantId(), me, sessionId, false, 0).beats();
             return new PresenceAck(Instant.now(), beats);
         });
     }
@@ -322,11 +366,7 @@ public class CandidateService {
             UUID me = requireCandidate(p);
             requireCheckedIn(me, sessionId);
             if (payload != null && payload.length() > 4096) throw ApiException.badRequest("payload_too_large", "At most 4096 characters.");
-            long saves = jdbc.sql("""
-                    INSERT INTO delivery_presence (tenant_id, candidate_id, session_id, saves, last_save_seq) VALUES (?, ?, ?, 1, ?)
-                    ON CONFLICT (tenant_id, candidate_id, session_id) DO UPDATE SET last_seen_at = now(), saves = delivery_presence.saves + 1,
-                        last_save_seq = greatest(delivery_presence.last_save_seq, EXCLUDED.last_save_seq)
-                    RETURNING saves""").params(TenantContext.requireTenantId(), me, sessionId, seq).query(Long.class).single();
+            long saves = telemetry.beat(TenantContext.requireTenantId(), me, sessionId, true, seq).saves();
             return new SaveAck(seq, saves, Instant.now());
         });
     }
@@ -351,23 +391,18 @@ public class CandidateService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "portal_not_found", "This exam portal does not exist or is not available."));
     }
 
-    private void throttle(String key, int perMinute) {
-        throttle(key, perMinute, true);
-    }
-
-    private void throttle(String key, int perMinute, boolean consume) {
-        if (!rateLimits.enabled()) return;
-        RateLimiter.Decision d = limiter.acquire(key, perMinute, consume);
-        if (!d.allowed()) {
-            throw new Denial("exam.session_code.rate_limited", Map.of("bucket", key.substring(0, key.indexOf(':'))),
-                    new ApiException(HttpStatus.TOO_MANY_REQUESTS, "rate_limited", "Too many attempts. Wait a minute and try again."));
-        }
-    }
-
-    private Denial refused(Portal p, String reason) {
+    static Denial refused(Portal p, String reason) {
         // one message for every reason: the response never tells a guesser whether a code exists
         return new Denial("exam.session_code.refused", Map.of("portal", p.key(), "reason", reason),
-                ApiException.conflict("code_not_valid", "This code is not valid now. Check it, or ask the invigilator for a new one."));
+                ApiException.conflict("code_not_valid", "This code is not valid now. Check it, or ask the invigilator for a new one."), true);
+    }
+
+    /** A limit layer refused the attempt. The code layer answers exactly like an invalid code (uniform refusals). */
+    static Denial limited(Portal p, String bucket, boolean uniform) {
+        ApiException error = uniform
+                ? ApiException.conflict("code_not_valid", "This code is not valid now. Check it, or ask the invigilator for a new one.")
+                : new ApiException(HttpStatus.TOO_MANY_REQUESTS, "rate_limited", "Too many attempts. Wait a minute and try again.");
+        return new Denial("exam.session_code.rate_limited", Map.of("portal", p.key(), "bucket", bucket), error);
     }
 
     private static ApiException suspended() {

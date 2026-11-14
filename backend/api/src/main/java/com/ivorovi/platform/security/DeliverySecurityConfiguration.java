@@ -61,8 +61,8 @@ public class DeliverySecurityConfiguration {
             .exceptionHandling(e -> e.authenticationEntryPoint(entryPoint).accessDeniedHandler(denied))
             .headers(h -> h.contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'none'; frame-ancestors 'none'"))
                 .referrerPolicy(r -> r.policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
-            .addFilterBefore(new RateLimitFilters.FailedAuthentication(limiter, rateLimits, problems), BearerTokenAuthenticationFilter.class)
-            .addFilterAfter(new DeliveryFilters.PortalTenant(portals, tenants, problems), BearerTokenAuthenticationFilter.class)
+            .addFilterBefore(new RateLimitFilters.FailedAuthentication(limiter, rateLimits, problems, false), BearerTokenAuthenticationFilter.class)
+            .addFilterAfter(new DeliveryFilters.PortalTenant(portals, tenants, problems, limiter, rateLimits, props), BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new DeliveryFilters.Limits(limiter, rateLimits, props, problems), DeliveryFilters.PortalTenant.class);
         return http.build();
     }
