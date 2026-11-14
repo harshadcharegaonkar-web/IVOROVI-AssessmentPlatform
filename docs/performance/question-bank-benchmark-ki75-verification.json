@@ -1,0 +1,148 @@
+{
+  "run": "KI-75 independent verification, 2026-11-14",
+  "code": "origin/main 9a2a6ae (migration V202611141010)",
+  "runs_per_measure": 100,
+  "at_60000": {
+    "bank": "01a1d82a-e9c3-71d6-b8a4-72c8fe7bc1b7",
+    "size": 20000,
+    "create_via_api": {
+      "runs": 300,
+      "p50_ms": 19.6,
+      "p95_ms": 30.6,
+      "max_ms": 107.7
+    },
+    "create_throughput_per_s_single_client": 47.6,
+    "bulk_fill_seconds": 5.3,
+    "questions_in_bank": 20000,
+    "filler_banks_added": 2,
+    "questions_in_organization": 60000,
+    "search": {
+      "first_page": {
+        "runs": 100,
+        "p50_ms": 10.5,
+        "p95_ms": 13.7,
+        "max_ms": 16.6
+      },
+      "word_common": {
+        "runs": 100,
+        "p50_ms": 111.9,
+        "p95_ms": 129.7,
+        "max_ms": 147.3
+      },
+      "word_and_number": {
+        "runs": 100,
+        "p50_ms": 28.8,
+        "p95_ms": 40.1,
+        "max_ms": 43.3
+      },
+      "phrase_rare": {
+        "runs": 100,
+        "p50_ms": 26.7,
+        "p95_ms": 38.5,
+        "max_ms": 43.8
+      },
+      "type_filter": {
+        "runs": 100,
+        "p50_ms": 49.3,
+        "p95_ms": 61.1,
+        "max_ms": 65.6
+      },
+      "tag_filter": {
+        "runs": 100,
+        "p50_ms": 21.8,
+        "p95_ms": 31.8,
+        "max_ms": 34.3
+      },
+      "deep_page": {
+        "runs": 100,
+        "p50_ms": 18.0,
+        "p95_ms": 24.3,
+        "max_ms": 29.2
+      },
+      "approved_only": {
+        "runs": 100,
+        "p50_ms": 7.4,
+        "p95_ms": 10.6,
+        "max_ms": 14.0
+      }
+    },
+    "detail": {
+      "runs": 100,
+      "p50_ms": 63.0,
+      "p95_ms": 84.7,
+      "max_ms": 101.1
+    },
+    "import_preview_200_rows_seconds": 13.22,
+    "import_outcomes": {
+      "totalRows": 200,
+      "validRows": 100,
+      "invalidRows": 0,
+      "duplicateRows": 50,
+      "nearDuplicateRows": 50
+    },
+    "import_commit_seconds": 5.94,
+    "import_created": 100
+  },
+  "at_100000": {
+    "bank": "01a1d82a-e9c3-71d6-b8a4-72c8fe7bc1b7",
+    "questions_in_bank": 20100,
+    "filler_banks_added": 2,
+    "questions_in_organization": 100000,
+    "search": {
+      "first_page": {
+        "runs": 100,
+        "p50_ms": 7.2,
+        "p95_ms": 9.1,
+        "max_ms": 9.9
+      },
+      "word_common": {
+        "runs": 100,
+        "p50_ms": 102.7,
+        "p95_ms": 122.4,
+        "max_ms": 133.0
+      },
+      "word_and_number": {
+        "runs": 100,
+        "p50_ms": 26.4,
+        "p95_ms": 35.6,
+        "max_ms": 42.4
+      },
+      "phrase_rare": {
+        "runs": 100,
+        "p50_ms": 12.4,
+        "p95_ms": 17.1,
+        "max_ms": 18.3
+      },
+      "type_filter": {
+        "runs": 100,
+        "p50_ms": 50.6,
+        "p95_ms": 62.1,
+        "max_ms": 67.7
+      },
+      "tag_filter": {
+        "runs": 100,
+        "p50_ms": 20.3,
+        "p95_ms": 29.7,
+        "max_ms": 32.7
+      },
+      "deep_page": {
+        "runs": 100,
+        "p50_ms": 8.8,
+        "p95_ms": 11.0,
+        "max_ms": 11.6
+      },
+      "approved_only": {
+        "runs": 100,
+        "p50_ms": 6.5,
+        "p95_ms": 9.4,
+        "max_ms": 22.8
+      }
+    },
+    "detail": {
+      "runs": 100,
+      "p50_ms": 92.8,
+      "p95_ms": 122.8,
+      "max_ms": 156.9
+    }
+  }
+}
