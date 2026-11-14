@@ -154,3 +154,5 @@ export type ExamSchedule = Schemas["ExamSchedule"];
 export type ExamEnrolment = Schemas["ExamEnrolment"];
 export type EnrolmentUploadResult = Schemas["EnrolmentUploadResult"];
 export type PublishedAssessmentVersion = Schemas["PublishedAssessmentVersion"];
+export type ExamResults = Schemas["ExamResults"];
+export type ExamResultRow = Schemas["ExamResultRow"];

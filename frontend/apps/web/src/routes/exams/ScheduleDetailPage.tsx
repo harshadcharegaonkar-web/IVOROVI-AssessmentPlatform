@@ -1,8 +1,8 @@
-import { unwrap, type EnrolmentUploadResult, type ExamEnrolment } from "@ivorovi/api-client";
+import { unwrap, type EnrolmentUploadResult, type ExamEnrolment, type ExamResultRow } from "@ivorovi/api-client";
 import { Alert, Badge, Button, Card, CardBody, CardHeader, DataTable, Field, Input, Modal, PageHeader, TextArea, type Column } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { errorInfo, useApi } from "../../api/ApiProvider";
 import { formatDateTime } from "../../lib/format";
 import { useSession } from "../../session/SessionProvider";
@@ -98,6 +98,7 @@ export function ScheduleDetailPage() {
           <DataTable caption="Enrolled candidates" columns={columns} rows={e.data} rowKey={(r) => r.id!} loading={e.isPending}
             error={e.isError ? errorInfo(e.error) : null} empty={{ title: "Nobody enrolled yet", description: "Upload a list of candidates above." }} />
         </Card>
+        <ResultsCard scheduleId={id} />
       </div>
       {codes && (
         <Modal open onOpenChange={(o) => !o && setCodes(null)} title="Session codes" description="Shown only now. Hand one code to each candidate at the examination; each works once."
@@ -141,6 +142,58 @@ function CancelDialog({ scheduleId, onClose, onDone }: { scheduleId: string; onC
       {save.isError && <Alert tone="danger">{errorInfo(save.error).message}</Alert>}
       <Field label="Reason">{(p) => <TextArea {...p} rows={2} maxLength={500} value={reason} onChange={(ev) => setReason(ev.target.value)} />}</Field>
     </Modal>
+  );
+}
+
+/** Attempts, provisional and published scores, and the review → independent approval → publication workflow. */
+function ResultsCard({ scheduleId }: { scheduleId: string }) {
+  const api = useApi();
+  const qc = useQueryClient();
+  const { access } = useSession();
+  const [reviewing, setReviewing] = useState(false);
+  const [comment, setComment] = useState("");
+  const r = useQuery({
+    queryKey: ["exam-results", scheduleId], enabled: access.hasAnywhere("exam.results.read"), retry: false, refetchInterval: 15_000,
+    queryFn: async () => unwrap(await api.GET("/api/v1/exam/results/{scheduleId}", { params: { path: { scheduleId } } })),
+  });
+  const review = useMutation({
+    mutationFn: async () => unwrap(await api.POST("/api/v1/exam/results/{scheduleId}/reviews", { params: { path: { scheduleId } }, body: { comment: comment || undefined } })),
+    onSuccess: (x) => { qc.setQueryData(["exam-results", scheduleId], x); setReviewing(false); setComment(""); },
+  });
+  if (!access.hasAnywhere("exam.results.read")) return null;
+  if (r.isError) return <Card><CardHeader title="Results" description="No candidate has started this examination yet." /></Card>;
+  const x = r.data;
+  if (!x) return null;
+  const pending = (x.reviews ?? []).find((v) => v.status === "PENDING_APPROVAL");
+  const columns: Column<ExamResultRow>[] = [
+    { key: "c", header: "Candidate", cell: (row) => <span className="flex flex-col"><span>{row.candidateName ?? row.candidateEmail}</span><span className="text-xs text-muted">{row.candidateEmail}</span></span> },
+    { key: "a", header: "Attempt", cell: (row) => ({ IN_PROGRESS: "In progress", SUBMITTED: "Submitted", AUTO_SUBMITTED: "Submitted at time-up" }[row.attemptStatus ?? ""] ?? row.attemptStatus) },
+    { key: "s", header: "Score", cell: (row) => row.awarded == null ? "Not scored yet" : `${row.awarded} / ${row.maxMarks}` },
+    { key: "o", header: "Correct · wrong · blank", cell: (row) => row.correct == null ? "—" : `${row.correct} · ${row.incorrect} · ${row.unanswered}`, hideOnMobile: true },
+    { key: "p", header: "Status", cell: (row) => row.scoreStatus === "RELEASED" ? <Badge tone="success">Published</Badge> : row.scoreStatus === "PROVISIONAL" ? <Badge tone="warning">Provisional</Badge> : <Badge tone="neutral">—</Badge> },
+  ];
+  return (
+    <Card>
+      <CardHeader title="Results" description={`${x.provisional} provisional · ${x.released} published · ${x.awaitingScore} awaiting scoring · ${x.inProgress} in progress`}
+        actions={x.canReview && <Button variant="primary" onClick={() => setReviewing(true)}>Review results</Button>} />
+      {pending && <div className="px-5 pt-3"><Alert tone="info">Reviewed by {pending.reviewerName}: {pending.attempts} result(s) wait for approval by another person.{" "}
+        <Link to="/approvals" className="underline">Open approvals</Link></Alert></div>}
+      <DataTable caption="Results" columns={columns} rows={x.rows} rowKey={(row) => row.attemptId!} empty={{ title: "No attempts", description: "" }} />
+      {(x.reviews ?? []).length > 0 && (
+        <CardBody>
+          <ul className="space-y-1 text-sm">{x.reviews!.map((v) => (
+            <li key={v.id}>{formatDateTime(v.createdAt)}: {v.attempts} result(s) reviewed by {v.reviewerName}
+              {v.status === "PUBLISHED" ? `, approved by ${v.approverName} and published ${formatDateTime(v.decidedAt)}` : v.status === "PENDING_APPROVAL" ? ", waiting for approval" : ` — ${v.status?.toLowerCase()}`}
+              {v.comment ? ` (“${v.comment}”)` : ""}</li>))}</ul>
+        </CardBody>)}
+      {reviewing && (
+        <Modal open onOpenChange={(o) => !o && setReviewing(false)} title="Review results"
+          description={`You confirm the ${x.provisional} provisional result(s). Another person with approval rights must approve before candidates see them.`}
+          footer={<><Button variant="secondary" onClick={() => setReviewing(false)}>Cancel</Button><Button variant="primary" loading={review.isPending} onClick={() => review.mutate()}>Request publication</Button></>}>
+          {review.isError && <Alert tone="danger">{errorInfo(review.error).message}</Alert>}
+          <Field label="Comment (optional)">{(p) => <TextArea {...p} rows={2} maxLength={2000} value={comment} onChange={(ev) => setComment(ev.target.value)} />}</Field>
+        </Modal>)}
+    </Card>
   );
 }
 

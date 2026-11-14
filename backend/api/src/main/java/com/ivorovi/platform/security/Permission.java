@@ -224,7 +224,7 @@ public enum Permission {
      * Privileged permissions (P2-08): never granted by an administrator's own authority. A role containing one is assigned
      * only through an approved four-eyes request whose approver holds them, or by the operator bootstrap.
      */
-    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish");
+    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish", "exam.results.approve");
 
     public static Optional<Permission> fromKey(String key) {
         return Arrays.stream(values()).filter(p -> p.key.equals(key)).findFirst();

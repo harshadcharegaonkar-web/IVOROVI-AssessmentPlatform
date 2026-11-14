@@ -54,7 +54,9 @@ public class ApiClientService {
      * 2.1, ADR-0009): no integration use is approved, so clients get no question access at all.
      */
     static final List<String> EXCLUDED = List.of(Permission.AUDIT_READ.key(), Permission.STUDENT_PERSONAL_READ.key(), READ,
-            Permission.QUESTION_READ.key(), Permission.QUESTION_KEY_READ.key());
+            Permission.QUESTION_READ.key(), Permission.QUESTION_KEY_READ.key(),
+            // candidate personal data and scores (Day 3): never through API clients until a reviewed integration needs them
+            Permission.EXAM_SCHEDULE_READ.key(), Permission.EXAM_RESULTS_READ.key());
 
     @Schema(name = "ApiScope")
     public record Scope(String key, String name, String description, String domain) {}

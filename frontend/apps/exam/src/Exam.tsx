@@ -18,6 +18,7 @@ interface AttemptView {
   submittedAt: string | null; items: Item[]; answers: Answer[];
 }
 interface Ack { position: number; seq: number; applied: boolean; savedAt: string; serverTime: string }
+interface CandidateResult { attemptId: string; title: string; awarded: number; maxMarks: number; correct: number; partial: number; incorrect: number; unanswered: number }
 interface SubmitResult { attemptId: string; status: string; submittedAt: string; answered: number; questions: number }
 
 type SaveState = "saved" | "saving" | "pending" | "failed";
@@ -66,6 +67,9 @@ export function ExamsCard({ portalKey, token, open }: { portalKey: string; token
                   <p className="text-sm text-muted-strong">{fmt(e.opensAt)} – {fmt(e.closesAt)} · {e.durationMinutes} minutes{e.extraMinutes > 0 ? ` + ${e.extraMinutes} extra` : ""}</p>
                   <p className="text-sm">{note[e.availability]}</p>
                 </div>
+                {e.availability === "FINISHED" && e.attemptId && (
+                  <button type="button" onClick={() => open(e.attemptId!)} className="rounded-md border border-border px-4 py-2 text-sm font-medium">View result</button>
+                )}
                 {(e.availability === "START" || e.availability === "RESUME") && (
                   <button type="button" disabled={busy === e.scheduleId} onClick={() => void start(e)}
                     className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
@@ -218,6 +222,7 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
           {attempt.submittedAt ? ` (${fmt(attempt.submittedAt)})` : ""}
         </p>
         {result && <p className="mt-1 text-sm text-muted-strong">You answered {result.answered} of {result.questions} questions.</p>}
+        <PublishedResult portalKey={portalKey} token={token} attemptId={attemptId} />
         <button type="button" className="mt-4 text-sm text-primary underline" onClick={leave}>Back to your examinations</button>
       </section>
     );
@@ -325,4 +330,26 @@ function ResponseInput({ item, value, disabled, onChange }: { item: Item; value:
             className="mt-1 block w-full rounded-md border border-border px-3 py-2" />
         </label>);
   }
+}
+
+/** The candidate's result once the institution has reviewed, independently approved and published it. */
+function PublishedResult({ portalKey, token, attemptId }: { portalKey: string; token: string; attemptId: string }) {
+  const [r, setR] = useState<CandidateResult | null>(null);
+  const [state, setState] = useState<"loading" | "pending" | "error">("loading");
+  useEffect(() => {
+    call<CandidateResult>(`/portals/${portalKey}/attempts/${attemptId}/result`, token).then(setR, (e: unknown) =>
+      setState(e instanceof ApiError && e.code === "result_not_published" ? "pending" : "error"));
+  }, [portalKey, token, attemptId]);
+  if (r) {
+    return (
+      <div className="mt-4 rounded-md border border-border p-4" role="region" aria-labelledby="h-result">
+        <h2 id="h-result" className="font-semibold">Your result</h2>
+        <p className="mt-1 text-2xl font-semibold tabular-nums">{r.awarded} / {r.maxMarks}</p>
+        <p className="text-sm text-muted-strong">{r.correct} correct · {r.incorrect} wrong · {r.unanswered} not answered{r.partial ? ` · ${r.partial} partly correct` : ""}</p>
+      </div>
+    );
+  }
+  if (state === "pending") return <p className="mt-4 text-sm" role="status">Your result will appear here once your institution has published it.</p>;
+  if (state === "error") return <p className="mt-4 text-sm text-danger" role="alert">Your result could not be loaded. Try again later.</p>;
+  return null;
 }

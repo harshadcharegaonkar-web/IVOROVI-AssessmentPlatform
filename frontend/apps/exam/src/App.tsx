@@ -157,7 +157,7 @@ function Home({ portalKey, user, signIn, open }: { portalKey: string; user: User
       {me.mfa.satisfied && (
         <>
           <SystemCheckCard check={check} rerun={() => void runSystemCheck().then(setCheck)} />
-          <ExamsCard portalKey={portalKey} token={token} open={open} />
+          <ExamsCard key={me.sessions.map((x) => x.checkedInAt ?? "-").join("|")} portalKey={portalKey} token={token} open={open} />
           <Sessions portalKey={portalKey} token={token} sessions={me.sessions} check={check} onChange={reload} />
           {me.compensations.length > 0 && <Compensations portalKey={portalKey} token={token} items={me.compensations} check={check} onChange={reload} />}
         </>

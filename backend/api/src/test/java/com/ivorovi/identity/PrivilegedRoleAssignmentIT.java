@@ -248,7 +248,7 @@ class PrivilegedRoleAssignmentIT extends IntegrationTest {
 
         PrivilegedRoleBootstrap.Result r = bootstrap.bootstrap(new PrivilegedRoleBootstrap.Command(fresh.tenant, firstEmail, "EXAM_CONTROLLER", unit,
                 "ops.jane", "SUP-2026-0042", "First exam controller for the institution"));
-        assertThat(r.privileged()).containsExactly("assessment.publish", "question.approve", "question.key.read");   // 2.2: Q-2.2-1
+        assertThat(r.privileged()).containsExactly("assessment.publish", "exam.results.approve", "question.approve", "question.key.read");   // 2.2: Q-2.2-1, R-1
         String actor = ownerJdbc().sql("SELECT actor_subject FROM audit_event WHERE tenant_id = ? AND action = 'role.privileged_bootstrap'").param(fresh.tenant)
                 .query(String.class).single();
         assertThat(actor).isEqualTo("operator:ops.jane");
