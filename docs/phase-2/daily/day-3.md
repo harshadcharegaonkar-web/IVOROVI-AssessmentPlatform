@@ -52,7 +52,7 @@ Every step runs in a real browser against the real stack in `frontend/apps/exam/
 Extra delivery evidence from Session 3 (merged): answers survive a **crash of the delivery process** (SIGKILL), and the pending
 answer is saved after the restart (`recovery.spec.ts`, opt-in because it kills a process).
 
-**Local runs, no retries:** exam journey 3/3; QA attempt 5/5; recovery 1/1. Of 17 exam E2E tests, 16 pass locally. The one failure
+**Local runs, no retries:** exam journey 3/3; QA attempt 5/5; QA edge cases 6/6; recovery 1/1. Of 17 exam E2E tests, 16 pass locally. The one failure
 is `headers.spec.ts`, which needs the production container (vite dev does not send the production headers). CI checks it against the container.
 
 ## Result workflow
@@ -90,6 +90,17 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
   - no saves after submission or after the deadline;
   - schedules, enrolments, codes, attempts, answers and scores are isolated by tenant;
   - tokens from the wrong realm, and staff without the permission, are refused.
+- **Image endpoint over HTTP** (Session 3, `AttemptImageSecurityIT`, 4 tests):
+  - own open attempt: 200 with `no-store, private`, `nosniff`, inline;
+  - another candidate's attempt, an unlinked, random or other organization's asset, and another organization's portal: one identical 404;
+  - staff token or no token: 401;
+  - after submission and after time-up: 404.
+- **Browser edge cases** (Session 3, `attempt-edge.spec.ts`, 6 tests, 6/6 here):
+  - four offline/online cycles;
+  - two tabs on one attempt (the newest wins);
+  - reload while a save is pending (the save is resent);
+  - device clock +17 / −23 min (the countdown follows the server);
+  - submit while a save is in flight (submit is blocked while unsaved; the late save gets 409 and is never acknowledged).
 - **Concurrency** (`AttemptConcurrencyIT`, 3 tests): one attempt per candidate, one submission, and the highest answer sequence is kept.
 - **KI-83 access:**
   - another candidate, an image of a question outside the paper, an unused upload, an unknown id, an image found infected later,
@@ -97,14 +108,14 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
   - outside development and test, unscanned images are never delivered;
   - E2E: no token → 401, `Cache-Control: no-store`, `nosniff`.
 - **Result approval:** self-approval refused (E2E and IT); database guards against release without a published review.
-- **Full backend suite:** 449/449 locally before the push, plus the 9 merged QA tests (9/9).
+- **Full backend suite:** 459/459 locally (`86150a0`, including the merged QA tests and the KI-80 regression), plus `AttemptImageSecurityIT` 4/4 after `a7af180`.
 
 ## Parallel sessions
 
 | Session | Delivered | Merged | Notes |
 |---|---|---|---|
 | Session 2 (`ws-b/`) | Independent reproduction of the KI-75 benchmark (`e254c90`) | `bf7be55` | Docs only. Told to stand down: no further usage approved |
-| Session 3 (`ws-c/`, QA) | Security regression suite, concurrency ITs, browser attempt and recovery specs, QA process script, KI-81 test fix; found KI-85; **root cause of KI-80** with a deterministic regression test | `6569c32`, `8364c27` (the KI-80 production fix is mine) | Tests only, as D-7 requires. Reviewed and run by the primary session before merging |
+| Session 3 (`ws-c/`, QA) | Security regression suite, concurrency ITs, browser attempt and recovery specs, QA process script, KI-81 test fix; found KI-85; **root cause of KI-80** with a deterministic regression test; HTTP security tests for the KI-83 image endpoint; six browser edge cases | `6569c32`, `8364c27`, `a7af180` (the KI-80 production fix is mine) | Tests only, as D-7 requires. Reviewed and run by the primary session before merging |
 
 ## Remaining work (engineering days, one primary session)
 
