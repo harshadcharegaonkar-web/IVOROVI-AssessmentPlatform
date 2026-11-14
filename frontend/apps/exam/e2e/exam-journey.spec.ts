@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { DELIVERY, candidateToken, mail, staffApi, staffToken } from "./support";
+import { DELIVERY, STAFF, candidateToken, mail, staffApi, staffToken } from "./support";
 
 /**
  * Day 3 acceptance journey (decision D-10), on the real stack (Keycloak, staff and delivery APIs, PostgreSQL, Mailpit):
@@ -17,22 +17,37 @@ const COLLEGE = "0192a000-0000-7000-8000-00000000a101";
 const RUN = Date.now().toString(36);
 
 const content = (text: string) => ({ format: "ivorovi.content.v1", blocks: [{ type: "paragraph", runs: [{ text }] }] });
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+const withImage = (text: string, asset: string, alt: string) =>
+  ({ format: "ivorovi.content.v1", blocks: [{ type: "paragraph", runs: [{ text }] }, { type: "image", asset, alt }] });
 
 async function axe(page: Page) {
   const r = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
   expect(r.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 }
 
-/** Three approved questions (correct answer: "Option beta") and a published INTERNAL assessment of the given duration. */
-async function publishedVersion(request: APIRequestContext, label: string, minutes: number): Promise<string> {
+/**
+ * Three approved questions (correct answer: "Option beta") and a published INTERNAL assessment of the given duration.
+ * With {@code images}, question 1 has an image in its statement and in option B (KI-83).
+ */
+async function publishedVersion(request: APIRequestContext, label: string, minutes: number, images = false): Promise<string> {
   const t = { author: await staffToken(request, AUTHOR), faculty: await staffToken(request, FACULTY), head: await staffToken(request, HEAD), ctl: await staffToken(request, CONTROLLER) };
   const bank = await staffApi<{ id: string }>(request, t.author, "POST", "/api/v1/question-banks", { orgUnitId: COLLEGE, code: `J${label}${RUN}`.slice(0, 40),
     name: `E2E journey ${label} ${RUN}`, intendedUses: ["ACADEMIC"], policy: { approvalPolicy: "STANDARD", requiredReviews: 1, approverDistinct: false } });
+  let asset: string | null = null;
+  if (images) {
+    const up = await request.post(`${STAFF}/api/v1/question-banks/${bank.id}/assets`, { headers: { Authorization: `Bearer ${t.faculty}` },
+      multipart: { file: { name: "triangle.png", mimeType: "image/png", buffer: PNG }, altText: "A labelled triangle" } });
+    expect(up.status()).toBe(201);
+    asset = ((await up.json()) as { id: string }).id;
+  }
   const versions: string[] = [];
   for (let i = 1; i <= 3; i++) {
+    const stem = `Journey ${label} ${RUN} question ${i}: which option is right?`;
     const q = await staffApi<{ id: string }>(request, t.faculty, "POST", `/api/v1/question-banks/${bank.id}/questions`, {
-      type: "SINGLE_CHOICE", content: content(`Journey ${label} ${RUN} question ${i}: which option is right?`), marks: 2, negativeMarks: 0.5,
-      body: { options: [{ id: "A", content: content("Option alpha") }, { id: "B", content: content("Option beta") }, { id: "C", content: content("Option gamma") }] },
+      type: "SINGLE_CHOICE", content: asset && i === 1 ? withImage(stem, asset, "A labelled triangle") : content(stem), marks: 2, negativeMarks: 0.5,
+      body: { options: [{ id: "A", content: content("Option alpha") }, { id: "B", content: asset && i === 1 ? withImage("Option beta", asset, "Right angle") : content("Option beta") },
+        { id: "C", content: content("Option gamma") }] },
       answerKey: { correct: "B" }, explanation: `Explanation ${RUN}` });
     await staffApi(request, t.faculty, "POST", `/api/v1/questions/${q.id}/submit`, {});
     await staffApi(request, t.head, "POST", `/api/v1/questions/${q.id}/reviews`, { decision: "REVIEWED", checklist: { accurate: true } });
@@ -195,6 +210,45 @@ test.describe("Day 3: candidate examination journey with independent result publ
     await expect(page.getByRole("region", { name: "Your result" })).toContainText("3.5 / 6");
     await expect(page.getByText(`Explanation ${RUN}`)).toHaveCount(0);
     await axe(page);
+  });
+
+  test("question images (KI-83): delivered to the candidate's own open attempt only, never cached, closed after submission", async ({ page, request }) => {
+    test.setTimeout(420_000);
+    const version = await publishedVersion(request, "C", 30, true);
+    const email = `images.${RUN}@candidates.test`;
+    const secret = `Cand-${RUN}-pw!`;
+    const s = await scheduled(request, version, email, 120);                  // schedulable: the image passed the upload checks
+    await acceptInvitation(page, request, email, secret, s.title);
+    const served = page.waitForResponse((r) => /\/attempts\/[^/]+\/images\//.test(r.url()));
+    await checkInAndStart(page, s.code, s.title);
+    const res = await served;
+    expect(res.status()).toBe(200);
+    expect(res.headers()["cache-control"]).toContain("no-store");
+    expect(res.headers()["x-content-type-options"]).toBe("nosniff");
+    // the statement image and the option image render (as data: URLs: the exam app's CSP allows no other image source)
+    const figure = page.getByRole("img", { name: "A labelled triangle" });
+    await expect(figure).toBeVisible();
+    expect(await figure.getAttribute("src")).toMatch(/^data:image\/png;base64,/);
+    await expect(page.getByRole("img", { name: "Right angle" })).toBeVisible();
+    await axe(page);
+
+    const cand = await candidateToken(request, email, secret);
+    const exams = await (await request.get(`${DELIVERY}/api/v1/delivery/portals/${s.key}/exams`, { headers: { Authorization: `Bearer ${cand}` } })).json() as { attemptId: string }[];
+    const attemptId = exams[0]!.attemptId;
+    const asset = /\/images\/([0-9a-f-]+)/.exec(res.url())![1]!;
+    const img = (id: string, token: string | null) => request.get(`${DELIVERY}/api/v1/delivery/portals/${s.key}/attempts/${attemptId}/images/${id}`,
+      token ? { headers: { Authorization: `Bearer ${token}` } } : {});
+    expect((await img(asset, cand)).status()).toBe(200);
+    expect((await img(asset, null)).status()).toBe(401);                       // no token, no image
+    expect((await img("0192a000-0000-7000-8000-000000000000", cand)).status()).toBe(404);   // not in the paper
+
+    await page.getByRole("radio", { name: /Option beta/ }).check();
+    await saved(page);
+    await page.getByRole("button", { name: "Question 3" }).click();
+    await page.getByRole("button", { name: "Finish examination" }).click();
+    await page.getByRole("button", { name: "Submit now" }).click();
+    await expect(page.getByText("Your examination has been submitted.")).toBeVisible();
+    expect((await img(asset, cand)).status()).toBe(404);                       // closed after submission
   });
 
   test("time runs out on an abandoned attempt: the server submits it automatically", async ({ page, request }) => {

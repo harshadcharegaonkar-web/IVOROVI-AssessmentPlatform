@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -282,6 +285,94 @@ class AttemptIT extends QuestionTestSupport {
         assertThatThrownBy(() -> as(early, () -> attempts.start(portalKey, schedule))).satisfies(t -> assertThat(code(t)).isEqualTo("not_open"));
         // not enrolled at all: the schedule does not exist for this candidate
         assertThatThrownBy(() -> as(early, () -> attempts.start(portalKey, UUID.randomUUID()))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+    }
+
+    // ================================================================================================ images (KI-83)
+
+    String uploadPng(UUID bank, int w) throws Exception {
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(w, 30, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(img, "png", png);
+        return JSON.readTree(mvc.perform(multipart("/api/v1/question-banks/" + bank + "/assets")
+                        .file(new MockMultipartFile("file", "figure.png", "image/png", png.toByteArray())).param("altText", "Figure")
+                        .header(HttpHeaders.AUTHORIZATION, faculty.bearer()))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("id").asString();
+    }
+
+    static String imageMcq(String stem, String statementAsset, String optionAsset) {
+        String image = "{\"format\":\"ivorovi.content.v1\",\"blocks\":[{\"type\":\"paragraph\",\"runs\":[{\"text\":\"" + stem
+                + "\"}]},{\"type\":\"image\",\"asset\":\"" + statementAsset + "\",\"alt\":\"A labelled triangle\"}]}";
+        String option = "{\"format\":\"ivorovi.content.v1\",\"blocks\":[{\"type\":\"image\",\"asset\":\"" + optionAsset + "\",\"alt\":\"Right angle\"}]}";
+        return """
+                {"type":"SINGLE_CHOICE","content":%s,"body":{"options":[{"id":"A","content":%s},{"id":"B","content":%s}]},
+                 "answerKey":{"correct":"B"},"marks":2}""".formatted(image, content("No right angle"), option);
+    }
+
+    @Test
+    void questionImagesReachOnlyTheCandidateWhosePaperHasThemWhileTheAttemptIsOpen() throws Exception {
+        UUID bank = standardBank();
+        String statement = uploadPng(bank, 40);
+        String option = uploadPng(bank, 41);
+        String elsewhere = uploadPng(bank, 42);   // used by a question that is not in this paper
+        String unlinked = uploadPng(bank, 43);    // uploaded to the bank, used by no question
+        approved(bank, faculty, designer, controller, imageMcq("Which has a right angle? " + rnd(), statement, option));
+        approved(bank, faculty, designer, controller, imageMcq("Not in the paper " + rnd(), elsewhere, elsewhere));
+        UUID q = ownerJdbc().sql("SELECT approved_version_id FROM question WHERE bank_id = ? ORDER BY created_at LIMIT 1").param(bank).query(UUID.class).single();
+        String a = call(post("/api/v1/assessments").content("""
+                {"orgUnitId":"%s","code":"IMG-%s","purpose":"INTERNAL","title":"Delivery mid-term","durationMinutes":90}""".formatted(college, rnd())),
+                designer, status().isCreated()).path("id").asString();
+        long lock = ownerJdbc().sql("SELECT v.version FROM assessment x JOIN assessment_version v ON v.id = x.current_version_id WHERE x.id = ?::uuid").param(a)
+                .query(Long.class).single();
+        call(put("/api/v1/assessments/" + a + "/draft").content("""
+                {"title":"Delivery mid-term","durationMinutes":90,"items":[{"questionVersionId":"%s"}],"version":%d}""".formatted(q, lock)), designer, status().isOk());
+        call(post("/api/v1/assessments/" + a + "/submit").content("{}"), designer, status().isOk());
+        call(post("/api/v1/assessments/" + a + "/reviews").content("{\"decision\":\"REVIEWED\"}"), controller, status().isOk());
+        call(post("/api/v1/assessments/" + a + "/publish").content("{}"), controller2, status().isOk());
+        version = ownerJdbc().sql("SELECT published_version_id FROM assessment WHERE id = ?::uuid").param(a).query(UUID.class).single();
+
+        String sub = "cand-" + rnd();
+        String other = "cand-" + rnd();
+        UUID me = candidate(sub, sub + "@c.test");
+        candidate(other, other + "@c.test");
+        checkIn(me);
+        terms(me, Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, 0);
+        UUID attempt = as(sub, () -> attempts.start(portalKey, schedule)).id();
+
+        // the candidate receives both images of their own paper (re-encoded PNG bytes)
+        var img = as(sub, () -> attempts.image(portalKey, attempt, UUID.fromString(statement)));
+        assertThat(img.mediaType()).isEqualTo("image/png");
+        assertThat(img.bytes()).startsWith((byte) 0x89, (byte) 'P', (byte) 'N', (byte) 'G');
+        assertThat(as(sub, () -> attempts.image(portalKey, attempt, UUID.fromString(option))).bytes()).isNotEmpty();
+
+        // nothing else: another candidate, an image of a question outside the paper, an unused upload, an unknown id
+        long denied = audits("question.asset.delivery_denied");
+        assertThatThrownBy(() -> as(other, () -> attempts.image(portalKey, attempt, UUID.fromString(statement)))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        for (String id : List.of(elsewhere, unlinked, UUID.randomUUID().toString())) {
+            assertThatThrownBy(() -> as(sub, () -> attempts.image(portalKey, attempt, UUID.fromString(id)))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        }
+        assertThat(audits("question.asset.delivery_denied")).isEqualTo(denied + 3);
+
+        // an image that a later scan finds infected is no longer delivered (fail closed), and the attempt cannot be scheduled again
+        ownerJdbc().sql("UPDATE question_asset SET scan_status = 'INFECTED', served_key = NULL WHERE id = ?::uuid").param(option).update();
+        assertThatThrownBy(() -> as(sub, () -> attempts.image(portalKey, attempt, UUID.fromString(option)))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        assertThat(as(sub, () -> attempts.image(portalKey, attempt, UUID.fromString(statement))).bytes()).isNotEmpty();
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE action = 'question.asset.delivery_denied' AND details::text ILIKE '%c.test%'")
+                .query(Long.class).single()).isZero();
+
+        // after submission the paper's images are closed too
+        as(sub, () -> attempts.submit(portalKey, attempt, null));
+        assertThatThrownBy(() -> as(sub, () -> attempts.image(portalKey, attempt, UUID.fromString(statement)))).satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+    }
+
+    @Test
+    void unscannedDevelopmentImagesNeverReachCandidatesOutsideDevelopmentAndTest() {
+        for (var env : com.ivorovi.platform.config.DeploymentProperties.Environment.values()) {
+            assertThat(com.ivorovi.questions.internal.AssetService.deliverable("CLEAN", env)).isTrue();
+            for (String st : List.of("PENDING", "INFECTED", "ERROR")) assertThat(com.ivorovi.questions.internal.AssetService.deliverable(st, env)).isFalse();
+        }
+        assertThat(com.ivorovi.questions.internal.AssetService.deliverable("NOT_SCANNED_DEV", com.ivorovi.platform.config.DeploymentProperties.Environment.STAGING)).isFalse();
+        assertThat(com.ivorovi.questions.internal.AssetService.deliverable("NOT_SCANNED_DEV", com.ivorovi.platform.config.DeploymentProperties.Environment.PRODUCTION)).isFalse();
+        assertThat(com.ivorovi.questions.internal.AssetService.deliverable("NOT_SCANNED_DEV", com.ivorovi.platform.config.DeploymentProperties.Environment.DEVELOPMENT)).isTrue();
     }
 
     @Test

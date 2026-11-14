@@ -178,6 +178,15 @@ public class AttemptService {
         return tx.execute(s -> view(mine(portalKey, attemptId)));
     }
 
+    /** KI-83: an image of a question in the caller's own open attempt (404 for anything else, including after submission). */
+    public com.ivorovi.questions.ApprovedQuestions.Image image(String portalKey, UUID attemptId, UUID assetId) {
+        return tx.execute(s -> {
+            Attempt a = mine(portalKey, attemptId);
+            if (!"IN_PROGRESS".equals(a.status())) throw ApiException.notFound("Image");
+            return assessments.paperImage(a.paperId(), assetId).orElseThrow(() -> ApiException.notFound("Image"));
+        });
+    }
+
     // ================================================================================================ answers
 
     @SuppressWarnings("unchecked")

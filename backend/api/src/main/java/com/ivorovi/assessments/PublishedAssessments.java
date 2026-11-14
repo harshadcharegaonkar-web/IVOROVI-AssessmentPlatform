@@ -44,12 +44,14 @@ public class PublishedAssessments {
     private final Authz authz;
     private final AuditLog audit;
     private final PaperService papers;
+    private final com.ivorovi.questions.ApprovedQuestions questions;
 
-    PublishedAssessments(JdbcClient jdbc, Authz authz, AuditLog audit, PaperService papers) {
+    PublishedAssessments(JdbcClient jdbc, Authz authz, AuditLog audit, PaperService papers, com.ivorovi.questions.ApprovedQuestions questions) {
         this.jdbc = jdbc;
         this.authz = authz;
         this.audit = audit;
         this.papers = papers;
+        this.questions = questions;
     }
 
     private static final String SELECT = """
@@ -79,18 +81,18 @@ public class PublishedAssessments {
     }
 
     /**
-     * KI-83 (decision D-11): true when any question this version can deliver (fixed questions and frozen random pools)
-     * contains an image in its statement or options. Candidates cannot receive images yet, so such versions must not be
-     * scheduled until candidate image delivery is in place and tested.
+     * KI-83 (decision D-11): true when every image that this version can deliver (fixed questions and frozen random
+     * pools, statements and options) can reach candidates: each is linked to its question version and passed the
+     * malware scan (unscanned development uploads count only in development and test). A version with any other image
+     * must not be scheduled.
      */
     @Transactional(readOnly = true)
-    public boolean containsImages(UUID versionId) {
-        return jdbc.sql("""
-                SELECT EXISTS (SELECT 1 FROM question_version qv
-                  WHERE qv.id IN (SELECT question_version_id FROM assessment_item WHERE version_id = ?
-                                  UNION SELECT p.question_version_id FROM assessment_rule_pool p JOIN assessment_rule r ON r.id = p.rule_id WHERE r.version_id = ?)
-                    AND (jsonb_path_exists(qv.content, 'strict $.**.type ? (@ == "image")') OR jsonb_path_exists(qv.body, 'strict $.**.type ? (@ == "image")')))""")
-                .params(versionId, versionId).query(Boolean.class).single();
+    public boolean imagesDeliverable(UUID versionId) {
+        List<UUID> versions = jdbc.sql("""
+                SELECT question_version_id FROM assessment_item WHERE version_id = ?
+                UNION SELECT p.question_version_id FROM assessment_rule_pool p JOIN assessment_rule r ON r.id = p.rule_id WHERE r.version_id = ?""")
+                .params(versionId, versionId).query(UUID.class).list();
+        return questions.imagesDeliverable(versions);
     }
 
     /** Permanent reference (idempotent). Only published versions can be referenced; references are never removed. */
@@ -112,6 +114,13 @@ public class PublishedAssessments {
     public List<CandidateItem> candidatePaper(UUID paperId) {
         return papers.candidateItems(paperId).stream().map(i -> new CandidateItem(i.position(), i.questionVersionId(), i.type(), i.content(), i.projection(),
                 i.marks(), i.negativeMarks())).toList();
+    }
+
+    /** KI-83: an image of a question in this paper (clean scan only); empty for anything not in the paper. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<com.ivorovi.questions.ApprovedQuestions.Image> paperImage(UUID paperId, UUID assetId) {
+        List<UUID> versions = papers.candidateItems(paperId).stream().map(PaperService.CandidateItem::questionVersionId).toList();
+        return questions.imageForVersions(assetId, versions);
     }
 
     /** The paper of one candidate attempt from the published version (delivery, Increment 2.5); same reference → same paper. */

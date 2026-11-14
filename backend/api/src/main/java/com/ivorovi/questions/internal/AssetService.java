@@ -290,6 +290,55 @@ public class AssetService {
         return new Served(bytes, r.type());
     }
 
+    /**
+     * KI-83: an image for delivery, served only when it is linked to one of {@code versionIds} (the questions of the
+     * caller's own paper; the delivery module checks the attempt) and its malware scan is clean (see {@link #deliverable}). No bank access is
+     * involved (candidates have none); refusals are audited without personal data.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<Served> serveForVersions(UUID id, java.util.Collection<UUID> versionIds) {
+        if (versionIds.isEmpty()) return java.util.Optional.empty();
+        boolean linked = jdbc.sql("SELECT EXISTS (SELECT 1 FROM question_version_asset WHERE asset_id = ? AND version_id = ANY (?))")
+                .params(id, versionIds.toArray(UUID[]::new)).query(Boolean.class).single();
+        if (!linked) {
+            audit.recordDenied("question.asset.delivery_denied", Map.of("assetId", id.toString(), "reason", "not_in_paper"));
+            return java.util.Optional.empty();
+        }
+        record Row(String scanStatus, String servedKey, String mediaType) {}
+        Row r = jdbc.sql("SELECT scan_status, served_key, media_type FROM question_asset WHERE id = ?").param(id)
+                .query((rs, n) -> new Row(rs.getString(1), rs.getString(2), rs.getString(3))).single();
+        if (!deliverable(r.scanStatus(), deployment.environment()) || r.servedKey() == null) {
+            audit.recordDenied("question.asset.delivery_denied", Map.of("assetId", id.toString(), "reason", "scan_" + r.scanStatus().toLowerCase(java.util.Locale.ROOT)));
+            return java.util.Optional.empty();
+        }
+        return storage.get(r.servedKey()).map(b -> new Served(b, r.mediaType()));
+    }
+
+    /**
+     * KI-83: every image of these versions is deliverable. An image block whose version has no asset link (which the
+     * editor always writes) also counts as undeliverable, so nothing unexpected passes.
+     */
+    @Transactional(readOnly = true)
+    public boolean imagesDeliverable(java.util.Collection<UUID> versionIds) {
+        if (versionIds.isEmpty()) return true;
+        UUID[] ids = versionIds.toArray(UUID[]::new);
+        boolean unlinked = jdbc.sql("""
+                SELECT EXISTS (SELECT 1 FROM question_version qv WHERE qv.id = ANY (?)
+                  AND (jsonb_path_exists(qv.content, 'strict $.**.type ? (@ == "image")') OR jsonb_path_exists(qv.body, 'strict $.**.type ? (@ == "image")'))
+                  AND NOT EXISTS (SELECT 1 FROM question_version_asset va WHERE va.version_id = qv.id))""").param(ids).query(Boolean.class).single();
+        if (unlinked) return false;
+        List<String> statuses = jdbc.sql("""
+                SELECT DISTINCT a.scan_status FROM question_version_asset va JOIN question_asset a ON a.id = va.asset_id WHERE va.version_id = ANY (?)""")
+                .param(ids).query(String.class).list();
+        return statuses.stream().allMatch(st -> deliverable(st, deployment.environment()));
+    }
+
+    /** Fail closed: candidates receive scanned-clean images; unscanned ones (development and test uploads) only there. */
+    public static boolean deliverable(String scanStatus, DeploymentProperties.Environment env) {
+        return "CLEAN".equals(scanStatus) || ("NOT_SCANNED_DEV".equals(scanStatus)
+                && (env == DeploymentProperties.Environment.DEVELOPMENT || env == DeploymentProperties.Environment.TEST));
+    }
+
     // ================================================================================================ cleanup
 
     @Scheduled(cron = "${ivorovi.questions.asset-cleanup-cron:0 41 3 * * *}")

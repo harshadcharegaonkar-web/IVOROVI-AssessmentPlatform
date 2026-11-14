@@ -48,16 +48,36 @@ public class ApprovedQuestions {
 
     public record PoolEntry(UUID versionId, UUID questionId) {}
 
+    /** A question image for delivery (bytes and media type). */
+    public record Image(byte[] bytes, String mediaType) {}
+
     private final JdbcClient jdbc;
     private final QuestionAccess access;
     private final QuestionService questions;
     private final JsonMapper json;
 
-    ApprovedQuestions(JdbcClient jdbc, QuestionAccess access, QuestionService questions, JsonMapper json) {
+    private final com.ivorovi.questions.internal.AssetService assets;
+
+    ApprovedQuestions(JdbcClient jdbc, QuestionAccess access, QuestionService questions, JsonMapper json, com.ivorovi.questions.internal.AssetService assets) {
         this.jdbc = jdbc;
         this.access = access;
         this.questions = questions;
         this.json = json;
+        this.assets = assets;
+    }
+
+    /**
+     * KI-83: an image used by one of the given question versions (the candidate's paper), only when its malware scan is
+     * clean; empty otherwise. The caller (delivery) must already have checked that the versions are the caller's own paper.
+     */
+    /** KI-83: true when every image of these question versions can be delivered to candidates (see AssetService.deliverable). */
+    @Transactional(readOnly = true)
+    public boolean imagesDeliverable(Collection<UUID> versionIds) {
+        return assets.imagesDeliverable(versionIds);
+    }
+
+    public java.util.Optional<Image> imageForVersions(UUID assetId, Collection<UUID> versionIds) {
+        return assets.serveForVersions(assetId, versionIds).map(s -> new Image(s.bytes(), s.mediaType()));
     }
 
     /** The bank, if the caller may read it (404 otherwise, as everywhere in the question module). */

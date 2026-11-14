@@ -199,7 +199,7 @@ class ScheduleIT extends QuestionTestSupport {
     }
 
     @Test
-    void assessmentsWithImagesCannotBeScheduledUntilCandidatesCanReceiveThem() throws Exception {
+    void assessmentsWithImagesAreSchedulableOnlyWhileEveryImageIsScannedClean() throws Exception {
         UUID bank = standardBank();
         java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(40, 30, java.awt.image.BufferedImage.TYPE_INT_RGB);
         java.io.ByteArrayOutputStream png = new java.io.ByteArrayOutputStream();
@@ -222,8 +222,13 @@ class ScheduleIT extends QuestionTestSupport {
         call(post("/api/v1/assessments/" + a + "/reviews").content("{\"decision\":\"REVIEWED\"}"), controller, status().isOk());
         call(post("/api/v1/assessments/" + a + "/publish").content("{}"), controller, status().isOk());
         UUID imageVersion = ownerJdbc().sql("SELECT published_version_id FROM assessment WHERE id = ?::uuid").param(a).query(UUID.class).single();
+        // KI-83: candidates receive scanned-clean images, so this version can be scheduled
         perform(post("/api/v1/exam/schedules").content(schedule(window(Instant.now(), Instant.now().plus(Duration.ofHours(3)))).replace(version.toString(), imageVersion.toString())),
-                controller).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("images_not_supported_yet"));
+                controller).andExpect(status().isCreated());
+        // an image that a later scan finds infected blocks further scheduling (fail closed)
+        ownerJdbc().sql("UPDATE question_asset SET scan_status = 'INFECTED', served_key = NULL WHERE id = ?::uuid").param(asset).update();
+        perform(post("/api/v1/exam/schedules").content(schedule(window(Instant.now(), Instant.now().plus(Duration.ofHours(3)))).replace(version.toString(), imageVersion.toString())),
+                controller).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("images_not_deliverable"));
         // the text-only assessment of this class is still schedulable
         create();
     }

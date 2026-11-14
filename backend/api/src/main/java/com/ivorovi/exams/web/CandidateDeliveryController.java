@@ -89,6 +89,18 @@ class CandidateDeliveryController {
         return attempts.get(key, attemptId);
     }
 
+    @GetMapping("/portals/{key}/attempts/{attemptId}/images/{assetId}")
+    @Operation(summary = "An image of a question in the caller's open attempt (scanned clean; never cached)")
+    org.springframework.http.ResponseEntity<byte[]> image(@PathVariable String key, @PathVariable UUID attemptId, @PathVariable UUID assetId) {
+        var img = attempts.image(key, attemptId, assetId);
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.parseMediaType(img.mediaType()))
+                .cacheControl(org.springframework.http.CacheControl.noStore().cachePrivate())
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Content-Disposition", "inline")
+                .body(img.bytes());
+    }
+
     @PutMapping("/portals/{key}/attempts/{attemptId}/answers/{position}")
     @Operation(summary = "Save one answer; acknowledged only once durable; an older or repeated sequence number changes nothing")
     AttemptService.AnswerAck save(@PathVariable String key, @PathVariable UUID attemptId, @PathVariable int position, @Valid @RequestBody AnswerSave r) {

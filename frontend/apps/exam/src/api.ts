@@ -40,6 +40,23 @@ export async function call<T>(path: string, token: string | null, init: { method
   return (await r.json()) as T;
 }
 
+/**
+ * KI-83: a question image of the caller's open attempt as a data URL (the CSP allows img-src data: only, and the
+ * request carries the bearer token, which an <img src> could not). Only PNG and JPEG are accepted.
+ */
+export async function imageDataUrl(path: string, token: string): Promise<string> {
+  const r = await fetch(BASE + path, { headers: { Authorization: `Bearer ${token}` }, credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store" });
+  if (!r.ok) throw new ApiError(r.status, "image_unavailable", `Image unavailable (${r.status})`);
+  const blob = await r.blob();
+  if (!/^image\/(png|jpeg)$/.test(blob.type)) throw new ApiError(415, "image_unavailable", "Unsupported image");
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new ApiError(0, "image_unavailable", "Image unreadable"));
+    reader.readAsDataURL(blob);
+  });
+}
+
 /** Clock offset: server time minus local time, corrected by half the round trip (server time is authoritative, C-3). */
 export async function measureClock(): Promise<{ offsetMs: number; rttMs: number }> {
   const t0 = Date.now();

@@ -1,6 +1,6 @@
 import { ContentView, type ContentDoc } from "@ivorovi/content";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ApiError, call } from "./api";
+import { ApiError, call, imageDataUrl } from "./api";
 
 /** Delivery API types (M3). Answers are {"value": …}: option id, list of option ids, boolean or text. */
 export interface ExamView {
@@ -24,6 +24,33 @@ interface SubmitResult { attemptId: string; status: string; submittedAt: string;
 type SaveState = "saved" | "saving" | "pending" | "failed";
 
 const fmt = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+
+/** Asset ids of the images in some content (statement blocks and option content). */
+function imageIds(items: Item[]): string[] {
+  const ids = new Set<string>();
+  const add = (d: ContentDoc | null | undefined) => { for (const b of d?.blocks ?? []) if (b.type === "image") ids.add(b.asset); };
+  for (const i of items) { add(i.content); for (const o of i.projection?.options ?? []) add(o.content); }
+  return [...ids].sort();
+}
+
+/**
+ * KI-83: loads every image of the paper once, when the attempt opens (so navigation never waits on the network). A
+ * failed image is retried on the next attempt refresh; until then the block shows its text description.
+ */
+function usePaperImages(portalKey: string, token: string, attemptId: string, items: Item[] | undefined): (id: string) => string | undefined {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const key = items ? imageIds(items).join(",") : "";
+  useEffect(() => {
+    if (!key) return;
+    let live = true;
+    for (const id of key.split(",")) {
+      imageDataUrl(`/portals/${portalKey}/attempts/${attemptId}/images/${id}`, token)
+        .then((u) => { if (live) setUrls((m) => ({ ...m, [id]: u })); }, () => { /* the text description stays visible */ });
+    }
+    return () => { live = false; };
+  }, [portalKey, token, attemptId, key]);
+  return useCallback((id: string) => urls[id], [urls]);
+}
 
 /** The candidate's scheduled examinations, with what they can do now. */
 export function ExamsCard({ portalKey, token, open }: { portalKey: string; token: string; open: (attemptId: string) => void }) {
@@ -114,6 +141,7 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
   const [values, setValues] = useState<Record<number, unknown>>({});
   const [states, setStates] = useState<Record<number, SaveState>>({});
   const [offset, setOffset] = useState(0);
+  const imageSrc = usePaperImages(portalKey, token, attemptId, attempt?.items);
   const [now, setNow] = useState(() => Date.now());
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -262,8 +290,8 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
           <h2 id="h-question" className="font-semibold">Question {item.position} of {attempt.items.length}</h2>
           <span className="text-sm text-muted-strong">{item.marks} marks{item.negativeMarks > 0 ? ` · −${item.negativeMarks} for a wrong answer` : ""}</span>
         </div>
-        <ContentView doc={item.content} imageSrc={() => undefined} className="mt-3 space-y-2" />
-        <div className="mt-4"><ResponseInput item={item} value={values[item.position]} disabled={timeUp} onChange={(v) => change(item.position, v)} /></div>
+        <ContentView doc={item.content} imageSrc={imageSrc} className="mt-3 space-y-2" />
+        <div className="mt-4"><ResponseInput item={item} imageSrc={imageSrc} value={values[item.position]} disabled={timeUp} onChange={(v) => change(item.position, v)} /></div>
         <p className="mt-2 text-xs text-muted" aria-live="polite">
           {{ saved: "Saved", saving: "Saving…", pending: "Saving…", failed: "Not saved yet — retrying automatically" }[states[item.position] ?? "saved"]}
         </p>
@@ -291,7 +319,7 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
   );
 }
 
-function ResponseInput({ item, value, disabled, onChange }: { item: Item; value: unknown; disabled: boolean; onChange: (v: unknown) => void }) {
+function ResponseInput({ item, imageSrc, value, disabled, onChange }: { item: Item; imageSrc: (id: string) => string | undefined; value: unknown; disabled: boolean; onChange: (v: unknown) => void }) {
   const options = item.projection?.options ?? [];
   const name = `q-${item.position}`;
   const wrap = (children: ReactNode, legend: string) => (
@@ -302,14 +330,14 @@ function ResponseInput({ item, value, disabled, onChange }: { item: Item; value:
       return wrap(options.map((o) => (
         <label key={o.id} className="flex cursor-pointer gap-3 rounded-md border border-border p-3">
           <input type="radio" name={name} checked={value === o.id} onChange={() => onChange(o.id)} />
-          <span className="font-semibold" aria-hidden>{o.id}.</span><ContentView doc={o.content} imageSrc={() => undefined} className="min-w-0 flex-1" />
+          <span className="font-semibold" aria-hidden>{o.id}.</span><ContentView doc={o.content} imageSrc={imageSrc} className="min-w-0 flex-1" />
         </label>)), "Choose one answer");
     case "MULTIPLE_CHOICE": {
       const chosen = Array.isArray(value) ? (value as string[]) : [];
       return wrap(options.map((o) => (
         <label key={o.id} className="flex cursor-pointer gap-3 rounded-md border border-border p-3">
           <input type="checkbox" checked={chosen.includes(o.id)} onChange={(e) => onChange(e.target.checked ? [...chosen, o.id] : chosen.filter((x) => x !== o.id))} />
-          <span className="font-semibold" aria-hidden>{o.id}.</span><ContentView doc={o.content} imageSrc={() => undefined} className="min-w-0 flex-1" />
+          <span className="font-semibold" aria-hidden>{o.id}.</span><ContentView doc={o.content} imageSrc={imageSrc} className="min-w-0 flex-1" />
         </label>)), "Choose all answers that apply");
     }
     case "TRUE_FALSE":
