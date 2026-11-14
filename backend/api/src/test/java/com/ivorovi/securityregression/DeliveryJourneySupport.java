@@ -79,20 +79,27 @@ abstract class DeliveryJourneySupport extends QuestionTestSupport {
     protected Candidate bilal;
     protected List<String> codes;
 
+    /** The approved questions of the assessment, as drafts (default: four single-choice questions, correct answer A). */
+    protected List<String> questionDrafts(UUID bank) throws Exception {
+        List<String> drafts = new ArrayList<>();
+        for (int i = 0; i < 4; i++) drafts.add(mcq("Security regression question " + i + " " + rnd(), "A"));
+        return drafts;
+    }
+
     @BeforeEach
     void setUp() throws Exception {
         setUpOrg("secreg");
         UUID bank = standardBank();
-        for (int i = 0; i < 4; i++) approved(bank, faculty, designer, controller, mcq("Security regression question " + i + " " + rnd(), "A"));
+        for (String draft : questionDrafts(bank)) approved(bank, faculty, designer, controller, draft);
         List<UUID> qv = ownerJdbc().sql("SELECT approved_version_id FROM question WHERE bank_id = ? ORDER BY created_at").param(bank).query(UUID.class).list();
         String a = call(post("/api/v1/assessments").content("""
                 {"orgUnitId":"%s","code":"SR-%s","purpose":"INTERNAL","title":"Security regression","durationMinutes":45}""".formatted(college, rnd())),
                 designer, status().isCreated()).path("id").asString();
         long lock = ownerJdbc().sql("SELECT v.version FROM assessment x JOIN assessment_version v ON v.id = x.current_version_id WHERE x.id = ?::uuid").param(a)
                 .query(Long.class).single();
+        String items = String.join(",", qv.stream().map(id -> "{\"questionVersionId\":\"" + id + "\"}").toList());
         call(put("/api/v1/assessments/" + a + "/draft").content("""
-                {"title":"Security regression","durationMinutes":45,"items":[{"questionVersionId":"%s"},{"questionVersionId":"%s"},{"questionVersionId":"%s"},
-                 {"questionVersionId":"%s"}],"version":%d}""".formatted(qv.get(0), qv.get(1), qv.get(2), qv.get(3), lock)), designer, status().isOk());
+                {"title":"Security regression","durationMinutes":45,"items":[%s],"version":%d}""".formatted(items, lock)), designer, status().isOk());
         call(post("/api/v1/assessments/" + a + "/submit").content("{}"), designer, status().isOk());
         call(post("/api/v1/assessments/" + a + "/reviews").content("{\"decision\":\"REVIEWED\"}"), controller, status().isOk());
         call(post("/api/v1/assessments/" + a + "/publish").content("{}"), controller, status().isOk());
