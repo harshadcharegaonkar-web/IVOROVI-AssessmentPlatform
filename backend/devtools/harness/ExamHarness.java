@@ -251,7 +251,7 @@ public class ExamHarness {
     static List<String> codes(String schedule) {
         List<String> codes = new ArrayList<>();
         for (int done = 0; done < candidates; ) {
-            int n = Math.min(2000, candidates - done);
+            int n = Math.min(500, candidates - done);   // the API issues at most 500 codes per call
             Matcher m = Pattern.compile("\"code\"\\s*:\\s*\"([^\"]+)\"").matcher(staffCall(CONTROLLER, "POST", "/api/v1/exam/schedules/" + schedule + "/codes",
                     "{\"count\":" + n + "}").body());
             while (m.find()) codes.add(m.group(1));
@@ -386,6 +386,15 @@ public class ExamHarness {
     // ------------------------------------------------------------------------------------------------ main
 
     public static void main(String[] args) throws Exception {
+        try {
+            run(args);
+        } catch (Throwable t) {
+            t.printStackTrace();
+            System.exit(1);                                    // the JWKS server thread would otherwise keep the JVM alive
+        }
+    }
+
+    static void run(String[] args) throws Exception {
         Map<String, String> a = new HashMap<>();
         for (int i = 0; i + 1 < args.length; i += 2) a.put(args[i].replaceFirst("^--", ""), args[i + 1]);
         delivery = a.getOrDefault("delivery", "http://localhost:8091");
