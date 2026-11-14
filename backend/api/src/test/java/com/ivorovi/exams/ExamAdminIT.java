@@ -147,14 +147,20 @@ class ExamAdminIT extends IntegrationTest {
         ownerJdbc().sql("INSERT INTO candidate_account (id, tenant_id, subject, email_enc, display_name, portal_id) VALUES (?, ?, ?, ?, ?, ?)")
                 .params(id, org.tenant, forgot, encrypt("f@cand.test"), "Forgot", portal).update();
         Instant resetAt = Instant.now();
+        Instant otherAt = Instant.now();
         mfa.passwordResets.add(new CandidateMfa.PasswordReset(forgot, resetAt, false, "reset-session-1"));   // did not tick "sign out other devices"
-        mfa.passwordResets.add(new CandidateMfa.PasswordReset(kept, Instant.now(), true));      // did
-        assertThat(guard.enforce()).isEqualTo(1);
-        assertThat(mfa.signedOut).containsExactly(forgot);
+        mfa.passwordResets.add(new CandidateMfa.PasswordReset(kept, otherAt, true));            // did, or a LOGOUT happened in between
+        // KI-79 (Day 4): the identity provider is unreachable once: nothing is lost, the reset is retried on the next run
+        mfa.failSignOuts.set(1);
+        assertThat(guard.enforce()).isEqualTo(1);                                              // the first failed, the second went through
+        assertThat(guard.enforce()).isEqualTo(1);                                              // the failed one is retried and now succeeds
+        // every reset ends the earlier sessions, whatever the candidate ticked (an unrelated LOGOUT no longer skips it)
+        assertThat(mfa.signedOut).containsExactlyInAnyOrder(forgot, kept);
         // KI-79: only sessions older than the reset end; the session the reset flow signed in is kept
-        assertThat(mfa.signedOutBefore).containsExactly(new com.ivorovi.support.FakeCandidateMfa.SignOutBefore(forgot, resetAt, "reset-session-1"));
+        assertThat(mfa.signedOutBefore).contains(new com.ivorovi.support.FakeCandidateMfa.SignOutBefore(forgot, resetAt, "reset-session-1"));
         mfa.signedOutBefore.clear();
-        assertThat(guard.enforce()).isZero();                                                  // handled once
+        assertThat(guard.enforce()).isZero();                                                  // each reset handled once
+        assertThat(mfa.signedOutBefore).isEmpty();
         assertThat(ownerJdbc().sql("SELECT details->>'sessionsEnded' FROM audit_event WHERE tenant_id = ? AND action = 'exam.candidate.recovered' AND resource_id = ?")
                 .params(org.tenant, id.toString()).query(String.class).single()).isEqualTo("enforced");
         mfa.passwordResets.clear();
