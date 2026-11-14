@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 export const USERS = {
   orgAdmin: "alice.admin@aurora.test",
@@ -85,4 +85,15 @@ export async function archiveRolesNamed(request: APIRequestContext, prefix: stri
     const del = await request.delete(`/api/v1/roles/${role.id}?version=${version}`, { headers });
     expect(del.status(), `archive ${role.name}`).toBe(204);
   }
+}
+
+/**
+ * Selects the one option of {@code select} whose text contains {@code text} (a value created by this run), never an option
+ * by position: on a reused database a position can point at another run's record (KI-81). Fails when no option or more
+ * than one option matches.
+ */
+export async function selectOptionContaining(select: Locator, text: string): Promise<void> {
+  const option = select.locator("option", { hasText: text });
+  await expect(option, `exactly one option containing "${text}"`).toHaveCount(1);
+  await select.selectOption((await option.getAttribute("value"))!);
 }

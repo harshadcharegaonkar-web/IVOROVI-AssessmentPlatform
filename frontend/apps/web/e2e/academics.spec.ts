@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { apiToken, signIn, USERS } from "./support";
+import { apiToken, selectOptionContaining, signIn, USERS } from "./support";
 
 const AIT = "0192a000-0000-7000-8000-00000000a101";
 const CSE = "0192a000-0000-7000-8000-00000000a121";
@@ -94,8 +94,7 @@ test.describe("Increment 1.4: academic structure", () => {
     await page.getByRole("button", { name: "Add subject to Semester 3" }).click();
     const add = page.getByRole("dialog", { name: "Add a subject to the curriculum" });
     await add.getByLabel("Find a subject").fill(`DS${id}`);
-    await expect(add.getByLabel("Subject", { exact: true }).locator("option", { hasText: `DS${id}` })).toHaveCount(1);
-    await add.getByLabel("Subject", { exact: true }).selectOption({ index: 1 });
+    await selectOptionContaining(add.getByLabel("Subject", { exact: true }), `DS${id}`);
     await add.getByRole("button", { name: "Add" }).click();
     await expect(page.getByTestId("curriculum-term-3")).toContainText(`DS${id}`);
     expect(await seriousViolations(page)).toEqual([]);
@@ -148,9 +147,13 @@ test.describe("Increment 1.4: academic structure", () => {
     // offering from the curriculum (semester 3 of the course in the calendar's semester 1)
     await page.getByRole("button", { name: "Offer a subject" }).click();
     const od = page.getByRole("dialog", { name: /Offer a subject/ });
-    await od.getByLabel("Calendar semester").selectOption({ index: 1 });
+    // this run's semester by id: the list shows every open semester of the organization, and earlier runs' years carry the
+    // same name and dates, so neither a position nor the label identifies this run's semester (KI-81 review)
+    const yearDetail = await request.get(`/api/v1/academics/academic-years/${yearId}`, { headers: { Authorization: `Bearer ${await apiToken(request, USERS.orgAdmin)}` } });
+    const termId = ((await yearDetail.json()) as { terms: { id: string; name: string }[] }).terms.find((t) => t.name === "Semester 1")!.id;
+    await od.getByLabel("Calendar semester").selectOption(termId);
     await od.getByLabel("Course semester").selectOption("3");
-    await od.getByLabel("Subject", { exact: true }).selectOption({ index: 1 });
+    await selectOptionContaining(od.getByLabel("Subject", { exact: true }), `DS${id}`);
     await od.getByRole("button", { name: "Offer" }).click();
     await expect(page.getByRole("heading", { name: `DS${id} · E2E Data Structures ${id}`, level: 1 })).toBeVisible();
     await expect(page.getByText("No faculty assigned")).toBeVisible();
@@ -159,7 +162,7 @@ test.describe("Increment 1.4: academic structure", () => {
     await page.getByRole("button", { name: "Assign faculty" }).click();
     const ad = page.getByRole("dialog", { name: "Assign faculty" });
     await ad.getByLabel("Find staff").fill(`Teacher ${id}`);
-    await ad.getByLabel("Staff member").selectOption({ index: 1 });
+    await selectOptionContaining(ad.getByLabel("Staff member"), teacher);
     await ad.getByRole("button", { name: "Assign" }).click();
     const faculty = page.getByRole("table", { name: "Faculty assignments" });
     await expect(faculty).toContainText(teacher);

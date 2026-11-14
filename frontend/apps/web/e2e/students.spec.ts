@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { apiToken, signIn, USERS } from "./support";
+import { apiToken, selectOptionContaining, signIn, USERS } from "./support";
 
 const AIT = "0192a000-0000-7000-8000-00000000a101";
 const CSE = "0192a000-0000-7000-8000-00000000a121";
@@ -75,7 +75,7 @@ test.describe("Increment 1.5: student lifecycle", () => {
     const ad = page.getByRole("dialog", { name: "Record admission" });
     await ad.getByLabel("Admission number").fill(`ADM-${id}`);
     await ad.getByLabel("Program").selectOption({ label: `${s.programName} · Aurora Institute of Technology` });
-    await ad.getByLabel("Course").selectOption({ index: 1 });
+    await selectOptionContaining(ad.getByLabel("Course"), s.courseName);
     await ad.getByLabel("Entry academic year").selectOption({ label: `${s.yearName} · Aurora Institute of Technology` });
     expect(await seriousViolations(page)).toEqual([]);
     await ad.getByRole("button", { name: "Record admission" }).click();
@@ -85,7 +85,7 @@ test.describe("Increment 1.5: student lifecycle", () => {
     // initial enrolment → enrolled
     await page.getByRole("button", { name: "Enrol in a batch" }).click();
     const en = page.getByRole("dialog", { name: /Enrol Riya/ });
-    await en.getByLabel("Batch", { exact: true }).selectOption({ index: 1 });
+    await selectOptionContaining(en.getByLabel("Batch", { exact: true }), s.batchName);   // KI-81: by this run's label, not by position
     await en.getByRole("button", { name: "Initial enrolment" }).click();
     await expect(page.getByRole("table", { name: "Academic history" })).toContainText(s.batchName.slice(0, 10));
     expect(await seriousViolations(page)).toEqual([]);
