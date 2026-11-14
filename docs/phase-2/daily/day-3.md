@@ -76,7 +76,7 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
 | KI-84 browser E2E of the candidate exam | Medium | **Fix implemented** (`735413a`, extended today); the `735413a` run is green. Stays open until `50bb254` is green |
 | KI-85 exam list not refreshed after check-in (found by Session 3) | Medium | Fixed in `735413a`; its QA test now asserts the fix; open until CI is green |
 | KI-79 other devices signed out after a password reset | Medium | **Reopened**: failed once in CI run 43607780575; root cause not yet known |
-| KI-87 (new) duplicated `nosniff` header behind the proxies | Low | Fixed on the image endpoint; five staff endpoints remain |
+| KI-87 (new) security headers duplicated behind both nginx proxies | Low | Fix implemented in the proxy configs: each header is now sent once, verified with the production nginx image. My first attempt (in the controller, `191c8b9`) was wrong and failed again in CI run [43610232127](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/43610232127) |
 | KI-86 (new) enrolment history degrades to ~17 s without planner statistics | Medium | **Open**. Found while verifying the QA merge, from a virtual-thread dump and `EXPLAIN ANALYZE`. Remedy: `ANALYZE` in the restore and crash-recovery runbook; make the query independent of statistics |
 | KI-75 question search at 60k/100k | Medium | **Open.** Session 2 reproduced it from `main`: p95 130 ms at 60k (target < 250), 122 ms at 100k (target < 300). This is **local, not CI**, and was run by the session that wrote the fix, so it is not independent in person |
 | KI-80 feature-flag cache | **Medium** (was Low: it is a product defect) | **Root cause found** by Session 3: Spring Data Redis 4 writes the cache asynchronously, so a put can land after its eviction and a changed feature flag can keep its old value for up to 10 minutes. I reproduced it independently: 137 of 500 evicted entries were still readable. Fix: synchronous (immediate) writes, still transaction-aware; `FeatureCacheOrderingIT` now passes, and `FeatureFlagIT` 11/11. Open until CI is green |
@@ -125,7 +125,7 @@ is `headers.spec.ts`, which needs the production container (vite dev does not se
 |---|---|
 | Invigilator workflows (roster, live status, incident notes) | 1 |
 | Review and merge KI-66 (Session 3's delivery hardening) | 0.5 |
-| KI-86 query robustness and runbook; KI-87 staff endpoints | 0.5 |
+| KI-86 query robustness and runbook | 0.5 |
 | KI-79 (reopened) root cause | 0.5 |
 | Web E2E for the staff results screen; R-1 adjustments after your decision | 0.5 |
 | Load test at target concurrency on the delivery process; failure drills | 1.5 |
