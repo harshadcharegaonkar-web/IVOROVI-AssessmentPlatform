@@ -20,6 +20,7 @@ interface AttemptView {
 interface Ack { position: number; seq: number; applied: boolean; savedAt: string; serverTime: string }
 interface CandidateResult { attemptId: string; title: string; awarded: number; maxMarks: number; correct: number; partial: number; incorrect: number; unanswered: number }
 interface SubmitResult { attemptId: string; status: string; submittedAt: string; answered: number; questions: number }
+interface Pulse { serverTime: string; deadlineAt: string; status: string; extendedMinutes: number }
 
 type SaveState = "saved" | "saving" | "pending" | "failed";
 
@@ -145,6 +146,8 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
   const [now, setNow] = useState(() => Date.now());
   const [confirming, setConfirming] = useState(false);
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const deadlineRef = useRef<string | null>(null);
   const seqRef = useRef(0);
   const timers = useRef<Record<number, number>>({});
   const reloadRef = useRef<() => Promise<void>>(async () => undefined);
@@ -203,6 +206,37 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
     return () => window.clearInterval(t);
   }, []);
 
+  /**
+   * The attempt heartbeat (KI-92, Day 5): tells the invigilators the candidate is connected while writing, keeps the clock
+   * offset fresh, and brings an extension or a termination decided by staff. Returns false if the attempt is no longer open.
+   */
+  const pulse = useCallback(async (): Promise<boolean> => {
+    try {
+      const p = await call<Pulse>(`/portals/${portalKey}/attempts/${attemptId}/pulse`, token, { method: "POST" });
+      setOffset(Date.parse(p.serverTime) - Date.now());
+      if (deadlineRef.current && Date.parse(p.deadlineAt) > Date.parse(deadlineRef.current)) {
+        const added = Math.round((Date.parse(p.deadlineAt) - Date.parse(deadlineRef.current)) / 60000);
+        setNotice(`Your time was extended by ${added} minute${added === 1 ? "" : "s"}.`);
+      }
+      deadlineRef.current = p.deadlineAt;
+      setAttempt((a) => (a && a.deadlineAt !== p.deadlineAt ? { ...a, deadlineAt: p.deadlineAt } : a));
+      if (p.status !== "IN_PROGRESS") { void reloadRef.current(); return false; }
+      return true;
+    } catch {
+      return true;                                                     // offline: the server decides at the deadline anyway
+    }
+  }, [portalKey, token, attemptId]);
+  useEffect(() => {
+    if (attempt?.deadlineAt && !deadlineRef.current) deadlineRef.current = attempt.deadlineAt;
+  }, [attempt?.deadlineAt]);
+  const running = attempt?.status === "IN_PROGRESS";
+  useEffect(() => {
+    if (!running) return;
+    const first = window.setTimeout(() => void pulse(), 0);
+    const t = window.setInterval(() => void pulse(), 15_000);
+    return () => { window.clearTimeout(first); window.clearInterval(t); };
+  }, [running, pulse]);
+
   const open = attempt?.status === "IN_PROGRESS";
   const remainingMs = attempt ? Date.parse(attempt.deadlineAt) - (now + offset) : 0;
   const timeUp = open && remainingMs <= 0;
@@ -222,8 +256,16 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
   // time up: submit (the server also submits on its own when time runs out)
   const submittedOnTimeUp = useRef(false);
   useEffect(() => {
-    if (timeUp && !submittedOnTimeUp.current) { submittedOnTimeUp.current = true; void submit(); }
-  }, [timeUp, submit]);
+    if (timeUp && !submittedOnTimeUp.current) {
+      submittedOnTimeUp.current = true;
+      // ask the server first: an extension granted since the last heartbeat must not be lost to a local submission
+      void pulse().then((stillOpen) => {
+        const latest = deadlineRef.current ? Date.parse(deadlineRef.current) : 0;
+        if (stillOpen && latest > Date.now() + offset) submittedOnTimeUp.current = false;
+        else if (stillOpen) void submit();
+      });
+    }
+  }, [timeUp, submit, pulse, offset]);
 
   const change = (position: number, value: unknown) => {
     if (!open || timeUp) return;
@@ -246,7 +288,9 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
       <section className="rounded-lg border border-border bg-surface p-5">
         <h1 className="text-2xl font-semibold">{attempt.title}</h1>
         <p className="mt-2" role="status">
-          {attempt.status === "AUTO_SUBMITTED" ? "Time ran out and your examination was submitted." : "Your examination has been submitted."}
+          {attempt.status === "AUTO_SUBMITTED" ? "Time ran out and your examination was submitted."
+            : attempt.status === "TERMINATED" ? "Your examination was ended by the examination staff. Your saved answers were kept."
+            : "Your examination has been submitted."}
           {attempt.submittedAt ? ` (${fmt(attempt.submittedAt)})` : ""}
         </p>
         {result && <p className="mt-1 text-sm text-muted-strong">You answered {result.answered} of {result.questions} questions.</p>}
@@ -270,6 +314,7 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
         <p className="text-sm" aria-live="polite">{unsaved ? "Saving your answers…" : "All answers saved"}</p>
       </div>
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+      {notice && <p role="status" className="text-sm font-medium text-success-text">{notice}</p>}
 
       <nav aria-label="Questions" className="flex flex-wrap gap-2">
         {attempt.items.map((i) => {

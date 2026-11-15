@@ -471,8 +471,9 @@ class AttemptIT extends QuestionTestSupport {
         terms(me, Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, 0);
         UUID live = as(sub, () -> attempts.start(portalKey, schedule)).id();
         // tampering with an open attempt's binding or deadline is refused even for the owner role
+        // a deadline moved without a recorded extension is refused (Day 5: only forward, only by recorded extensions)
         assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_attempt SET deadline_at = deadline_at + interval '1 hour' WHERE id = ?").param(live).update())
-                .hasMessageContaining("never change");
+                .hasMessageContaining("only forward, by recorded extensions");
         assertThatThrownBy(() -> ownerJdbc().sql("DELETE FROM exam_attempt WHERE id = ?").param(live).update()).isInstanceOf(Exception.class);
         as(sub, () -> attempts.save(portalKey, live, 1, 1, Map.of("value", "A")));
         assertThatThrownBy(() -> ownerJdbc().sql("DELETE FROM exam_answer WHERE attempt_id = ?").param(live).update()).isInstanceOf(Exception.class);

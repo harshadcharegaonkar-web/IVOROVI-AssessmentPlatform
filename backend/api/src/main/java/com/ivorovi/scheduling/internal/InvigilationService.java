@@ -39,11 +39,11 @@ public class InvigilationService {
     @Schema(name = "InvigilationCandidate")
     public record Candidate(UUID enrolmentId, String displayName, String email, String state, boolean online, Instant checkedInAt, Instant lastSeenAt,
                             Instant startedAt, Instant deadlineAt, Instant submittedAt, long secondsLeft, int extraMinutes, int questions, int answered,
-                            Instant lastSavedAt, int incidents) {}
+                            Instant lastSavedAt, int incidents, int extendedMinutes, int interruptions, long interruptedSeconds, boolean terminationPending) {}
 
     @Schema(name = "InvigilationMonitor")
     public record Monitor(UUID scheduleId, String title, Instant opensAt, Instant closesAt, Instant serverTime, Map<String, Integer> counts,
-                          List<Candidate> candidates, boolean canRecordIncidents) {}
+                          List<Candidate> candidates, boolean canRecordIncidents, boolean canExtend, boolean canRequestTermination) {}
 
     @Schema(name = "CandidateIncident")
     public record Incident(UUID id, UUID enrolmentId, String candidateName, String category, String note, UUID correctsId, String recordedByName,
@@ -131,10 +131,37 @@ public class InvigilationService {
             out.add(new Candidate(e.id(), e.name(), e.email(), state, on, p == null ? null : p.checkedInAt(), p == null ? null : p.lastSeenAt(),
                     p == null ? null : p.startedAt(), p == null ? null : p.deadlineAt(), p == null ? null : p.submittedAt(), left,
                     p == null ? 0 : p.extraMinutes(), p == null ? 0 : p.questions(), p == null ? 0 : p.answered(), p == null ? null : p.lastSavedAt(),
-                    incidents.getOrDefault(e.id(), 0)));
+                    incidents.getOrDefault(e.id(), 0), p == null ? 0 : p.extendedMinutes(), p == null ? 0 : p.interruptions(),
+                    p == null ? 0 : p.interruptedSeconds(), p != null && p.terminationPending()));
         }
         counts.put("ONLINE", online);
-        return new Monitor(s.id(), s.title(), s.opensAt(), s.closesAt(), now, counts, out, true);
+        return new Monitor(s.id(), s.title(), s.opensAt(), s.closesAt(), now, counts, out, true,
+                authz.hasInOrgUnit("exam.schedule.manage", s.orgUnitId()), true);
+    }
+
+    private record Enrolled(UUID candidateId, String name) {}
+
+    private Enrolled enrolled(UUID scheduleId, UUID enrolmentId) {
+        Enrolled e = jdbc.sql("SELECT candidate_id, display_name FROM exam_enrolment WHERE id = ? AND schedule_id = ?").params(enrolmentId, scheduleId)
+                .query((rs, n) -> new Enrolled(rs.getObject(1, UUID.class), rs.getString(2))).optional().orElseThrow(() -> ApiException.notFound("Candidate"));
+        if (e.candidateId() == null) throw ApiException.conflict("attempt_not_running", "This candidate has not started the examination.");
+        return e;
+    }
+
+    /** Extra minutes for one candidate's running examination: exam controllers only (exam.schedule.manage), not invigilators. */
+    @Transactional
+    public com.ivorovi.exams.ExamSessions.AttemptExtension extend(UUID scheduleId, UUID enrolmentId, int minutes, String reason) {
+        Sched s = schedule(scheduleId);
+        Enrolled e = enrolled(scheduleId, enrolmentId);
+        return sessions.extend(scheduleId, s.orgUnitId(), s.closesAt(), e.candidateId(), minutes, reason);
+    }
+
+    /** An invigilator asks to end one candidate's examination; another person with exam.attempt.terminate decides. */
+    @Transactional
+    public UUID requestTermination(UUID scheduleId, UUID enrolmentId, String reason) {
+        Sched s = schedule(scheduleId);
+        Enrolled e = enrolled(scheduleId, enrolmentId);
+        return sessions.requestTermination(scheduleId, s.orgUnitId(), e.candidateId(), e.name(), reason);
     }
 
     @Transactional(readOnly = true)

@@ -30,6 +30,14 @@ class InvigilationController {
     @Schema(name = "CandidateIncidentRequest")
     record IncidentRequest(@NotNull UUID enrolmentId, @NotBlank String category, @NotBlank @Size(max = 1000) String note, UUID correctsId) {}
 
+    @Schema(name = "AttemptExtensionRequest")
+    record ExtensionRequest(@jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(60) int minutes, @NotBlank @Size(max = 500) String reason) {}
+
+    @Schema(name = "TerminationRequest")
+    record TerminationRequest(@NotBlank @Size(max = 1000) String reason) {}
+
+    record TerminationRequested(UUID approvalId) {}
+
     private final InvigilationService invigilation;
 
     InvigilationController(InvigilationService invigilation) {
@@ -41,6 +49,21 @@ class InvigilationController {
     @Operation(summary = "Live state of every enrolled candidate (check-in, connection, progress; never answers or scores)")
     InvigilationService.Monitor monitor(@PathVariable UUID id) {
         return invigilation.monitor(id);
+    }
+
+    @PostMapping("/candidates/{enrolmentId}/extensions")
+    @PreAuthorize("@authz.hasAnywhere('exam.schedule.manage')")
+    @Operation(summary = "Add minutes to one candidate's running examination (exam controllers; recorded with the reason; never beyond the window)")
+    com.ivorovi.exams.ExamSessions.AttemptExtension extend(@PathVariable UUID id, @PathVariable UUID enrolmentId, @Valid @RequestBody ExtensionRequest r) {
+        return invigilation.extend(id, enrolmentId, r.minutes(), r.reason());
+    }
+
+    @PostMapping("/candidates/{enrolmentId}/termination")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @PreAuthorize("@authz.hasAnywhere('exam.invigilate')")
+    @Operation(summary = "Ask for one candidate's examination to be ended (another person with exam.attempt.terminate decides)")
+    TerminationRequested requestTermination(@PathVariable UUID id, @PathVariable UUID enrolmentId, @Valid @RequestBody TerminationRequest r) {
+        return new TerminationRequested(invigilation.requestTermination(id, enrolmentId, r.reason()));
     }
 
     @GetMapping("/candidate-incidents")

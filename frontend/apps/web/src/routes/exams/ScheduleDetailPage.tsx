@@ -204,6 +204,7 @@ const STATE: Record<string, { label: string; tone: "neutral" | "info" | "warning
   NOT_LINKED: { label: "Not signed in", tone: "neutral" }, NOT_CHECKED_IN: { label: "Not checked in", tone: "neutral" },
   CHECKED_IN: { label: "Checked in", tone: "info" }, IN_PROGRESS: { label: "Writing", tone: "warning" },
   SUBMITTED: { label: "Submitted", tone: "success" }, AUTO_SUBMITTED: { label: "Submitted at time-up", tone: "success" },
+  TERMINATED: { label: "Ended by staff", tone: "warning" },
 };
 const CATEGORIES: [string, string][] = [["IDENTITY", "Identity check"], ["SUSPECTED_MALPRACTICE", "Suspected malpractice"], ["TECHNICAL", "Technical problem"],
   ["DISRUPTION", "Disruption in the room"], ["LATE_ARRIVAL", "Late arrival"], ["OTHER", "Other"]];
@@ -218,6 +219,10 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
   const qc = useQueryClient();
   const path = { params: { path: { id: scheduleId } } };
   const [incidentFor, setIncidentFor] = useState<InvigilationCandidate | null>(null);
+  const [extendFor, setExtendFor] = useState<InvigilationCandidate | null>(null);
+  const [endFor, setEndFor] = useState<InvigilationCandidate | null>(null);
+  const [requested, setRequested] = useState<string | null>(null);
+  const refreshMonitor = () => void qc.invalidateQueries({ queryKey: ["exam-monitor", scheduleId] });
   const m = useQuery({ queryKey: ["exam-monitor", scheduleId], refetchInterval: 10_000, retry: false,
     queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}/monitor", path)) });
   const inc = useQuery({ queryKey: ["exam-candidate-incidents", scheduleId], refetchInterval: 30_000, retry: false,
@@ -228,11 +233,18 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
   const columns: Column<InvigilationCandidate>[] = [
     { key: "n", header: "Candidate", cell: (r) => <span className="flex flex-col"><span>{r.displayName ?? r.email}</span><span className="text-xs text-muted">{r.email}</span></span> },
     { key: "s", header: "State", cell: (r) => { const st = STATE[r.state ?? ""] ?? { label: r.state ?? "", tone: "neutral" as const }; return <Badge tone={st.tone}>{st.label}</Badge>; } },
-    { key: "o", header: "Connection", cell: (r) => r.online ? <Badge tone="success">Online</Badge> : r.lastSeenAt ? `Last seen ${formatDateTime(r.lastSeenAt)}` : "—", hideOnMobile: true },
+    { key: "o", header: "Connection", cell: (r) => <span className="flex flex-col">
+      {r.online ? <Badge tone="success">Online</Badge> : r.lastSeenAt ? <span>Last seen {formatDateTime(r.lastSeenAt)}</span> : "—"}
+      {(r.interruptions ?? 0) > 0 && <span className="text-xs text-muted">{r.interruptions} interruption{r.interruptions === 1 ? "" : "s"}, {Math.round((r.interruptedSeconds ?? 0) / 60)} min offline</span>}</span>, hideOnMobile: true },
     { key: "p", header: "Progress", cell: (r) => r.startedAt ? `${r.answered} of ${r.questions} answered` : "—" },
-    { key: "t", header: "Time left", cell: (r) => r.state === "IN_PROGRESS" ? <span className="tabular-nums">{minutesLeft(r.secondsLeft ?? 0)}</span> : "—", hideOnMobile: true },
+    { key: "t", header: "Time left", cell: (r) => r.state === "IN_PROGRESS" ? <span className="flex flex-col"><span className="tabular-nums">{minutesLeft(r.secondsLeft ?? 0)}</span>
+      {(r.extendedMinutes ?? 0) > 0 && <span className="text-xs text-muted">+{r.extendedMinutes} min extra</span>}</span> : "—", hideOnMobile: true },
     { key: "i", header: "Incidents", cell: (r) => r.incidents ? <Badge tone="warning">{r.incidents}</Badge> : "—", hideOnMobile: true },
-    { key: "a", header: "", cell: (r) => <Button variant="ghost" onClick={() => setIncidentFor(r)}>Record incident</Button> },
+    { key: "a", header: "", cell: (r) => <span className="flex flex-wrap justify-end gap-1">
+      <Button variant="ghost" onClick={() => setIncidentFor(r)}>Record incident</Button>
+      {r.state === "IN_PROGRESS" && x?.canExtend && <Button variant="ghost" onClick={() => setExtendFor(r)}>Extend time</Button>}
+      {r.state === "IN_PROGRESS" && (r.terminationPending ? <Badge tone="warning">Ending requested</Badge>
+        : <Button variant="ghost" onClick={() => setEndFor(r)}>End examination</Button>)}</span> },
   ];
   return (
     <Card>
@@ -246,10 +258,56 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
             <li key={i.id}>{formatDateTime(i.recordedAt)} · {i.candidateName} · {CATEGORIES.find(([k]) => k === i.category)?.[1] ?? i.category}
               {i.correctsId ? " (correction)" : ""}: {i.note} <span className="text-muted">— {i.recordedByName}</span></li>))}</ul>
         </CardBody>)}
+      {requested && <div className="px-5 pt-3"><Alert tone="info">{requested}{" "}<Link to="/approvals" className="underline">Open approvals</Link></Alert></div>}
+      {extendFor && <ExtendDialog scheduleId={scheduleId} candidate={extendFor} onClose={() => setExtendFor(null)} onDone={() => { setExtendFor(null); refreshMonitor(); }} />}
+      {endFor && <EndDialog scheduleId={scheduleId} candidate={endFor} onClose={() => setEndFor(null)}
+        onDone={() => { setRequested(`Ending ${endFor.displayName ?? "the candidate"}'s examination waits for a decision by another person with that right. The candidate keeps writing until then.`); setEndFor(null); refreshMonitor(); }} />}
       {incidentFor && <IncidentDialog scheduleId={scheduleId} candidate={incidentFor} previous={(inc.data ?? []).filter((i) => i.enrolmentId === incidentFor.enrolmentId)}
         onClose={() => setIncidentFor(null)}
         onDone={() => { setIncidentFor(null); void qc.invalidateQueries({ queryKey: ["exam-candidate-incidents", scheduleId] }); void qc.invalidateQueries({ queryKey: ["exam-monitor", scheduleId] }); }} />}
     </Card>
+  );
+}
+
+function ExtendDialog({ scheduleId, candidate, onClose, onDone }: { scheduleId: string; candidate: InvigilationCandidate; onClose: () => void; onDone: () => void }) {
+  const api = useApi();
+  const [minutes, setMinutes] = useState("10");
+  const [reason, setReason] = useState("");
+  const save = useMutation({
+    mutationFn: async () => unwrap(await api.POST("/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/extensions", { params: { path: { id: scheduleId, enrolmentId: candidate.enrolmentId! } },
+      body: { minutes: Number(minutes), reason } })),
+    onSuccess: onDone,
+  });
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} title={`Extend time for ${candidate.displayName ?? candidate.email}`}
+      description="Added to this candidate's running examination now, never beyond the end of the examination window. Recorded with its reason."
+      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!reason.trim()} loading={save.isPending} onClick={() => save.mutate()}>Add time</Button></>}>
+      <div className="space-y-4">
+        {save.isError && <Alert tone="danger">{errorInfo(save.error).message}</Alert>}
+        <Field label="Minutes to add (1–60)">{(p) => <Input {...p} type="number" min={1} max={60} value={minutes} onChange={(ev) => setMinutes(ev.target.value)} />}</Field>
+        <Field label="Reason">{(p) => <Input {...p} maxLength={500} value={reason} onChange={(ev) => setReason(ev.target.value)} />}</Field>
+      </div>
+    </Modal>
+  );
+}
+
+function EndDialog({ scheduleId, candidate, onClose, onDone }: { scheduleId: string; candidate: InvigilationCandidate; onClose: () => void; onDone: () => void }) {
+  const api = useApi();
+  const [reason, setReason] = useState("");
+  const save = useMutation({
+    mutationFn: async () => unwrap(await api.POST("/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/termination", { params: { path: { id: scheduleId, enrolmentId: candidate.enrolmentId! } },
+      body: { reason } })),
+    onSuccess: onDone,
+  });
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} title={`End the examination of ${candidate.displayName ?? candidate.email}?`}
+      description="Another person with the right to end examinations must approve. Until then the candidate keeps writing. Saved answers are always kept."
+      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!reason.trim()} loading={save.isPending} onClick={() => save.mutate()}>Ask for approval</Button></>}>
+      <div className="space-y-4">
+        {save.isError && <Alert tone="danger">{errorInfo(save.error).message}</Alert>}
+        <Field label="Reason">{(p) => <TextArea {...p} rows={3} maxLength={1000} value={reason} onChange={(ev) => setReason(ev.target.value)} />}</Field>
+      </div>
+    </Modal>
   );
 }
 

@@ -70,6 +70,7 @@ public class AttemptService {
 
     private final JdbcClient jdbc;
     private final CandidateService candidates;
+    private final DeliveryTelemetry telemetry;
     private final List<ExamEligibility> eligibility;
     private final PublishedAssessments assessments;
     private final AuditLog audit;
@@ -80,9 +81,10 @@ public class AttemptService {
     private final ProcessProperties process;
 
     AttemptService(JdbcClient jdbc, CandidateService candidates, List<ExamEligibility> eligibility, PublishedAssessments assessments, AuditLog audit,
-                   Outbox outbox, TransactionTemplate tx, JsonMapper json, JobLeases leases, ProcessProperties process) {
+                   Outbox outbox, TransactionTemplate tx, JsonMapper json, JobLeases leases, ProcessProperties process, DeliveryTelemetry telemetry) {
         this.jdbc = jdbc;
         this.candidates = candidates;
+        this.telemetry = telemetry;
         this.eligibility = eligibility;
         this.assessments = assessments;
         this.audit = audit;
@@ -246,6 +248,18 @@ public class AttemptService {
     }
 
     // ================================================================================================ submission
+
+    /** Attempt heartbeat (KI-92): presence while writing, and the current deadline and status (extension, termination). */
+    public record Pulse(Instant serverTime, Instant deadlineAt, String status, int extendedMinutes) {}
+
+    public Pulse pulse(String portalKey, UUID attemptId) {
+        return candidates.runGuarded(() -> {
+            Attempt a = mine(portalKey, attemptId);
+            if ("IN_PROGRESS".equals(a.status())) telemetry.beat(TenantContext.requireTenantId(), a.candidateId(), a.sessionId(), false, 0);
+            int extended = jdbc.sql("SELECT extended_minutes FROM exam_attempt WHERE id = ?").param(attemptId).query(Integer.class).single();
+            return new Pulse(Instant.now(), a.deadlineAt(), a.status(), extended);
+        });
+    }
 
     public SubmitResult submit(String portalKey, UUID attemptId, String submitKey) {
         return candidates.runGuarded(() -> {

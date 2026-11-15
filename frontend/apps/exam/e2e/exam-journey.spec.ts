@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { DELIVERY, STAFF, candidateToken, mail, staffApi, staffToken } from "./support";
+import { DELIVERY, STAFF, candidateToken, mail, password, staffApi, staffToken } from "./support";
 
 /**
  * Day 3 acceptance journey (decision D-10), on the real stack (Keycloak, staff and delivery APIs, PostgreSQL, Mailpit):
@@ -262,6 +262,64 @@ test.describe("Day 3: candidate examination journey with independent result publ
     await page.getByRole("button", { name: "Submit now" }).click();
     await expect(page.getByText("Your examination has been submitted.")).toBeVisible();
     expect((await img(asset, cand)).status()).toBe(404);                       // closed after submission
+  });
+
+  test("Day 5 operations: extra time reaches the candidate, connection is visible, termination needs a second person", async ({ page, request, browser }) => {
+    test.setTimeout(420_000);
+    const version = await publishedVersion(request, "D", 30);
+    const email = `ops.${RUN}@candidates.test`;
+    const secret = `Cand-${RUN}-pw!`;
+    const s = await scheduled(request, version, email, 120);
+    await acceptInvitation(page, request, email, secret, s.title);
+    await checkInAndStart(page, s.code, s.title);
+    await page.getByRole("radio", { name: /Option beta/ }).check();
+    await saved(page);
+    type Mon = { candidates: { enrolmentId: string; state: string; online: boolean; extendedMinutes: number; terminationPending: boolean }[] };
+    const monitor = () => staffApi<Mon>(request, s.ctl, "GET", `/api/v1/exam/schedules/${s.scheduleId}/monitor`);
+    // KI-92: the attempt heartbeat keeps the candidate visibly online while writing
+    await expect(async () => expect((await monitor()).candidates[0]!.online).toBe(true)).toPass({ timeout: 30_000 });
+    expect((await monitor()).candidates[0]!.state).toBe("IN_PROGRESS");
+
+    // the exam controller adds 5 minutes on the staff screen's live monitor; the candidate's screen shows it within one heartbeat
+    const staffScreen = async (user: string) => {
+      const ctx = await browser.newContext();
+      const p = await ctx.newPage();
+      await p.goto(`${STAFF}/exams/schedules/${s.scheduleId}`);
+      await p.locator("#username").fill(user);
+      await p.locator("#password").fill(password());
+      await p.locator("#kc-login").click();
+      const row = p.getByRole("table", { name: "Live monitoring" }).getByRole("row", { name: /Journey Candidate/ });
+      await expect(row).toContainText("Writing");
+      return { ctx, p, row };
+    };
+    const ctl = await staffScreen(CONTROLLER);
+    await expect(ctl.row).toContainText("Online");
+    await ctl.row.getByRole("button", { name: "Extend time" }).click();
+    await ctl.p.getByRole("dialog").getByLabel("Minutes to add (1–60)").fill("5");
+    await ctl.p.getByRole("dialog").getByLabel("Reason").fill("Late start in hall B");
+    await ctl.p.getByRole("dialog").getByRole("button", { name: "Add time" }).click();
+    await expect(ctl.row).toContainText("+5 min extra");
+    await expect(page.getByText("Your time was extended by 5 minutes.")).toBeVisible({ timeout: 30_000 });
+    expect((await monitor()).candidates[0]!.extendedMinutes).toBe(5);
+    await ctl.ctx.close();
+
+    // the head of institution (invigilates) asks to end the examination on the monitor; they cannot approve
+    // it themselves; the exam controller approves, and the candidate's screen shows the end within one heartbeat
+    const hd = await staffScreen(HEAD);
+    await hd.row.getByRole("button", { name: "End examination" }).click();
+    await hd.p.getByRole("dialog").getByLabel("Reason").fill("Notes found on the desk");
+    await hd.p.getByRole("dialog").getByRole("button", { name: "Ask for approval" }).click();
+    await expect(hd.row).toContainText("Ending requested");
+    await hd.ctx.close();
+    const head = await staffToken(request, HEAD);
+    const pending = await staffApi<{ id: string; type: string; status: string }[]>(request, s.ctl, "GET", "/api/v1/approvals");
+    const asked = { approvalId: pending.find((a) => a.type === "exam.attempt.terminate" && a.status === "PENDING")!.id };
+    expect((await monitor()).candidates[0]!.terminationPending).toBe(true);
+    const self = await request.post(`${STAFF}/api/v1/approvals/${asked.approvalId}/decision`, { headers: { Authorization: `Bearer ${head}` }, data: { approve: true, reason: "self" } });
+    expect(self.status()).toBeGreaterThanOrEqual(400);
+    await staffApi(request, s.ctl, "POST", `/api/v1/approvals/${asked.approvalId}/decision`, { approve: true, reason: "Confirmed by the hall supervisor" });
+    await expect(page.getByText("Your examination was ended by the examination staff. Your saved answers were kept.")).toBeVisible({ timeout: 30_000 });
+    expect((await monitor()).candidates[0]!.state).toBe("TERMINATED");
   });
 
   test("time runs out on an abandoned attempt: the server submits it automatically", async ({ page, request }) => {

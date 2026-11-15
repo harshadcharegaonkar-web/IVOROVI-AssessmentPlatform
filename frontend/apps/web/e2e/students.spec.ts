@@ -205,10 +205,28 @@ test.describe("Increment 1.5: student lifecycle", () => {
       await signIn(page, USERS.orgAdmin, "/students");
       await expect(page.getByTestId("kpi-total")).toBeVisible();
       await noHorizontalScroll(page);
+      // KI-88 diagnostics (no retry, no timeout change): on a failure, print each request of the page load with its timing
+      // and the page's visible text into the CI log, then fail exactly as before
+      const timeline: string[] = [];
+      let t0 = 0;
+      page.on("requestfinished", async (q) => {
+        const tm = q.timing();
+        const res = await q.response().catch(() => null);
+        timeline.push(`+${Math.round(tm.startTime - t0)} ms ${q.method()} ${q.url().split("?")[0]} -> ${res?.status() ?? "?"} in ${Math.round(tm.responseEnd)} ms`);
+      });
+      page.on("requestfailed", (q) => timeline.push(`FAILED ${q.method()} ${q.url().split("?")[0]}: ${q.failure()?.errorText}`));
       for (const path of ["/students/list", "/students/new", "/students/settings", `/students/${sid}`, `/students/${sid}?tab=personal`,
         `/students/${sid}?tab=academic`, `/students/${sid}?tab=guardians`, `/students/${sid}?tab=documents`, `/students/${sid}?tab=history`]) {
+        timeline.length = 0;
+        t0 = Date.now();
         await page.goto(path);
-        await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        try {
+          await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+        } catch (e) {
+          const text = (await page.locator("body").innerText().catch(() => "")).slice(0, 400).replace(/\s+/g, " ");
+          console.log(`KI-88 DIAGNOSTICS ${path} after ${Date.now() - t0} ms at ${page.url()}\n  ${timeline.join("\n  ")}\n  visible text: ${text}`);
+          throw e;
+        }
         await noHorizontalScroll(page);
       }
     });

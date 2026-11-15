@@ -78,7 +78,7 @@ public class ScoringService {
         int total = 0;
         for (UUID t : tenants) {
             List<UUID> due = TenantContext.callInTenant(t, () -> tx.execute(s -> jdbc.sql("""
-                    SELECT a.id FROM exam_attempt a WHERE a.status IN ('SUBMITTED', 'AUTO_SUBMITTED')
+                    SELECT a.id FROM exam_attempt a WHERE a.status IN ('SUBMITTED', 'AUTO_SUBMITTED', 'TERMINATED')
                       AND NOT EXISTS (SELECT 1 FROM exam_score s WHERE s.attempt_id = a.id) ORDER BY a.submitted_at LIMIT 200""").query(UUID.class).list()));
             for (UUID id : due == null ? List.<UUID>of() : due) {
                 try {

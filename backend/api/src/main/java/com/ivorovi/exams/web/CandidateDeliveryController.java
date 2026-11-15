@@ -89,6 +89,12 @@ class CandidateDeliveryController {
         return attempts.get(key, attemptId);
     }
 
+    @PostMapping("/portals/{key}/attempts/{attemptId}/pulse")
+    @Operation(summary = "Attempt heartbeat: records presence while writing and returns the current deadline and status")
+    AttemptService.Pulse pulse(@PathVariable String key, @PathVariable UUID attemptId) {
+        return attempts.pulse(key, attemptId);
+    }
+
     @GetMapping("/portals/{key}/attempts/{attemptId}/images/{assetId}")
     @Operation(summary = "An image of a question in the caller's open attempt (scanned clean; never cached)")
     org.springframework.http.ResponseEntity<byte[]> image(@PathVariable String key, @PathVariable UUID attemptId, @PathVariable UUID assetId) {

@@ -1905,6 +1905,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/termination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask for one candidate's examination to be ended (another person with exam.attempt.terminate decides) */
+        post: operations["requestTermination"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/extensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add minutes to one candidate's running examination (exam controllers; recorded with the reason; never beyond the window) */
+        post: operations["extend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/schedules/{id}/candidate-incidents": {
         parameters: {
             query?: never;
@@ -6418,6 +6452,28 @@ export interface components {
             /** Format: date-time */
             validUntil?: string;
         };
+        TerminationRequest: {
+            reason: string;
+        };
+        TerminationRequested: {
+            /** Format: uuid */
+            approvalId?: string;
+        };
+        AttemptExtensionRequest: {
+            /** Format: int32 */
+            minutes?: number;
+            reason: string;
+        };
+        AttemptExtension: {
+            /** Format: uuid */
+            attemptId?: string;
+            /** Format: int32 */
+            minutes?: number;
+            /** Format: int32 */
+            extendedMinutes?: number;
+            /** Format: date-time */
+            deadlineAt?: string;
+        };
         CandidateIncidentRequest: {
             /** Format: uuid */
             enrolmentId: string;
@@ -8185,6 +8241,13 @@ export interface components {
             lastSavedAt?: string;
             /** Format: int32 */
             incidents?: number;
+            /** Format: int32 */
+            extendedMinutes?: number;
+            /** Format: int32 */
+            interruptions?: number;
+            /** Format: int64 */
+            interruptedSeconds?: number;
+            terminationPending?: boolean;
         };
         InvigilationMonitor: {
             /** Format: uuid */
@@ -8201,6 +8264,8 @@ export interface components {
             };
             candidates?: components["schemas"]["InvigilationCandidate"][];
             canRecordIncidents?: boolean;
+            canExtend?: boolean;
+            canRequestTermination?: boolean;
         };
         Code: {
             /** Format: uuid */
@@ -12262,6 +12327,60 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["IssuedCode"][];
+                };
+            };
+        };
+    };
+    requestTermination: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                enrolmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TerminationRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TerminationRequested"];
+                };
+            };
+        };
+    };
+    extend: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                enrolmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttemptExtensionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AttemptExtension"];
                 };
             };
         };

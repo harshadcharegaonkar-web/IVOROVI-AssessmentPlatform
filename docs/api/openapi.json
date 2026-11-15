@@ -5434,6 +5434,98 @@
         }
       }
     },
+    "/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/termination" : {
+      "post" : {
+        "tags" : [ "Examination invigilation" ],
+        "summary" : "Ask for one candidate's examination to be ended (another person with exam.attempt.terminate decides)",
+        "operationId" : "requestTermination",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "enrolmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TerminationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TerminationRequested"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/extensions" : {
+      "post" : {
+        "tags" : [ "Examination invigilation" ],
+        "summary" : "Add minutes to one candidate's running examination (exam controllers; recorded with the reason; never beyond the window)",
+        "operationId" : "extend",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "enrolmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttemptExtensionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AttemptExtension"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/schedules/{id}/candidate-incidents" : {
       "get" : {
         "tags" : [ "Examination invigilation" ],
@@ -17124,6 +17216,64 @@
           }
         }
       },
+      "TerminationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "TerminationRequested" : {
+        "type" : "object",
+        "properties" : {
+          "approvalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "AttemptExtensionRequest" : {
+        "type" : "object",
+        "properties" : {
+          "minutes" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 60,
+            "minimum" : 1
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 500,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "reason" ]
+      },
+      "AttemptExtension" : {
+        "type" : "object",
+        "properties" : {
+          "attemptId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "minutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "extendedMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "deadlineAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
       "CandidateIncidentRequest" : {
         "type" : "object",
         "properties" : {
@@ -21671,6 +21821,21 @@
           "incidents" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "extendedMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "interruptions" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "interruptedSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "terminationPending" : {
+            "type" : "boolean"
           }
         }
       },
@@ -21710,6 +21875,12 @@
             }
           },
           "canRecordIncidents" : {
+            "type" : "boolean"
+          },
+          "canExtend" : {
+            "type" : "boolean"
+          },
+          "canRequestTermination" : {
             "type" : "boolean"
           }
         }

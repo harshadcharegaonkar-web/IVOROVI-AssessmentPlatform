@@ -92,7 +92,9 @@ public class RecoveryGuard {
             n++;
             List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant WHERE status IN ('ACTIVE', 'TRIAL')").query(UUID.class).list());
             for (UUID t : tenants) {
-                TenantContext.runInTenant(t, () -> tx.executeWithoutResult(s -> jdbc.sql("SELECT id FROM candidate_account WHERE subject = ?").param(r.subject())
+                TenantContext.runInTenant(t, () -> tx.executeWithoutResult(s -> jdbc.sql("""
+                        UPDATE candidate_account SET sessions_revoked_before = greatest(coalesce(sessions_revoked_before, ?), ?), kept_session_id = ?
+                        WHERE subject = ? RETURNING id""").params(java.sql.Timestamp.from(r.at()), java.sql.Timestamp.from(r.at()), r.resetSessionId(), r.subject())
                         .query(UUID.class).optional().ifPresent(id -> audit.record("exam.candidate.recovered", "candidate_account", id.toString(), AuditOutcome.SUCCESS,
                                 Map.of("at", r.at().toString(), "sessionsEnded", "enforced",
                                         "candidateChoseSignOut", String.valueOf(r.otherSessionsSignedOut()))))));

@@ -42,14 +42,17 @@ public class ExamSessions {
      * only how many questions have a saved answer and when the last save happened.
      */
     public record Progress(UUID candidateId, Instant checkedInAt, Instant lastSeenAt, String attemptStatus, Instant startedAt, Instant deadlineAt,
-                           Instant submittedAt, int extraMinutes, int questions, int answered, Instant lastSavedAt) {}
+                           Instant submittedAt, int extraMinutes, int questions, int answered, Instant lastSavedAt, int extendedMinutes, int interruptions,
+                           long interruptedSeconds, boolean terminationPending) {}
 
     private final ExamAdminService admin;
     private final CandidateService candidates;
     private final JdbcClient jdbc;
     private final Authz authz;
+    private final com.ivorovi.exams.internal.AttemptOperations operations;
 
-    ExamSessions(ExamAdminService admin, CandidateService candidates, JdbcClient jdbc, Authz authz) {
+    ExamSessions(ExamAdminService admin, CandidateService candidates, JdbcClient jdbc, Authz authz, com.ivorovi.exams.internal.AttemptOperations operations) {
+        this.operations = operations;
         this.admin = admin;
         this.candidates = candidates;
         this.jdbc = jdbc;
@@ -70,15 +73,34 @@ public class ExamSessions {
                 SELECT ca.id, ci.checked_in_at, p.last_seen_at, a.status, a.started_at, a.deadline_at, a.submitted_at, coalesce(a.extra_minutes, 0),
                        coalesce((SELECT jsonb_array_length(ap.items) FROM assessment_paper ap WHERE ap.id = a.paper_id), 0),
                        (SELECT count(*) FROM exam_answer x WHERE x.attempt_id = a.id AND jsonb_typeof(x.response -> 'value') IS DISTINCT FROM 'null'),
-                       (SELECT max(x.saved_at) FROM exam_answer x WHERE x.attempt_id = a.id)
+                       (SELECT max(x.saved_at) FROM exam_answer x WHERE x.attempt_id = a.id),
+                       coalesce(a.extended_minutes, 0),
+                       (SELECT count(*) FROM delivery_presence_gap g WHERE g.candidate_id = ca.id AND g.session_id = ?),
+                       (SELECT coalesce(sum(extract(epoch FROM g.gap_end - g.gap_start)), 0)::bigint FROM delivery_presence_gap g WHERE g.candidate_id = ca.id AND g.session_id = ?),
+                       EXISTS (SELECT 1 FROM exam_attempt_termination t WHERE t.attempt_id = a.id AND t.status = 'PENDING')
                 FROM candidate_account ca
                 LEFT JOIN check_in ci ON ci.candidate_id = ca.id AND ci.session_id = ?
                 LEFT JOIN delivery_presence p ON p.candidate_id = ca.id AND p.session_id = ?
                 LEFT JOIN exam_attempt a ON a.candidate_id = ca.id AND a.schedule_id = ?
-                WHERE ca.id = ANY (?)""").params(sessionId, sessionId, scheduleId, candidateIds.toArray(UUID[]::new))
+                WHERE ca.id = ANY (?)""").params(sessionId, sessionId, sessionId, sessionId, scheduleId, candidateIds.toArray(UUID[]::new))
                 .query((rs, n) -> new Progress(rs.getObject(1, UUID.class), ts(rs.getTimestamp(2)), ts(rs.getTimestamp(3)), rs.getString(4),
-                        ts(rs.getTimestamp(5)), ts(rs.getTimestamp(6)), ts(rs.getTimestamp(7)), rs.getInt(8), rs.getInt(9), rs.getInt(10), ts(rs.getTimestamp(11))))
+                        ts(rs.getTimestamp(5)), ts(rs.getTimestamp(6)), ts(rs.getTimestamp(7)), rs.getInt(8), rs.getInt(9), rs.getInt(10), ts(rs.getTimestamp(11)),
+                        rs.getInt(12), rs.getInt(13), rs.getLong(14), rs.getBoolean(15)))
                 .list();
+    }
+
+    /** The result of an extension: minutes added now, minutes added in total, the new deadline. */
+    public record AttemptExtension(UUID attemptId, int minutes, int extendedMinutes, Instant deadlineAt) {}
+
+    /** Day 5: minutes added to a running attempt by an exam controller (see {@link com.ivorovi.exams.internal.AttemptOperations}). */
+    public AttemptExtension extend(UUID scheduleId, UUID orgUnitId, Instant windowCloses, UUID candidateId, int minutes, String reason) {
+        var e = operations.extend(scheduleId, orgUnitId, windowCloses, candidateId, minutes, reason);
+        return new AttemptExtension(e.attemptId(), e.minutes(), e.extendedMinutes(), e.deadlineAt());
+    }
+
+    /** Day 5: an invigilator's request to end a running attempt (four-eyes; returns the approval request id). */
+    public UUID requestTermination(UUID scheduleId, UUID orgUnitId, UUID candidateId, String candidateName, String reason) {
+        return operations.requestTermination(scheduleId, orgUnitId, candidateId, candidateName, reason);
     }
 
     private static Instant ts(java.sql.Timestamp t) {

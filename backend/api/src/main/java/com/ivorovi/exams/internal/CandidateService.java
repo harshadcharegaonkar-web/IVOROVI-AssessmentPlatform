@@ -141,6 +141,7 @@ public class CandidateService {
         UUID tenant = TenantContext.requireTenantId();
         Optional<Me0> existing = jdbc.sql("SELECT id, status FROM candidate_account WHERE subject = ?").param(c.subject())
                 .query((rs, n) -> new Me0(rs.getObject(1, UUID.class), rs.getString(2))).optional();
+        if (existing.isPresent()) requireSessionNotEnded(c);
         UUID id;
         if (existing.isEmpty()) {
             if (!p.selfRegistration()) {
@@ -201,16 +202,43 @@ public class CandidateService {
     /** The linked, active candidate who satisfies the portal's MFA policy. */
     UUID requireCandidate(Portal p) {
         CandidateAuthentication c = candidate();
-        Me0 me = jdbc.sql("SELECT id, status FROM candidate_account WHERE subject = ?").param(c.subject())
-                .query((rs, n) -> new Me0(rs.getObject(1, UUID.class), rs.getString(2))).optional()
+        record Acc(UUID id, String status, java.sql.Timestamp revokedBefore, String keptSession) {}
+        Acc me = jdbc.sql("SELECT id, status, sessions_revoked_before, kept_session_id FROM candidate_account WHERE subject = ?").param(c.subject())
+                .query((rs, n) -> new Acc(rs.getObject(1, UUID.class), rs.getString(2), rs.getTimestamp(3), rs.getString(4))).optional()
                 .orElseThrow(() -> ApiException.conflict("not_enrolled", "Open the exam portal first to link your account."));
         c.link(me.id());
         if (!"ACTIVE".equals(me.status())) throw suspended();
+        if (me.revokedBefore() != null && revoked(c.token().getIssuedAt(), c.token().getClaimAsString("sid"), me.revokedBefore().toInstant(), me.keptSession())) {
+            throw sessionEnded();
+        }
         if ("REQUIRED".equals(p.mfaPolicy()) && !mfaStatus(p, c).satisfied()) {
             throw new Denial("exam.candidate.mfa_required", Map.of("portal", p.key()),
                     new ApiException(HttpStatus.FORBIDDEN, "mfa_required", "This institution requires an authenticator app. Set it up, then sign in again."));
         }
         return me.id();
+    }
+
+    private static ApiException sessionEnded() {
+        return new ApiException(HttpStatus.UNAUTHORIZED, "session_ended", "Your sign-in ended because your password was reset. Sign in again.");
+    }
+
+    private void requireSessionNotEnded(CandidateAuthentication c) {
+        record R(java.sql.Timestamp revokedBefore, String kept) {}
+        jdbc.sql("SELECT sessions_revoked_before, kept_session_id FROM candidate_account WHERE subject = ? AND sessions_revoked_before IS NOT NULL").param(c.subject())
+                .query((rs, n) -> new R(rs.getTimestamp(1), rs.getString(2))).optional()
+                .filter(r -> revoked(c.token().getIssuedAt(), c.token().getClaimAsString("sid"), r.revokedBefore().toInstant(), r.kept()))
+                .ifPresent(r -> { throw sessionEnded(); });
+    }
+
+    /**
+     * KI-79: a token of a session that a password reset ended is no longer accepted, even before it expires. Refused: issued
+     * before the reset (compared in whole seconds, the resolution of the token's {@code iat}, so the reset flow's own new
+     * session is never refused) and not of the session the reset signed in. Tokens without an issue time are refused (fail safe).
+     */
+    static boolean revoked(java.time.Instant issuedAt, String sid, java.time.Instant revokedBefore, String keptSession) {
+        if (sid != null && sid.equals(keptSession)) return false;
+        if (issuedAt == null) return true;
+        return issuedAt.getEpochSecond() < revokedBefore.getEpochSecond();
     }
 
     // ================================================================================================ check-in with a session code
