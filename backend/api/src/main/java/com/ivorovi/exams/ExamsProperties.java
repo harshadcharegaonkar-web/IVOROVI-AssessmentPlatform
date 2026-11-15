@@ -25,12 +25,21 @@ public record ExamsProperties(String examAppBaseUrl, boolean outageDetectorEnabl
      *   <li>L4 {@code anomalyFactor} × {@code expectedFailureRatio} × expected candidates (at least
      *       {@code anomalyMinimumPerMinute}) failed attempts per portal and minute raise an operator alert, never a block;</li>
      *   <li>L5 failed attempts per address beyond {@code ivorovi.delivery.code-attempts-per-ip-per-minute} delay new
-     *       accounts' attempts by {@code addressDelayStep} per excess attempt, up to {@code addressMaxDelay}.</li>
+     *       accounts' attempts by {@code addressDelayStep} per excess attempt, up to {@code addressMaxDelay};</li>
+     *   <li>L0 (KI-89, durable, in PostgreSQL, applies even when Valkey is down): {@code durableFailures} failed attempts
+     *       of one account within {@code durableWindow} start a cooldown of {@code durableCooldown}, doubling for each
+     *       further cooldown in a row up to {@code durableMaxCooldown}; a successful check-in or a quiet day resets it.</li>
      * </ul>
      */
     public record CheckIn(int failedPerCandidatePerDay, int failedPerCodePerDay, int failedPerDevicePerMinute, Duration addressDelayStep,
-                          Duration addressMaxDelay, double anomalyFactor, double expectedFailureRatio, int anomalyMinimumPerMinute) {
+                          Duration addressMaxDelay, double anomalyFactor, double expectedFailureRatio, int anomalyMinimumPerMinute,
+                          int durableFailures, Duration durableWindow, Duration durableCooldown, Duration durableMaxCooldown) {
         public CheckIn {
+            if (durableFailures <= 0) durableFailures = 15;
+            if (durableWindow == null) durableWindow = Duration.ofMinutes(15);
+            if (durableCooldown == null) durableCooldown = Duration.ofMinutes(15);
+            if (durableMaxCooldown == null) durableMaxCooldown = Duration.ofHours(2);
+            if (durableMaxCooldown.compareTo(durableCooldown) < 0) durableMaxCooldown = durableCooldown;
             if (failedPerCandidatePerDay <= 0) failedPerCandidatePerDay = 30;
             if (failedPerCodePerDay <= 0) failedPerCodePerDay = 20;
             if (failedPerDevicePerMinute <= 0) failedPerDevicePerMinute = 30;
@@ -71,7 +80,7 @@ public record ExamsProperties(String examAppBaseUrl, boolean outageDetectorEnabl
         if (outageThreshold == null) outageThreshold = Duration.ofSeconds(45);
         if (outageCheckInterval == null) outageCheckInterval = Duration.ofSeconds(15);
         if (idp == null) idp = new Idp("http://localhost:8180", "ivorovi-candidates", "ivorovi-candidate-provisioner", "");
-        if (checkIn == null) checkIn = new CheckIn(0, 0, 0, null, null, 0, 0, 0);
+        if (checkIn == null) checkIn = new CheckIn(0, 0, 0, null, null, 0, 0, 0, 0, null, null, null);
         if (health == null) health = new Health(0, 0, null, null, 0, 0, null, null, null);
     }
 }

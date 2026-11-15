@@ -240,7 +240,9 @@ public class CandidateService {
                 deviceKey(), ip);
         try {
             if (attempt.refusal() != null) throw attempt.refusal().apply(c.portal());
-            return tx.execute(s -> consume(c, attempt, clockOffsetMs, systemCheck));
+            CheckInResult result = tx.execute(s -> consume(c, attempt, clockOffsetMs, systemCheck));
+            limits.succeeded(c);
+            return result;
         } catch (Denial d) {
             if (d.failedAttempt) limits.failed(c, attempt, d.details.getOrDefault("reason", "invalid"));
             Map<String, String> details = new LinkedHashMap<>(d.details);
@@ -418,6 +420,13 @@ public class CandidateService {
                 ? ApiException.conflict("code_not_valid", "This code is not valid now. Check it, or ask the invigilator for a new one.")
                 : new ApiException(HttpStatus.TOO_MANY_REQUESTS, "rate_limited", "Too many attempts. Wait a minute and try again.");
         return new Denial("exam.session_code.rate_limited", Map.of("portal", p.key(), "bucket", bucket), error);
+    }
+
+    /** KI-89: the account's durable cooldown is running (own account only, so the length is not an oracle for anyone else). */
+    static Denial cooldown(Portal p, long minutes) {
+        return new Denial("exam.session_code.cooldown", Map.of("portal", p.key(), "minutes", String.valueOf(minutes)),
+                new ApiException(HttpStatus.TOO_MANY_REQUESTS, "check_in_cooldown", "Too many wrong codes. Try again in " + minutes
+                        + (minutes == 1 ? " minute" : " minutes") + ", or ask the invigilator for help."));
     }
 
     private static ApiException suspended() {

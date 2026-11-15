@@ -79,6 +79,12 @@ class CheckInLimits {
 
     Attempt begin(CandidateService.Caller c, Optional<String> hash, String device, String ip) {
         String codeHash = hash.orElse(null);
+        // L0 (KI-89): the durable account cooldown, in PostgreSQL; applies whether or not Valkey (and rate limiting) is available
+        Optional<Instant> blocked = cooldownUntil(c);
+        if (blocked.isPresent()) {
+            long minutes = Math.max(1, (Duration.between(Instant.now(), blocked.get()).toSeconds() + 59) / 60);
+            return refuse(codeHash, device, ip, p -> CandidateService.cooldown(p, minutes));
+        }
         if (!rateLimits.enabled()) return new Attempt(codeHash, device, ip, 0, null);
         String t = c.tenant().toString();
         // L1: the candidate's own budget (all attempts per minute, failed attempts per day)
@@ -121,9 +127,61 @@ class CheckInLimits {
 
     // ================================================================================================ after a failed attempt
 
+    // ================================================================================================ L0: durable account guard
+
+    /** The end of the account's cooldown, if one is running. Fails closed only for the account: a database error refuses nothing. */
+    Optional<Instant> cooldownUntil(CandidateService.Caller c) {
+        return jdbc.sql("SELECT blocked_until FROM check_in_guard WHERE tenant_id = ? AND candidate_id = ? AND blocked_until > now()")
+                .params(c.tenant(), c.candidate()).query(java.sql.Timestamp.class).optional().map(java.sql.Timestamp::toInstant);
+    }
+
+    /**
+     * Counts one failed attempt atomically (the upsert locks the account's row, so concurrent guesses are counted one by one)
+     * and starts a cooldown once the window holds {@code durableFailures}. A new window starts after the window length or
+     * after a cooldown ended; the cooldown escalation resets after a quiet day. Returns the cooldown end if one started now.
+     */
+    Optional<Instant> durableFailure(CandidateService.Caller c) {
+        long window = props.durableWindow().toSeconds();
+        return tx.execute(s -> {
+            record Row(int failures, int cooldowns, boolean blocked) {}
+            // a failure while a cooldown is already running (a guess that was in flight when it started) neither counts nor
+            // starts another cooldown: exactly one cooldown per threshold crossing, also under concurrent guessing
+            Row r = jdbc.sql("""
+                    INSERT INTO check_in_guard AS g (tenant_id, candidate_id, failures, window_started_at, cooldowns, last_failure_at)
+                    VALUES (?, ?, 1, now(), 0, now())
+                    ON CONFLICT (tenant_id, candidate_id) DO UPDATE SET
+                        failures = CASE WHEN g.blocked_until > now() THEN g.failures
+                                        WHEN g.window_started_at < now() - make_interval(secs => ?) OR g.blocked_until <= now() THEN 1 ELSE g.failures + 1 END,
+                        window_started_at = CASE WHEN g.window_started_at < now() - make_interval(secs => ?) OR g.blocked_until <= now() THEN now() ELSE g.window_started_at END,
+                        cooldowns = CASE WHEN g.last_failure_at < now() - interval '1 day' THEN 0 ELSE g.cooldowns END,
+                        blocked_until = CASE WHEN g.blocked_until <= now() THEN NULL ELSE g.blocked_until END,
+                        last_failure_at = now()
+                    RETURNING failures, cooldowns, coalesce(blocked_until > now(), false)""").params(c.tenant(), c.candidate(), window, window)
+                    .query((rs, n) -> new Row(rs.getInt(1), rs.getInt(2), rs.getBoolean(3))).single();
+            if (r.blocked() || r.failures() < props.durableFailures()) return Optional.<Instant>empty();
+            long base = props.durableCooldown().toSeconds();
+            long seconds = Math.min(props.durableMaxCooldown().toSeconds(), base << Math.min(r.cooldowns(), 20));
+            Instant until = jdbc.sql("""
+                    UPDATE check_in_guard SET blocked_until = now() + make_interval(secs => ?), cooldowns = cooldowns + 1, failures = 0, window_started_at = now()
+                    WHERE tenant_id = ? AND candidate_id = ? RETURNING blocked_until""").params(seconds, c.tenant(), c.candidate())
+                    .query(java.sql.Timestamp.class).single().toInstant();
+            audit.record("exam.check_in.cooldown_started", "candidate_account", c.candidate().toString(), AuditOutcome.FAILURE,
+                    Map.of("failures", String.valueOf(r.failures()), "cooldownSeconds", String.valueOf(seconds), "cooldownsInARow", String.valueOf(r.cooldowns() + 1),
+                            "portal", c.portal().key()));
+            meters.counter("ivorovi.checkin.cooldown_started").increment();
+            return Optional.of(until);
+        });
+    }
+
+    /** A successful check-in ends the account's failure history (legitimate recovery). */
+    void succeeded(CandidateService.Caller c) {
+        jdbc.sql("DELETE FROM check_in_guard WHERE tenant_id = ? AND candidate_id = ?").params(c.tenant(), c.candidate()).update();
+    }
+
     /** Charges the failure layers, locks a code whose daily budget is spent and raises the L4 alarm. */
     void failed(CandidateService.Caller c, Attempt a, String reason) {
         record(c, reason);
+        durableFailure(c);
         if (!rateLimits.enabled()) return;
         String t = c.tenant().toString();
         limiter.acquire("code-candidate-day:" + t + ":" + c.candidate(), props.failedPerCandidatePerDay(), DAY, true);
