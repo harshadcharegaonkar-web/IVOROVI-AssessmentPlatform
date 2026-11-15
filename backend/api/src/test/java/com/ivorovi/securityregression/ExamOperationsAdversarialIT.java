@@ -165,9 +165,8 @@ class ExamOperationsAdversarialIT extends DeliveryJourneySupport {
      * QA-D6-1: the database does not tie a termination to its four-eyes approval. As the application role, a pending request
      * can be set to APPROVED by any id other than the requester (no approval, attempt still running), and an attempt can be set
      * to TERMINATED with no approved request. The result path has this guard (a release needs a PUBLISHED review);
-     * termination does not. Both tests below assert the secure behaviour and fail on the current schema (verified 2026-11-15).
+     * termination did not (QA-D6-1, found 2026-11-15; fixed by V202611180020, KI-93). Both tests below assert the secure behaviour.
      */
-    @org.junit.jupiter.api.Disabled("QA-D6-1: fails until the database ties termination to its four-eyes approval — enable with the fix")
     @Test
     void theApplicationRoleCannotMarkATerminationApprovedWithoutAnApproval() throws Exception {
         TestOrg.Account proctor = org.account("EXAM_PROCTOR", college);
@@ -178,7 +177,6 @@ class ExamOperationsAdversarialIT extends DeliveryJourneySupport {
                 .params(UUID.randomUUID(), id).update())).as("a termination marked approved without an approval").isInstanceOf(org.springframework.dao.DataAccessException.class);
     }
 
-    @org.junit.jupiter.api.Disabled("QA-D6-1: fails until the database ties termination to its four-eyes approval — enable with the fix")
     @Test
     void theApplicationRoleCannotEndAnAttemptAsTerminatedWithoutAnApprovedRequest() throws Exception {
         UUID attempt = startAttempt(asha, codes.get(0));
@@ -359,9 +357,8 @@ class ExamOperationsAdversarialIT extends DeliveryJourneySupport {
     /**
      * QA-D6-2 (same class as QA-D6-1): on an examination that requires a second person, the database accepts a grant whose
      * approved_by is any id other than the granter and whose approval_id is any id; it does not check that the approval exists,
-     * is APPROVED, concerns this attempt and was decided by approved_by. With such a row the deadline moves (verified 2026-11-15).
+     * is APPROVED, concerns this attempt and was decided by approved_by. With such a row the deadline moved (found 2026-11-15; fixed by V202611180020, KI-93).
      */
-    @org.junit.jupiter.api.Disabled("QA-D6-2: fails until the database ties a second-person grant to its approval — enable with the fix")
     @Test
     void theApplicationRoleCannotGrantSecondPersonExtraTimeWithAForgedApproval() throws Exception {
         UUID attempt = startAttempt(asha, codes.get(0));
