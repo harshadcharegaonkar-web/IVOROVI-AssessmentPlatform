@@ -92,6 +92,19 @@ ivorovi:
   security:
     # Key for application-level encryption of sensitive personal fields (required; from the secret store).
     data-key: ${IVOROVI_DATA_KEY:}
+    # Key rotation (RB-3, runbooks/data-encryption-key.md): id of the current key, earlier keys still needed to decrypt
+    # ("id:secret,id:secret", from the secret store), and the key of the blind indexes (keep it configured).
+    data-key-id: ${IVOROVI_DATA_KEY_ID:1}
+    data-keys-previous: ${IVOROVI_DATA_KEYS_PREVIOUS:}
+    data-index-key-id: ${IVOROVI_DATA_INDEX_KEY_ID:1}
+    key-rotation:
+      # Re-encrypts every stored value that is not on the current key, in leased, resumable batches.
+      enabled: ${IVOROVI_KEY_ROTATION_ENABLED:false}
+      interval: ${IVOROVI_KEY_ROTATION_INTERVAL:PT30S}
+      batch-size: ${IVOROVI_KEY_ROTATION_BATCH_SIZE:500}
+      batches-per-run: ${IVOROVI_KEY_ROTATION_BATCHES_PER_RUN:20}
+      # Refuse to start when a stored value names a key id that is not configured (fail closed).
+      startup-check: ${IVOROVI_KEY_STARTUP_CHECK:true}
     oidc:
       issuer: ${IVOROVI_OIDC_ISSUER}
       jwk-set-uri: ${IVOROVI_OIDC_JWKS}
