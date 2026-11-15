@@ -3,9 +3,12 @@ package com.ivorovi.platform.crypto;
 import java.util.List;
 
 /**
- * Every database column that holds {@link FieldCipher} ciphertext, with the field identifier its owner binds as
- * associated data. Key rotation and the startup key check work from this list only; {@code EncryptedColumnsIT} fails
- * when a {@code *_enc} column exists in the schema but is missing here, so a new encrypted column cannot be forgotten.
+ * The database columns that hold {@link FieldCipher} ciphertext and that the platform may read, with the field
+ * identifier their owner binds as associated data. Key rotation and the startup key check work from this list only;
+ * {@code KeyRotationIT} fails when a {@code *_enc} column exists in the schema but is neither here nor in its explicit
+ * list of module-owned columns, so a new encrypted column cannot be forgotten.
+ * <p>Answer keys and explanations are deliberately absent: by ADR-0009 only the question module's answer-key store
+ * may read their table, so their rotation (and key check) belongs to that module (open item of KI-49).
  * Table and column names are fixed constants (never user input); they are the only identifiers concatenated into SQL.
  */
 public final class EncryptedColumns {
@@ -29,8 +32,6 @@ public final class EncryptedColumns {
             new Column("guardian", "email_enc", "id", "guardian.email", false),
             new Column("guardian", "mobile_enc", "id", "guardian.mobile", false),
             new Column("integration", "secret_enc", "id", "integration.secret", false),
-            new Column("question_answer_key", "explanation_enc", "version_id", "question_answer_key.explanation", true),
-            new Column("question_answer_key", "key_enc", "version_id", "question_answer_key.key", true),
             new Column("question_import_row", "key_enc", "id", "question_import_row.key", false),
             new Column("student", "alternate_phone_enc", "id", "student.alternate_phone", false),
             new Column("student", "current_address_enc", "id", "student.current_address", false),

@@ -260,7 +260,13 @@ class KeyRotationIT extends IntegrationTest {
         Set<String> schema = new HashSet<>(ownerJdbc().sql("""
                 SELECT table_name || '.' || column_name FROM information_schema.columns
                 WHERE table_schema = current_schema() AND column_name LIKE '%\\_enc'""").query(String.class).list());
-        assertThat(EncryptedColumns.ALL).extracting(EncryptedColumns.Column::name).containsExactlyInAnyOrderElementsOf(schema);
+        // ADR-0009: only AnswerKeyStore may read the answer-key table, so the platform registry leaves it to the question
+        // module (rotation of those two columns is an open item of KI-49). Listed here, so nothing else can be left out.
+        Set<String> moduleOwned = Set.of("question_answer_key.key_enc", "question_answer_key.explanation_enc");
+        Set<String> expected = new HashSet<>(schema);
+        expected.removeAll(moduleOwned);
+        assertThat(schema).containsAll(moduleOwned);
+        assertThat(EncryptedColumns.ALL).extracting(EncryptedColumns.Column::name).containsExactlyInAnyOrderElementsOf(expected);
         for (EncryptedColumns.Column c : EncryptedColumns.ALL) {
             assertThat(ownerJdbc().sql("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?")
                     .params(c.table(), c.idColumn()).query(Long.class).single()).as(c.name() + " id column").isEqualTo(1);
