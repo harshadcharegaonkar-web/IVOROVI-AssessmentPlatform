@@ -43,7 +43,21 @@ public class ExamSessions {
      */
     public record Progress(UUID candidateId, Instant checkedInAt, Instant lastSeenAt, String attemptStatus, Instant startedAt, Instant deadlineAt,
                            Instant submittedAt, int extraMinutes, int questions, int answered, Instant lastSavedAt, int extendedMinutes, int interruptions,
-                           long interruptedSeconds, boolean terminationPending) {}
+                           long interruptedSeconds, boolean terminationPending, boolean extensionPending) {
+        Progress withExtensionPending() {
+            return new Progress(candidateId, checkedInAt, lastSeenAt, attemptStatus, startedAt, deadlineAt, submittedAt, extraMinutes, questions, answered,
+                    lastSavedAt, extendedMinutes, interruptions, interruptedSeconds, terminationPending, true);
+        }
+    }
+
+    private record Row(Progress progress, String attemptId) {}
+
+    /** One extra-time grant (R-2): permanent; visible to the examination's invigilators and controllers. */
+    public record ExtensionRecord(UUID id, int minutes, String reason, String grantedByName, String approvedByName, Instant grantedAt,
+                                  Instant previousExpiry, Instant newExpiry) {}
+
+    /** The designated permission for extra time during an examination (R-2). */
+    public static final String EXTEND = com.ivorovi.exams.internal.AttemptOperations.EXTEND;
 
     private final ExamAdminService admin;
     private final CandidateService candidates;
@@ -51,8 +65,12 @@ public class ExamSessions {
     private final Authz authz;
     private final com.ivorovi.exams.internal.AttemptOperations operations;
 
-    ExamSessions(ExamAdminService admin, CandidateService candidates, JdbcClient jdbc, Authz authz, com.ivorovi.exams.internal.AttemptOperations operations) {
+    private final com.ivorovi.approvals.ApprovalService approvals;
+
+    ExamSessions(ExamAdminService admin, CandidateService candidates, JdbcClient jdbc, Authz authz, com.ivorovi.exams.internal.AttemptOperations operations,
+                 @org.springframework.context.annotation.Lazy com.ivorovi.approvals.ApprovalService approvals) {
         this.operations = operations;
+        this.approvals = approvals;
         this.admin = admin;
         this.candidates = candidates;
         this.jdbc = jdbc;
@@ -69,7 +87,7 @@ public class ExamSessions {
             throw new AccessDeniedException("Missing permission exam.invigilate");
         }
         if (candidateIds.isEmpty()) return List.of();
-        return jdbc.sql("""
+        List<Row> rows = jdbc.sql("""
                 SELECT ca.id, ci.checked_in_at, p.last_seen_at, a.status, a.started_at, a.deadline_at, a.submitted_at, coalesce(a.extra_minutes, 0),
                        coalesce((SELECT jsonb_array_length(ap.items) FROM assessment_paper ap WHERE ap.id = a.paper_id), 0),
                        (SELECT count(*) FROM exam_answer x WHERE x.attempt_id = a.id AND jsonb_typeof(x.response -> 'value') IS DISTINCT FROM 'null'),
@@ -77,25 +95,48 @@ public class ExamSessions {
                        coalesce(a.extended_minutes, 0),
                        (SELECT count(*) FROM delivery_presence_gap g WHERE g.candidate_id = ca.id AND g.session_id = ?),
                        (SELECT coalesce(sum(extract(epoch FROM g.gap_end - g.gap_start)), 0)::bigint FROM delivery_presence_gap g WHERE g.candidate_id = ca.id AND g.session_id = ?),
-                       EXISTS (SELECT 1 FROM exam_attempt_termination t WHERE t.attempt_id = a.id AND t.status = 'PENDING')
+                       EXISTS (SELECT 1 FROM exam_attempt_termination t WHERE t.attempt_id = a.id AND t.status = 'PENDING'),
+                       a.id
                 FROM candidate_account ca
                 LEFT JOIN check_in ci ON ci.candidate_id = ca.id AND ci.session_id = ?
                 LEFT JOIN delivery_presence p ON p.candidate_id = ca.id AND p.session_id = ?
                 LEFT JOIN exam_attempt a ON a.candidate_id = ca.id AND a.schedule_id = ?
                 WHERE ca.id = ANY (?)""").params(sessionId, sessionId, sessionId, sessionId, scheduleId, candidateIds.toArray(UUID[]::new))
-                .query((rs, n) -> new Progress(rs.getObject(1, UUID.class), ts(rs.getTimestamp(2)), ts(rs.getTimestamp(3)), rs.getString(4),
+                .query((rs, n) -> new Row(new Progress(rs.getObject(1, UUID.class), ts(rs.getTimestamp(2)), ts(rs.getTimestamp(3)), rs.getString(4),
                         ts(rs.getTimestamp(5)), ts(rs.getTimestamp(6)), ts(rs.getTimestamp(7)), rs.getInt(8), rs.getInt(9), rs.getInt(10), ts(rs.getTimestamp(11)),
-                        rs.getInt(12), rs.getInt(13), rs.getLong(14), rs.getBoolean(15)))
+                        rs.getInt(12), rs.getInt(13), rs.getLong(14), rs.getBoolean(15), false), rs.getString(16)))
                 .list();
+        java.util.Set<String> pending = approvals.pendingSubjects("exam.attempt.extend",
+                rows.stream().map(Row::attemptId).filter(java.util.Objects::nonNull).toList());
+        return rows.stream().map(r -> r.attemptId() == null || !pending.contains(r.attemptId()) ? r.progress() : r.progress().withExtensionPending()).toList();
     }
 
-    /** The result of an extension: minutes added now, minutes added in total, the new deadline. */
-    public record AttemptExtension(UUID attemptId, int minutes, int extendedMinutes, Instant deadlineAt) {}
+    /**
+     * The result of an extension (R-2): APPLIED (the expiry moved from previousDeadline to deadlineAt) or PENDING_APPROVAL
+     * (the examination requires a second person; nothing changed yet).
+     */
+    public record AttemptExtension(UUID attemptId, String status, int minutes, int extendedMinutes, Instant previousDeadline, Instant deadlineAt,
+                                   UUID approvalId) {}
 
-    /** Day 5: minutes added to a running attempt by an exam controller (see {@link com.ivorovi.exams.internal.AttemptOperations}). */
-    public AttemptExtension extend(UUID scheduleId, UUID orgUnitId, Instant windowCloses, UUID candidateId, int minutes, String reason) {
-        var e = operations.extend(scheduleId, orgUnitId, windowCloses, candidateId, minutes, reason);
-        return new AttemptExtension(e.attemptId(), e.minutes(), e.extendedMinutes(), e.deadlineAt());
+    /** Extra time for a running attempt by a designated holder of exam.attempt.extend (see AttemptOperations). */
+    public AttemptExtension extend(UUID scheduleId, UUID orgUnitId, Instant windowCloses, boolean secondPerson, UUID candidateId, String candidateName,
+                                   int minutes, String reason) {
+        var e = operations.extend(scheduleId, orgUnitId, windowCloses, secondPerson, candidateId, candidateName, minutes, reason);
+        return new AttemptExtension(e.attemptId(), e.status(), e.minutes(), e.extendedMinutes(), e.previousDeadline(), e.deadlineAt(), e.approvalId());
+    }
+
+    /** Every extra-time grant of one candidate in a schedule, oldest first, for its invigilators and controllers. */
+    @Transactional(readOnly = true)
+    public List<ExtensionRecord> extensions(UUID scheduleId, UUID orgUnitId, UUID candidateId) {
+        if (!authz.hasInOrgUnit("exam.invigilate", orgUnitId) && !authz.hasInOrgUnit("exam.session.manage", orgUnitId)) {
+            throw new AccessDeniedException("Missing permission exam.invigilate");
+        }
+        return jdbc.sql("""
+                SELECT x.id, x.minutes, x.reason, g.display_name, ap.display_name, x.granted_at, x.previous_deadline, x.new_deadline
+                FROM exam_attempt_extension x LEFT JOIN user_account g ON g.id = x.granted_by LEFT JOIN user_account ap ON ap.id = x.approved_by
+                WHERE x.schedule_id = ? AND x.candidate_id = ? ORDER BY x.granted_at, x.id""").params(scheduleId, candidateId)
+                .query((rs, n) -> new ExtensionRecord(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3), rs.getString(4), rs.getString(5),
+                        ts(rs.getTimestamp(6)), ts(rs.getTimestamp(7)), ts(rs.getTimestamp(8)))).list();
     }
 
     /** Day 5: an invigilator's request to end a running attempt (four-eyes; returns the approval request id). */

@@ -1043,6 +1043,44 @@
         }
       }
     },
+    "/api/v1/exam/schedules/{id}/extra-time-policy" : {
+      "put" : {
+        "tags" : [ "Examination scheduling" ],
+        "summary" : "Require a second person to approve extra time during this examination (high-stakes); may be relaxed only before it opens",
+        "operationId" : "extraTimePolicy",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ExtraTimePolicyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ExamSchedule"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/exam/schedules/{id}/enrolments/{enrolmentId}/extra-time" : {
       "put" : {
         "tags" : [ "Examination scheduling" ],
@@ -5481,9 +5519,46 @@
       }
     },
     "/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/extensions" : {
+      "get" : {
+        "tags" : [ "Examination invigilation" ],
+        "summary" : "Every extra-time grant of one candidate: minutes, reason, who granted and approved it, when, previous and new expiry",
+        "operationId" : "extensions",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "enrolmentId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ExtensionRecord"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "post" : {
         "tags" : [ "Examination invigilation" ],
-        "summary" : "Add minutes to one candidate's running examination (exam controllers; recorded with the reason; never beyond the window)",
+        "summary" : "Add 1–60 minutes to one candidate's running examination (designated controllers and invigilators; reason required; never beyond the window; status PENDING_APPROVAL where the examination requires a second person)",
         "operationId" : "extend",
         "parameters" : [ {
           "name" : "id",
@@ -13690,6 +13765,121 @@
           }
         }
       },
+      "ExtraTimePolicyRequest" : {
+        "type" : "object",
+        "properties" : {
+          "secondPerson" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "secondPerson" ]
+      },
+      "ExamSchedule" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "orgUnitId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "orgUnitName" : {
+            "type" : "string"
+          },
+          "versionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "assessmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "assessmentCode" : {
+            "type" : "string"
+          },
+          "versionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "purpose" : {
+            "type" : "string"
+          },
+          "portalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "portalName" : {
+            "type" : "string"
+          },
+          "portalUrl" : {
+            "type" : "string"
+          },
+          "sessionId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "opensAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "closesAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lateEntryUntil" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "durationMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "instructions" : {
+            "type" : "string"
+          },
+          "calculator" : {
+            "type" : "boolean"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "enrolled" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "linked" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "invited" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "checkedIn" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdByName" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "extraTimeSecondPerson" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "ExtraTimeRequest" : {
         "type" : "object",
         "properties" : {
@@ -17002,112 +17192,12 @@
           },
           "calculator" : {
             "type" : "boolean"
+          },
+          "extraTimeSecondPerson" : {
+            "type" : "boolean"
           }
         },
         "required" : [ "closesAt", "opensAt", "portalId", "versionId" ]
-      },
-      "ExamSchedule" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "title" : {
-            "type" : "string"
-          },
-          "orgUnitId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "orgUnitName" : {
-            "type" : "string"
-          },
-          "versionId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "assessmentId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "assessmentCode" : {
-            "type" : "string"
-          },
-          "versionNo" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "purpose" : {
-            "type" : "string"
-          },
-          "portalId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "portalName" : {
-            "type" : "string"
-          },
-          "portalUrl" : {
-            "type" : "string"
-          },
-          "sessionId" : {
-            "type" : "string",
-            "format" : "uuid"
-          },
-          "opensAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "closesAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "lateEntryUntil" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "durationMinutes" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "instructions" : {
-            "type" : "string"
-          },
-          "calculator" : {
-            "type" : "boolean"
-          },
-          "status" : {
-            "type" : "string"
-          },
-          "enrolled" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "linked" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "invited" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "checkedIn" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "createdByName" : {
-            "type" : "string"
-          },
-          "createdAt" : {
-            "type" : "string",
-            "format" : "date-time"
-          },
-          "version" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
       },
       "EnrolmentInvitationResult" : {
         "type" : "object",
@@ -17260,6 +17350,9 @@
             "type" : "string",
             "format" : "uuid"
           },
+          "status" : {
+            "type" : "string"
+          },
           "minutes" : {
             "type" : "integer",
             "format" : "int32"
@@ -17268,9 +17361,17 @@
             "type" : "integer",
             "format" : "int32"
           },
+          "previousDeadline" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
           "deadlineAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "approvalId" : {
+            "type" : "string",
+            "format" : "uuid"
           }
         }
       },
@@ -21836,6 +21937,9 @@
           },
           "terminationPending" : {
             "type" : "boolean"
+          },
+          "extensionPending" : {
+            "type" : "boolean"
           }
         }
       },
@@ -21882,6 +21986,9 @@
           },
           "canRequestTermination" : {
             "type" : "boolean"
+          },
+          "extraTimeSecondPerson" : {
+            "type" : "boolean"
           }
         }
       },
@@ -21912,6 +22019,40 @@
           },
           "consumedByName" : {
             "type" : "string"
+          }
+        }
+      },
+      "ExtensionRecord" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "minutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "grantedByName" : {
+            "type" : "string"
+          },
+          "approvedByName" : {
+            "type" : "string"
+          },
+          "grantedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "previousExpiry" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "newExpiry" : {
+            "type" : "string",
+            "format" : "date-time"
           }
         }
       },
