@@ -122,7 +122,7 @@ public enum Permission {
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_SCHEDULE_READ("exam.schedule.read", "View examination schedules", "View scheduled examinations and their enrolled candidates",
             Domain.EXAMINATIONS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
-    EXAM_SCHEDULE_MANAGE("exam.schedule.manage", "Schedule examinations", "Schedule published assessments, enrol and invite candidates, grant extra time",
+    EXAM_SCHEDULE_MANAGE("exam.schedule.manage", "Schedule examinations", "Schedule published assessments, enrol and invite candidates, set accommodation extra time before the examination",
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_RESULTS_READ("exam.results.read", "View examination results", "View attempts and provisional or published scores of scheduled examinations",
             Domain.EXAMINATIONS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
@@ -131,6 +131,8 @@ public enum Permission {
     EXAM_RESULTS_APPROVE("exam.results.approve", "Approve result publication", "Approve or reject the publication of results reviewed by another person (four-eyes)",
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_ATTEMPT_TERMINATE("exam.attempt.terminate", "End a candidate's examination", "Approve or reject ending a candidate's running examination, requested by an invigilator (four-eyes)",
+            Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    EXAM_ATTEMPT_EXTEND("exam.attempt.extend", "Grant extra time during an examination", "Add 1–60 minutes to a candidate's running examination with a reason (designated controllers and invigilators; a second person approves where the examination requires it)",
             Domain.EXAMINATIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     EXAM_INVIGILATE("exam.invigilate", "Invigilate examinations", "Monitor candidates of scheduled examinations live (check-in, connection, progress; never answers or scores) and record candidate incidents",
             Domain.EXAMINATIONS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
@@ -228,7 +230,7 @@ public enum Permission {
      * Privileged permissions (P2-08): never granted by an administrator's own authority. A role containing one is assigned
      * only through an approved four-eyes request whose approver holds them, or by the operator bootstrap.
      */
-    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish", "exam.results.approve", "exam.attempt.terminate");
+    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish", "exam.results.approve", "exam.attempt.terminate", "exam.attempt.extend");
 
     public static Optional<Permission> fromKey(String key) {
         return Arrays.stream(values()).filter(p -> p.key.equals(key)).findFirst();

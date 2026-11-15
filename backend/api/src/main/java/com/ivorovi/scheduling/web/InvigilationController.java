@@ -52,10 +52,18 @@ class InvigilationController {
     }
 
     @PostMapping("/candidates/{enrolmentId}/extensions")
-    @PreAuthorize("@authz.hasAnywhere('exam.schedule.manage')")
-    @Operation(summary = "Add minutes to one candidate's running examination (exam controllers; recorded with the reason; never beyond the window)")
+    @PreAuthorize("@authz.hasAnywhere('exam.attempt.extend')")
+    @Operation(summary = "Add 1–60 minutes to one candidate's running examination (designated controllers and invigilators; reason required; "
+            + "never beyond the window; status PENDING_APPROVAL where the examination requires a second person)")
     com.ivorovi.exams.ExamSessions.AttemptExtension extend(@PathVariable UUID id, @PathVariable UUID enrolmentId, @Valid @RequestBody ExtensionRequest r) {
         return invigilation.extend(id, enrolmentId, r.minutes(), r.reason());
+    }
+
+    @GetMapping("/candidates/{enrolmentId}/extensions")
+    @PreAuthorize("@authz.hasAnywhere('exam.invigilate')")
+    @Operation(summary = "Every extra-time grant of one candidate: minutes, reason, who granted and approved it, when, previous and new expiry")
+    List<com.ivorovi.exams.ExamSessions.ExtensionRecord> extensions(@PathVariable UUID id, @PathVariable UUID enrolmentId) {
+        return invigilation.extensions(id, enrolmentId);
     }
 
     @PostMapping("/candidates/{enrolmentId}/termination")

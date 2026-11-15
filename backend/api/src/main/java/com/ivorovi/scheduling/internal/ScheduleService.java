@@ -53,13 +53,13 @@ public class ScheduleService {
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s,;]{1,64}@[^@\\s,;]{1,253}\\.[^@\\s,;]{2,}$");
 
     public record ScheduleInput(UUID versionId, UUID portalId, UUID orgUnitId, String title, Instant opensAt, Instant closesAt, Instant lateEntryUntil,
-                                String instructions, Boolean calculator) {}
+                                String instructions, Boolean calculator, Boolean extraTimeSecondPerson) {}
 
     @Schema(name = "ExamSchedule")
     public record Schedule(UUID id, String title, UUID orgUnitId, String orgUnitName, UUID versionId, UUID assessmentId, String assessmentCode,
                            int versionNo, String purpose, UUID portalId, String portalName, String portalUrl, UUID sessionId, Instant opensAt, Instant closesAt,
                            Instant lateEntryUntil, int durationMinutes, String instructions, boolean calculator, String status, int enrolled, int linked,
-                           int invited, int checkedIn, String createdByName, Instant createdAt, long version) {}
+                           int invited, int checkedIn, String createdByName, Instant createdAt, long version, boolean extraTimeSecondPerson) {}
 
     @Schema(name = "ExamEnrolment")
     public record Enrolment(UUID id, String email, String displayName, boolean linked, int extraMinutes, String extraReason, String invitationStatus,
@@ -156,16 +156,17 @@ public class ScheduleService {
         UUID id = Ids.newId();
         jdbc.sql("""
                 INSERT INTO exam_schedule (id, tenant_id, org_unit_id, version_id, portal_id, session_id, title, opens_at, closes_at, late_entry_until,
-                    duration_minutes, instructions, calculator, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+                    duration_minutes, instructions, calculator, created_by, extra_time_second_person) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 .params(id, TenantContext.requireTenantId(), in.orgUnitId(), v.versionId(), in.portalId(), s.id(), title, Timestamp.from(in.opensAt()),
                         Timestamp.from(in.closesAt()), in.lateEntryUntil() == null ? null : Timestamp.from(in.lateEntryUntil()), v.durationMinutes(),
-                        blank(in.instructions()), Boolean.TRUE.equals(in.calculator()), me()).update();
+                        blank(in.instructions()), Boolean.TRUE.equals(in.calculator()), me(), Boolean.TRUE.equals(in.extraTimeSecondPerson())).update();
         assessments.reference(v.versionId(), "exam_schedule", id.toString());
         Map<String, String> d = new LinkedHashMap<>();
         d.put("versionId", v.versionId().toString());
         d.put("assessment", v.code());
         d.put("opensAt", in.opensAt().toString());
         d.put("closesAt", in.closesAt().toString());
+        d.put("extraTimeSecondPerson", String.valueOf(Boolean.TRUE.equals(in.extraTimeSecondPerson())));
         audit.recordSuccess("exam.schedule.created", "exam_schedule", id.toString(), d);
         outbox.append("exam_schedule", id.toString(), "exam.schedule.created", Map.of("scheduleId", id.toString(), "versionId", v.versionId().toString()));
         return get(id);
@@ -178,6 +179,23 @@ public class ScheduleService {
         jdbc.sql("UPDATE exam_schedule SET status = 'CANCELLED', updated_at = now(), version = version + 1 WHERE id = ?").param(id).update();
         sessions.cancel(r.sessionId());
         audit.recordSuccess("exam.schedule.cancelled", "exam_schedule", id.toString(), Map.of("reason", reason.strip().length() > 300 ? reason.strip().substring(0, 300) : reason.strip()));
+        return get(id);
+    }
+
+    /**
+     * Decision R-2: an institution may require a second person to approve each extra-time grant on a high-stakes
+     * examination. Tightening is allowed at any time; relaxing only before the window opens (also enforced by the database).
+     */
+    @Transactional
+    public Schedule extraTimePolicy(UUID id, boolean secondPerson) {
+        Row r = manageable(id);
+        boolean current = jdbc.sql("SELECT extra_time_second_person FROM exam_schedule WHERE id = ?").param(id).query(Boolean.class).single();
+        if (current == secondPerson) return get(id);
+        if (!secondPerson && !r.opensAt().isAfter(Instant.now())) {
+            throw ApiException.conflict("policy_locked", "The examination has opened; the second-person rule for extra time can no longer be relaxed.");
+        }
+        jdbc.sql("UPDATE exam_schedule SET extra_time_second_person = ?, updated_at = now(), version = version + 1 WHERE id = ?").params(secondPerson, id).update();
+        audit.recordSuccess("exam.schedule.extra_time_policy_changed", "exam_schedule", id.toString(), Map.of("secondPerson", String.valueOf(secondPerson)));
         return get(id);
     }
 
@@ -210,7 +228,7 @@ public class ScheduleService {
                        (SELECT count(*) FROM exam_enrolment e WHERE e.schedule_id = s.id AND e.status = 'ACTIVE' AND e.candidate_id IS NOT NULL) AS linked,
                        (SELECT count(*) FROM exam_enrolment e WHERE e.schedule_id = s.id AND e.status = 'ACTIVE' AND e.invitation_status = 'SENT') AS invited,
                        (SELECT count(*) FROM check_in c WHERE c.session_id = s.session_id) AS checked_in,
-                       u.display_name AS creator, s.created_at, s.version
+                       u.display_name AS creator, s.created_at, s.version, s.extra_time_second_person
                 FROM exam_schedule s JOIN assessment_version v ON v.id = s.version_id JOIN assessment a ON a.id = v.assessment_id
                 JOIN exam_portal p ON p.id = s.portal_id LEFT JOIN org_unit ou ON ou.id = s.org_unit_id LEFT JOIN user_account u ON u.id = s.created_by
                 WHERE s.id = ?""").param(id)
@@ -219,7 +237,8 @@ public class ScheduleService {
                         rs.getString("purpose"), rs.getObject("portal_id", UUID.class), rs.getString("portal"), portalUrl(rs.getString("portal_key")),
                         rs.getObject("session_id", UUID.class), ts(rs, "opens_at"), ts(rs, "closes_at"), ts(rs, "late_entry_until"), rs.getInt("duration_minutes"),
                         rs.getString("instructions"), rs.getBoolean("calculator"), rs.getString("status"), rs.getInt("enrolled"), rs.getInt("linked"),
-                        rs.getInt("invited"), rs.getInt("checked_in"), rs.getString("creator"), ts(rs, "created_at"), rs.getLong("version"))).single();
+                        rs.getInt("invited"), rs.getInt("checked_in"), rs.getString("creator"), ts(rs, "created_at"), rs.getLong("version"),
+                        rs.getBoolean("extra_time_second_person"))).single();
     }
 
     /** The portal link (not secret); unavailable to readers without exam.session.manage, who then see no link. */

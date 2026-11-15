@@ -299,8 +299,16 @@ test.describe("Day 3: candidate examination journey with independent result publ
     await ctl.p.getByRole("dialog").getByLabel("Reason").fill("Late start in hall B");
     await ctl.p.getByRole("dialog").getByRole("button", { name: "Add time" }).click();
     await expect(ctl.row).toContainText("+5 min extra");
+    await expect(ctl.row).toContainText("Ends ");                              // R-2: staff see the revised end time
     await expect(page.getByText("Your time was extended by 5 minutes.")).toBeVisible({ timeout: 30_000 });
     expect((await monitor()).candidates[0]!.extendedMinutes).toBe(5);
+    // R-2: the permanent record of the grant (who, when, reason, previous and new end time)
+    await ctl.row.getByRole("button", { name: "+5 min extra" }).click();
+    const grants = ctl.p.getByRole("list", { name: "Extra-time grants" });
+    await expect(grants).toContainText("+5 min");
+    await expect(grants).toContainText("Late start in hall B");
+    await expect(grants).toContainText("End time");
+    await ctl.p.keyboard.press("Escape");
     await ctl.ctx.close();
 
     // the head of institution (invigilates) asks to end the examination on the monitor; they cannot approve

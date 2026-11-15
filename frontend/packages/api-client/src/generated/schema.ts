@@ -353,6 +353,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exam/schedules/{id}/extra-time-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Require a second person to approve extra time during this examination (high-stakes); may be relaxed only before it opens */
+        put: operations["extraTimePolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exam/schedules/{id}/enrolments/{enrolmentId}/extra-time": {
         parameters: {
             query?: never;
@@ -1929,9 +1946,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Every extra-time grant of one candidate: minutes, reason, who granted and approved it, when, previous and new expiry */
+        get: operations["extensions"];
         put?: never;
-        /** Add minutes to one candidate's running examination (exam controllers; recorded with the reason; never beyond the window) */
+        /** Add 1–60 minutes to one candidate's running examination (designated controllers and invigilators; reason required; never beyond the window; status PENDING_APPROVAL where the examination requires a second person) */
         post: operations["extend"];
         delete?: never;
         options?: never;
@@ -5118,6 +5136,56 @@ export interface components {
             network?: string;
             label?: string;
         };
+        ExtraTimePolicyRequest: {
+            secondPerson: boolean;
+        };
+        ExamSchedule: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            /** Format: uuid */
+            orgUnitId?: string;
+            orgUnitName?: string;
+            /** Format: uuid */
+            versionId?: string;
+            /** Format: uuid */
+            assessmentId?: string;
+            assessmentCode?: string;
+            /** Format: int32 */
+            versionNo?: number;
+            purpose?: string;
+            /** Format: uuid */
+            portalId?: string;
+            portalName?: string;
+            portalUrl?: string;
+            /** Format: uuid */
+            sessionId?: string;
+            /** Format: date-time */
+            opensAt?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: date-time */
+            lateEntryUntil?: string;
+            /** Format: int32 */
+            durationMinutes?: number;
+            instructions?: string;
+            calculator?: boolean;
+            status?: string;
+            /** Format: int32 */
+            enrolled?: number;
+            /** Format: int32 */
+            linked?: number;
+            /** Format: int32 */
+            invited?: number;
+            /** Format: int32 */
+            checkedIn?: number;
+            createdByName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            version?: number;
+            extraTimeSecondPerson?: boolean;
+        };
         ExtraTimeRequest: {
             /** Format: int32 */
             minutes?: number;
@@ -6362,52 +6430,7 @@ export interface components {
             lateEntryUntil?: string;
             instructions?: string;
             calculator?: boolean;
-        };
-        ExamSchedule: {
-            /** Format: uuid */
-            id?: string;
-            title?: string;
-            /** Format: uuid */
-            orgUnitId?: string;
-            orgUnitName?: string;
-            /** Format: uuid */
-            versionId?: string;
-            /** Format: uuid */
-            assessmentId?: string;
-            assessmentCode?: string;
-            /** Format: int32 */
-            versionNo?: number;
-            purpose?: string;
-            /** Format: uuid */
-            portalId?: string;
-            portalName?: string;
-            portalUrl?: string;
-            /** Format: uuid */
-            sessionId?: string;
-            /** Format: date-time */
-            opensAt?: string;
-            /** Format: date-time */
-            closesAt?: string;
-            /** Format: date-time */
-            lateEntryUntil?: string;
-            /** Format: int32 */
-            durationMinutes?: number;
-            instructions?: string;
-            calculator?: boolean;
-            status?: string;
-            /** Format: int32 */
-            enrolled?: number;
-            /** Format: int32 */
-            linked?: number;
-            /** Format: int32 */
-            invited?: number;
-            /** Format: int32 */
-            checkedIn?: number;
-            createdByName?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int64 */
-            version?: number;
+            extraTimeSecondPerson?: boolean;
         };
         EnrolmentInvitationResult: {
             /** Format: int32 */
@@ -6467,12 +6490,17 @@ export interface components {
         AttemptExtension: {
             /** Format: uuid */
             attemptId?: string;
+            status?: string;
             /** Format: int32 */
             minutes?: number;
             /** Format: int32 */
             extendedMinutes?: number;
             /** Format: date-time */
+            previousDeadline?: string;
+            /** Format: date-time */
             deadlineAt?: string;
+            /** Format: uuid */
+            approvalId?: string;
         };
         CandidateIncidentRequest: {
             /** Format: uuid */
@@ -8248,6 +8276,7 @@ export interface components {
             /** Format: int64 */
             interruptedSeconds?: number;
             terminationPending?: boolean;
+            extensionPending?: boolean;
         };
         InvigilationMonitor: {
             /** Format: uuid */
@@ -8266,6 +8295,7 @@ export interface components {
             canRecordIncidents?: boolean;
             canExtend?: boolean;
             canRequestTermination?: boolean;
+            extraTimeSecondPerson?: boolean;
         };
         Code: {
             /** Format: uuid */
@@ -8279,6 +8309,21 @@ export interface components {
             /** Format: date-time */
             consumedAt?: string;
             consumedByName?: string;
+        };
+        ExtensionRecord: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            minutes?: number;
+            reason?: string;
+            grantedByName?: string;
+            approvedByName?: string;
+            /** Format: date-time */
+            grantedAt?: string;
+            /** Format: date-time */
+            previousExpiry?: string;
+            /** Format: date-time */
+            newExpiry?: string;
         };
         PublishedAssessmentVersion: {
             /** Format: uuid */
@@ -9455,6 +9500,32 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["VenueNetwork"][];
+                };
+            };
+        };
+    };
+    extraTimePolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtraTimePolicyRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExamSchedule"];
                 };
             };
         };
@@ -12354,6 +12425,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["TerminationRequested"];
+                };
+            };
+        };
+    };
+    extensions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                enrolmentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ExtensionRecord"][];
                 };
             };
         };

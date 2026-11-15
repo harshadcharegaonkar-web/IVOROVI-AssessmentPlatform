@@ -36,7 +36,11 @@ class ScheduleController {
 
     @Schema(name = "ExamScheduleRequest")
     record CreateRequest(@NotNull UUID versionId, @NotNull UUID portalId, UUID orgUnitId, @Size(max = 200) String title, @NotNull Instant opensAt,
-                         @NotNull Instant closesAt, Instant lateEntryUntil, @Size(max = 4000) String instructions, Boolean calculator) {}
+                         @NotNull Instant closesAt, Instant lateEntryUntil, @Size(max = 4000) String instructions, Boolean calculator,
+                         Boolean extraTimeSecondPerson) {}
+
+    @Schema(name = "ExtraTimePolicyRequest")
+    record ExtraTimePolicyRequest(@NotNull Boolean secondPerson) {}
 
     @Schema(name = "ExamScheduleCancelRequest")
     record CancelRequest(@NotBlank @Size(max = 500) String reason) {}
@@ -88,7 +92,7 @@ class ScheduleController {
     @Operation(summary = "Schedule a published assessment version (creates its exam session; the version never changes)")
     ScheduleService.Schedule create(@Valid @RequestBody CreateRequest r) {
         return schedules.create(new ScheduleService.ScheduleInput(r.versionId(), r.portalId(), r.orgUnitId(), r.title(), r.opensAt(), r.closesAt(),
-                r.lateEntryUntil(), r.instructions(), r.calculator()));
+                r.lateEntryUntil(), r.instructions(), r.calculator(), r.extraTimeSecondPerson()));
     }
 
     @GetMapping("/{id}")
@@ -101,6 +105,13 @@ class ScheduleController {
     @PreAuthorize("@authz.hasAnywhere('exam.schedule.manage')")
     ScheduleService.Schedule cancel(@PathVariable UUID id, @Valid @RequestBody CancelRequest r) {
         return schedules.cancel(id, r.reason());
+    }
+
+    @PutMapping("/{id}/extra-time-policy")
+    @PreAuthorize("@authz.hasAnywhere('exam.schedule.manage')")
+    @Operation(summary = "Require a second person to approve extra time during this examination (high-stakes); may be relaxed only before it opens")
+    ScheduleService.Schedule extraTimePolicy(@PathVariable UUID id, @Valid @RequestBody ExtraTimePolicyRequest r) {
+        return schedules.extraTimePolicy(id, r.secondPerson());
     }
 
     @GetMapping("/{id}/enrolments")

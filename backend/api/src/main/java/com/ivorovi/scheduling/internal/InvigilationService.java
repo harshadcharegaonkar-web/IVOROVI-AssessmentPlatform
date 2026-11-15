@@ -39,11 +39,13 @@ public class InvigilationService {
     @Schema(name = "InvigilationCandidate")
     public record Candidate(UUID enrolmentId, String displayName, String email, String state, boolean online, Instant checkedInAt, Instant lastSeenAt,
                             Instant startedAt, Instant deadlineAt, Instant submittedAt, long secondsLeft, int extraMinutes, int questions, int answered,
-                            Instant lastSavedAt, int incidents, int extendedMinutes, int interruptions, long interruptedSeconds, boolean terminationPending) {}
+                            Instant lastSavedAt, int incidents, int extendedMinutes, int interruptions, long interruptedSeconds, boolean terminationPending,
+                            boolean extensionPending) {}
 
     @Schema(name = "InvigilationMonitor")
     public record Monitor(UUID scheduleId, String title, Instant opensAt, Instant closesAt, Instant serverTime, Map<String, Integer> counts,
-                          List<Candidate> candidates, boolean canRecordIncidents, boolean canExtend, boolean canRequestTermination) {}
+                          List<Candidate> candidates, boolean canRecordIncidents, boolean canExtend, boolean canRequestTermination,
+                          boolean extraTimeSecondPerson) {}
 
     @Schema(name = "CandidateIncident")
     public record Incident(UUID id, UUID enrolmentId, String candidateName, String category, String note, UUID correctsId, String recordedByName,
@@ -51,7 +53,7 @@ public class InvigilationService {
 
     public record IncidentInput(UUID enrolmentId, String category, String note, UUID correctsId) {}
 
-    private record Sched(UUID id, UUID orgUnitId, UUID sessionId, String title, Instant opensAt, Instant closesAt) {}
+    private record Sched(UUID id, UUID orgUnitId, UUID sessionId, String title, Instant opensAt, Instant closesAt, boolean secondPerson) {}
 
     private record Enr(UUID id, UUID candidateId, String name, String email) {}
 
@@ -71,9 +73,9 @@ public class InvigilationService {
 
     /** The schedule, if the caller may invigilate it (404 otherwise, as for any schedule they cannot see). */
     private Sched schedule(UUID id) {
-        Sched s = jdbc.sql("SELECT id, org_unit_id, session_id, title, opens_at, closes_at FROM exam_schedule WHERE id = ?").param(id)
+        Sched s = jdbc.sql("SELECT id, org_unit_id, session_id, title, opens_at, closes_at, extra_time_second_person FROM exam_schedule WHERE id = ?").param(id)
                 .query((rs, n) -> new Sched(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, UUID.class), rs.getString(4),
-                        rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant())).optional().orElseThrow(() -> ApiException.notFound("Schedule"));
+                        rs.getTimestamp(5).toInstant(), rs.getTimestamp(6).toInstant(), rs.getBoolean(7))).optional().orElseThrow(() -> ApiException.notFound("Schedule"));
         if (!authz.hasInOrgUnit(INVIGILATE, s.orgUnitId())) {
             if (authz.hasInOrgUnit(ScheduleService.READ, s.orgUnitId())) throw new AccessDeniedException("Missing permission " + INVIGILATE);
             throw ApiException.notFound("Schedule");
@@ -132,11 +134,11 @@ public class InvigilationService {
                     p == null ? null : p.startedAt(), p == null ? null : p.deadlineAt(), p == null ? null : p.submittedAt(), left,
                     p == null ? 0 : p.extraMinutes(), p == null ? 0 : p.questions(), p == null ? 0 : p.answered(), p == null ? null : p.lastSavedAt(),
                     incidents.getOrDefault(e.id(), 0), p == null ? 0 : p.extendedMinutes(), p == null ? 0 : p.interruptions(),
-                    p == null ? 0 : p.interruptedSeconds(), p != null && p.terminationPending()));
+                    p == null ? 0 : p.interruptedSeconds(), p != null && p.terminationPending(), p != null && p.extensionPending()));
         }
         counts.put("ONLINE", online);
         return new Monitor(s.id(), s.title(), s.opensAt(), s.closesAt(), now, counts, out, true,
-                authz.hasInOrgUnit("exam.schedule.manage", s.orgUnitId()), true);
+                authz.hasInOrgUnit(com.ivorovi.exams.ExamSessions.EXTEND, s.orgUnitId()), true, s.secondPerson());
     }
 
     private record Enrolled(UUID candidateId, String name) {}
@@ -148,12 +150,25 @@ public class InvigilationService {
         return e;
     }
 
-    /** Extra minutes for one candidate's running examination: exam controllers only (exam.schedule.manage), not invigilators. */
+    /**
+     * Extra minutes for one candidate's running examination (R-2): designated holders of exam.attempt.extend only; on an
+     * examination that requires a second person the grant waits for another holder's approval.
+     */
     @Transactional
     public com.ivorovi.exams.ExamSessions.AttemptExtension extend(UUID scheduleId, UUID enrolmentId, int minutes, String reason) {
         Sched s = schedule(scheduleId);
         Enrolled e = enrolled(scheduleId, enrolmentId);
-        return sessions.extend(scheduleId, s.orgUnitId(), s.closesAt(), e.candidateId(), minutes, reason);
+        return sessions.extend(scheduleId, s.orgUnitId(), s.closesAt(), s.secondPerson(), e.candidateId(), e.name(), minutes, reason);
+    }
+
+    /** Every extra-time grant of one candidate (who, when, minutes, reason, previous and new expiry, approver). */
+    @Transactional(readOnly = true)
+    public List<com.ivorovi.exams.ExamSessions.ExtensionRecord> extensions(UUID scheduleId, UUID enrolmentId) {
+        Sched s = schedule(scheduleId);
+        UUID candidate = jdbc.sql("SELECT candidate_id FROM exam_enrolment WHERE id = ? AND schedule_id = ?").params(enrolmentId, scheduleId)
+                .query(UUID.class).optional().orElseThrow(() -> ApiException.notFound("Candidate"));
+        if (candidate == null) return List.of();
+        return sessions.extensions(scheduleId, s.orgUnitId(), candidate);
     }
 
     /** An invigilator asks to end one candidate's examination; another person with exam.attempt.terminate decides. */

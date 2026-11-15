@@ -24,6 +24,10 @@ export function ScheduleDetailPage() {
   const [extraFor, setExtraFor] = useState<ExamEnrolment | null>(null);
   const [codes, setCodes] = useState<{ code?: string; hint?: string }[] | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const policy = useMutation({
+    mutationFn: async (secondPerson: boolean) => unwrap(await api.PUT("/api/v1/exam/schedules/{id}/extra-time-policy", { ...path, body: { secondPerson } })),
+    onSuccess: refresh,
+  });
   const upload = useMutation({
     mutationFn: async (apply: boolean) => unwrap(await api.POST("/api/v1/exam/schedules/{id}/enrolments/upload", { ...path, body: { csv, apply } })),
     onSuccess: (r) => { setPreview(r); if (r.applied) { setCsv(""); refresh(); } },
@@ -61,7 +65,12 @@ export function ScheduleDetailPage() {
               <div><dt className="text-muted">Candidates</dt><dd>{x.enrolled} enrolled · {x.linked} signed in · {x.invited} invited · {x.checkedIn} checked in</dd></div>
               <div><dt className="text-muted">Calculator</dt><dd>{x.calculator ? "Allowed" : "Not allowed"}</dd></div>
               <div><dt className="text-muted">Scheduled by</dt><dd>{x.createdByName ?? "—"}</dd></div>
+              <div><dt className="text-muted">Extra time during the examination</dt><dd className="flex flex-wrap items-center gap-2">
+                {x.extraTimeSecondPerson ? "A second person approves each grant" : "Granted directly by designated controllers and invigilators"}
+                {manage && open && <Button variant="ghost" loading={policy.isPending} onClick={() => policy.mutate(!x.extraTimeSecondPerson)}>
+                  {x.extraTimeSecondPerson ? "Allow direct grants" : "Require a second person"}</Button>}</dd></div>
             </dl>
+            {policy.isError && <div className="mt-3"><Alert tone="danger">{errorInfo(policy.error).message}</Alert></div>}
             {x.instructions && <p className="mt-3 whitespace-pre-line text-sm"><span className="font-medium">Instructions: </span>{x.instructions}</p>}
           </CardBody>
         </Card>
@@ -222,6 +231,7 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
   const [extendFor, setExtendFor] = useState<InvigilationCandidate | null>(null);
   const [endFor, setEndFor] = useState<InvigilationCandidate | null>(null);
   const [requested, setRequested] = useState<string | null>(null);
+  const [historyFor, setHistoryFor] = useState<InvigilationCandidate | null>(null);
   const refreshMonitor = () => void qc.invalidateQueries({ queryKey: ["exam-monitor", scheduleId] });
   const m = useQuery({ queryKey: ["exam-monitor", scheduleId], refetchInterval: 10_000, retry: false,
     queryFn: async () => unwrap(await api.GET("/api/v1/exam/schedules/{id}/monitor", path)) });
@@ -238,11 +248,14 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
       {(r.interruptions ?? 0) > 0 && <span className="text-xs text-muted">{r.interruptions} interruption{r.interruptions === 1 ? "" : "s"}, {Math.round((r.interruptedSeconds ?? 0) / 60)} min offline</span>}</span>, hideOnMobile: true },
     { key: "p", header: "Progress", cell: (r) => r.startedAt ? `${r.answered} of ${r.questions} answered` : "—" },
     { key: "t", header: "Time left", cell: (r) => r.state === "IN_PROGRESS" ? <span className="flex flex-col"><span className="tabular-nums">{minutesLeft(r.secondsLeft ?? 0)}</span>
-      {(r.extendedMinutes ?? 0) > 0 && <span className="text-xs text-muted">+{r.extendedMinutes} min extra</span>}</span> : "—", hideOnMobile: true },
+      <span className="text-xs text-muted">Ends {formatDateTime(r.deadlineAt)}</span>
+      {(r.extendedMinutes ?? 0) > 0 && <button type="button" className="text-left text-xs text-muted underline" onClick={() => setHistoryFor(r)}>+{r.extendedMinutes} min extra</button>}</span>
+      : (r.extendedMinutes ?? 0) > 0 ? <button type="button" className="text-xs text-muted underline" onClick={() => setHistoryFor(r)}>+{r.extendedMinutes} min extra</button> : "—", hideOnMobile: true },
     { key: "i", header: "Incidents", cell: (r) => r.incidents ? <Badge tone="warning">{r.incidents}</Badge> : "—", hideOnMobile: true },
     { key: "a", header: "", cell: (r) => <span className="flex flex-wrap justify-end gap-1">
       <Button variant="ghost" onClick={() => setIncidentFor(r)}>Record incident</Button>
-      {r.state === "IN_PROGRESS" && x?.canExtend && <Button variant="ghost" onClick={() => setExtendFor(r)}>Extend time</Button>}
+      {r.state === "IN_PROGRESS" && (r.extensionPending ? <Badge tone="warning">Extra time awaiting approval</Badge>
+        : x?.canExtend && <Button variant="ghost" onClick={() => setExtendFor(r)}>Extend time</Button>)}
       {r.state === "IN_PROGRESS" && (r.terminationPending ? <Badge tone="warning">Ending requested</Badge>
         : <Button variant="ghost" onClick={() => setEndFor(r)}>End examination</Button>)}</span> },
   ];
@@ -259,7 +272,10 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
               {i.correctsId ? " (correction)" : ""}: {i.note} <span className="text-muted">— {i.recordedByName}</span></li>))}</ul>
         </CardBody>)}
       {requested && <div className="px-5 pt-3"><Alert tone="info">{requested}{" "}<Link to="/approvals" className="underline">Open approvals</Link></Alert></div>}
-      {extendFor && <ExtendDialog scheduleId={scheduleId} candidate={extendFor} onClose={() => setExtendFor(null)} onDone={() => { setExtendFor(null); refreshMonitor(); }} />}
+      {extendFor && <ExtendDialog scheduleId={scheduleId} candidate={extendFor} secondPerson={!!x?.extraTimeSecondPerson} onClose={() => setExtendFor(null)}
+        onDone={(pending) => { if (pending) setRequested(`Extra time for ${extendFor.displayName ?? "the candidate"} waits for approval by another person with that right. Their time is unchanged until then.`);
+          setExtendFor(null); refreshMonitor(); }} />}
+      {historyFor && <HistoryDialog scheduleId={scheduleId} candidate={historyFor} onClose={() => setHistoryFor(null)} />}
       {endFor && <EndDialog scheduleId={scheduleId} candidate={endFor} onClose={() => setEndFor(null)}
         onDone={() => { setRequested(`Ending ${endFor.displayName ?? "the candidate"}'s examination waits for a decision by another person with that right. The candidate keeps writing until then.`); setEndFor(null); refreshMonitor(); }} />}
       {incidentFor && <IncidentDialog scheduleId={scheduleId} candidate={incidentFor} previous={(inc.data ?? []).filter((i) => i.enrolmentId === incidentFor.enrolmentId)}
@@ -269,18 +285,19 @@ function MonitorCard({ scheduleId }: { scheduleId: string }) {
   );
 }
 
-function ExtendDialog({ scheduleId, candidate, onClose, onDone }: { scheduleId: string; candidate: InvigilationCandidate; onClose: () => void; onDone: () => void }) {
+function ExtendDialog({ scheduleId, candidate, secondPerson, onClose, onDone }: { scheduleId: string; candidate: InvigilationCandidate; secondPerson: boolean;
+  onClose: () => void; onDone: (pending: boolean) => void }) {
   const api = useApi();
   const [minutes, setMinutes] = useState("10");
   const [reason, setReason] = useState("");
   const save = useMutation({
     mutationFn: async () => unwrap(await api.POST("/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/extensions", { params: { path: { id: scheduleId, enrolmentId: candidate.enrolmentId! } },
       body: { minutes: Number(minutes), reason } })),
-    onSuccess: onDone,
+    onSuccess: (r) => onDone(r.status === "PENDING_APPROVAL"),
   });
   return (
     <Modal open onOpenChange={(o) => !o && onClose()} title={`Extend time for ${candidate.displayName ?? candidate.email}`}
-      description="Added to this candidate's running examination now, never beyond the end of the examination window. Recorded with its reason."
+      description={`${secondPerson ? "This examination needs a second person: the time is added when another designated person approves." : "Added to this candidate's running examination now."} Never beyond the end of the examination window. Recorded permanently with its reason; the candidate sees the new end time.`}
       footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button variant="primary" disabled={!reason.trim()} loading={save.isPending} onClick={() => save.mutate()}>Add time</Button></>}>
       <div className="space-y-4">
         {save.isError && <Alert tone="danger">{errorInfo(save.error).message}</Alert>}
@@ -338,3 +355,22 @@ function IncidentDialog({ scheduleId, candidate, previous, onClose, onDone }: { 
 }
 
 export default ScheduleDetailPage;
+
+/** Every extra-time grant of one candidate (R-2): permanent records with the previous and new end time. */
+function HistoryDialog({ scheduleId, candidate, onClose }: { scheduleId: string; candidate: InvigilationCandidate; onClose: () => void }) {
+  const api = useApi();
+  const h = useQuery({ queryKey: ["exam-extensions", scheduleId, candidate.enrolmentId], queryFn: async () => unwrap(await api.GET(
+    "/api/v1/exam/schedules/{id}/candidates/{enrolmentId}/extensions", { params: { path: { id: scheduleId, enrolmentId: candidate.enrolmentId! } } })) });
+  return (
+    <Modal open onOpenChange={(o) => !o && onClose()} title={`Extra time for ${candidate.displayName ?? candidate.email}`}
+      footer={<Button variant="secondary" onClick={onClose}>Close</Button>}>
+      {h.isError ? <Alert tone="danger">{errorInfo(h.error).message}</Alert> : (
+        <ol className="space-y-3 text-sm" aria-label="Extra-time grants">{(h.data ?? []).map((g) => (
+          <li key={g.id}>
+            <span className="font-medium">+{g.minutes} min</span> · {formatDateTime(g.grantedAt)} · {g.grantedByName}{g.approvedByName ? `, approved by ${g.approvedByName}` : ""}
+            <span className="block text-muted">End time {formatDateTime(g.previousExpiry)} → {formatDateTime(g.newExpiry)}</span>
+            <span className="block">{g.reason}</span>
+          </li>))}</ol>)}
+    </Modal>
+  );
+}

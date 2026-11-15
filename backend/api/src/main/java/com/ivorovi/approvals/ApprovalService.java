@@ -115,6 +115,14 @@ public class ApprovalService {
         return id;
     }
 
+    /** Which of the given subjects have a pending request of this type (for status displays; no request details). */
+    @Transactional(readOnly = true)
+    public java.util.Set<String> pendingSubjects(String type, java.util.Collection<String> subjectIds) {
+        if (subjectIds.isEmpty()) return java.util.Set.of();
+        return new java.util.HashSet<>(jdbc.sql("SELECT subject_id FROM approval_request WHERE type = ? AND status = 'PENDING' AND expires_at > now() AND subject_id = ANY (?)")
+                .params(type, subjectIds.toArray(String[]::new)).query(String.class).list());
+    }
+
     // ================================================================================================ deciding
 
     private enum Outcome { EXPIRED, SELF_DECISION, NOT_ELIGIBLE }
