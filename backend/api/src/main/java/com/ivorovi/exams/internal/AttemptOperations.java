@@ -210,10 +210,11 @@ public class AttemptOperations implements ApprovalHandler {
     public void onApproved(ApprovalService.Request request) {
         UUID id = UUID.fromString(request.subjectId());
         UUID attempt = jdbc.sql("SELECT attempt_id FROM exam_attempt_termination WHERE id = ?").param(id).query(UUID.class).single();
+        // the request first: the database lets an attempt become TERMINATED only while an approved request exists (QA-D6-1)
+        jdbc.sql("UPDATE exam_attempt_termination SET status = 'APPROVED', decided_by = ?, decided_at = now() WHERE id = ?").params(request.decidedBy(), id).update();
         int n = jdbc.sql("UPDATE exam_attempt SET status = 'TERMINATED', submitted_at = now(), version = version + 1 WHERE id = ? AND status = 'IN_PROGRESS'")
                 .param(attempt).update();
         if (n == 0) throw new ApprovalHandler.Invalidated("The examination had already ended.");
-        jdbc.sql("UPDATE exam_attempt_termination SET status = 'APPROVED', decided_by = ?, decided_at = now() WHERE id = ?").params(request.decidedBy(), id).update();
         String schedule = String.valueOf(request.payload().get("scheduleId"));
         audit.recordSuccess("exam.attempt.terminated", "exam_attempt", attempt.toString(), Map.of("schedule", schedule, "approval", request.id().toString()));
         outbox.append("exam_attempt", attempt.toString(), "exam.attempt.submitted", Map.of("attemptId", attempt.toString(), "scheduleId", schedule, "by", "TERMINATED"));
