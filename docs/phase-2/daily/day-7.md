@@ -44,9 +44,13 @@ question bank) was delivered in earlier increments and is in regression. It is n
 | `4bcbb9d` | KI-79 immediate revocation (back-channel logout, theme); QA-D6-3, -4, -5 fixed; KI-88 dedicated layout accounts; `ProductionRateLimitIT`; Session 3's adversarial tests (content, credited) |
 | `232f5da`, `abefb41`, `8cf4087` | Session 2's key rotation (its own commits, environment identity, Session 2's session trailer) |
 | `6cc37a3` | Merge of Session 2's branch after independent review |
-| CI_COMMIT | This report; register; protected-value rotation design; wording fixes |
+| `0dd101b` | This report; register; protected-value rotation design; wording fixes |
 
-CI_TABLE
+| Run | Commit | Result |
+|---|---|---|
+| [43803503040](https://github.com/harshadcharegaonkar-web/IVOROVI-AssessmentPlatform/actions/runs/43803503040) | `0dd101b` (contains `4bcbb9d` and the Session 2 merge) | **All jobs green on the first attempt, with flaky tests now failing the run (none).** Backend, frontend, security scan green. Staff E2E 119 passed (including the 48 tablet and mobile layout tests on the new accounts: KI-88's first CI pass). Exam E2E 24 passed, 1 skipped. The KI-79 timeline in CI: right after the reset, refresh 400 and 400, API 401 and 401 on the very first check; 9 back-channel logouts processed, none refused |
+
+This report's own commit starts one more CI run.
 
 ## 3. Backend, frontend and browser E2E results
 
