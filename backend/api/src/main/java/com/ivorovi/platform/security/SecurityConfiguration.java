@@ -36,7 +36,8 @@ public class SecurityConfiguration {
     SecurityFilterChain api(HttpSecurity http, IvoroviJwtAuthenticationConverter converter,
                             ProblemResponses problems, RateLimiter rateLimiter, RateLimitProperties rateLimits,
                             com.ivorovi.platform.audit.UploadRefusals uploadRefusals,
-                            org.springframework.beans.factory.ObjectProvider<ApiKeyAuthenticator> apiKeys)
+                            org.springframework.beans.factory.ObjectProvider<ApiKeyAuthenticator> apiKeys,
+                            org.springframework.beans.factory.ObjectProvider<StaffSessionGuard> sessionGuard)
             throws Exception {
         AuthenticationEntryPoint entryPoint = (request, response, ex) -> {
             if (com.ivorovi.platform.audit.UploadRefusals.isUpload(request)) {
@@ -81,6 +82,11 @@ public class SecurityConfiguration {
                     BearerTokenAuthenticationFilter.class)
             .addFilterAfter(new RateLimitFilters.Authenticated(rateLimiter, rateLimits, problems),
                     BearerTokenAuthenticationFilter.class);
+        StaffSessionGuard guard = sessionGuard.getIfAvailable();
+        if (guard != null) {
+            // organization security policy (second factor, idle and absolute session limits) on every staff call
+            http.addFilterAfter(new StaffSessionPolicyFilter(guard, problems), BearerTokenAuthenticationFilter.class);
+        }
         ApiKeyAuthenticator keys = apiKeys.getIfAvailable();
         if (keys != null) {
             // API clients (read-only machine credentials): after the failed-authentication limiter, before bearer tokens
