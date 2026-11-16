@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createApiClient, unwrap } from "./client";
+import { createApiClient, REAUTHENTICATION_CODES, unwrap } from "./client";
 import { ApiError } from "./errors";
 
 function json(status: number, body: unknown, type = "application/json") {
@@ -25,6 +25,23 @@ describe("api client", () => {
     });
     await expect(api.GET("/api/v1/me")).rejects.toMatchObject({ status: 401, code: "unauthenticated", traceId: "tr1" });
     expect(onUnauthorized).toHaveBeenCalled();
+  });
+
+  it("signals the security-policy refusals with their reason", async () => {
+    const onUnauthorized = vi.fn();
+    const respond = (status: number, code: string) => createApiClient({
+      baseUrl: "http://api", getAccessToken: () => "t", onUnauthorized,
+      fetch: (async () => json(status, { code, detail: "x" }, "application/problem+json")) as unknown as typeof fetch,
+    });
+    await expect(respond(403, "mfa_required").GET("/api/v1/me")).rejects.toMatchObject({ status: 403, code: "mfa_required" });
+    expect(onUnauthorized).toHaveBeenLastCalledWith(expect.objectContaining({ code: "mfa_required" }));
+    await expect(respond(401, "session_idle_timeout").GET("/api/v1/me")).rejects.toMatchObject({ code: "session_idle_timeout" });
+    expect(onUnauthorized).toHaveBeenLastCalledWith(expect.objectContaining({ code: "session_idle_timeout" }));
+    expect(REAUTHENTICATION_CODES.has("session_expired")).toBe(true);
+    // an ordinary permission refusal is not a sign-in problem
+    onUnauthorized.mockClear();
+    await expect(respond(403, "forbidden").GET("/api/v1/me")).rejects.toMatchObject({ status: 403 });
+    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
   it("maps network failures", async () => {

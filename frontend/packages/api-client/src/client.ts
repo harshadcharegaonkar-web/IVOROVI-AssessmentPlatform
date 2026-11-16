@@ -6,12 +6,18 @@ export interface ApiClientOptions {
   baseUrl: string;
   /** Returns the current access token (kept in memory by the auth layer). */
   getAccessToken: () => string | undefined | Promise<string | undefined>;
-  /** Called on 401 so the app can start a new sign-in. */
-  onUnauthorized?: () => void;
+  /**
+   * Called on 401, and on 403 {@code mfa_required}, so the app can start a new sign-in. The error carries the reason: the
+   * organization's security policy codes ({@link REAUTHENTICATION_CODES}) need a fresh login, not a silent token renewal.
+   */
+  onUnauthorized?: (error: ApiError) => void;
   fetch?: typeof fetch;
 }
 
 export type IvoroviApi = ReturnType<typeof createApiClient>;
+
+/** Refusals by the organization security policy: the identity provider's session must be replaced by a new sign-in. */
+export const REAUTHENTICATION_CODES: ReadonlySet<string> = new Set(["mfa_required", "session_idle_timeout", "session_expired", "session_untracked"]);
 
 export function createApiClient(options: ApiClientOptions) {
   const client = createClient<paths>({ baseUrl: options.baseUrl, ...(options.fetch ? { fetch: options.fetch } : {}) });
@@ -22,9 +28,10 @@ export function createApiClient(options: ApiClientOptions) {
       return request;
     },
     async onResponse({ response }) {
-      if (response.status === 401) options.onUnauthorized?.();
-      if (!response.ok) throw await toApiError(response);
-      return response;
+      if (response.ok) return response;
+      const error = await toApiError(response);
+      if (response.status === 401 || (response.status === 403 && error.code === "mfa_required")) options.onUnauthorized?.(error);
+      throw error;
     },
     onError({ error }) {
       if (error instanceof ApiError) return error;

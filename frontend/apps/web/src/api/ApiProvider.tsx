@@ -1,4 +1,4 @@
-import { ApiError, createApiClient, type IvoroviApi } from "@ivorovi/api-client";
+import { ApiError, createApiClient, REAUTHENTICATION_CODES, type IvoroviApi } from "@ivorovi/api-client";
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { UserManager } from "oidc-client-ts";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
@@ -14,7 +14,12 @@ export function ApiProvider({ baseUrl, userManager, children }: { baseUrl: strin
   const api = useMemo(() => createApiClient({
     baseUrl,
     getAccessToken: async () => (await userManager.getUser())?.access_token,
-    onUnauthorized: () => void userManager.signinRedirect({ state: { returnTo: window.location.pathname } }),
+    // The organization's security policy (second factor, session limits) ended this session at the identity provider's
+    // level: a silent renewal would return the same session, so force a new sign-in (prompt=login).
+    onUnauthorized: (error) => void userManager.signinRedirect({
+      state: { returnTo: window.location.pathname },
+      ...(REAUTHENTICATION_CODES.has(error.code) ? { prompt: "login" } : {}),
+    }),
   }), [baseUrl, userManager]);
 
   const queryClient = useMemo(() => new QueryClient({
