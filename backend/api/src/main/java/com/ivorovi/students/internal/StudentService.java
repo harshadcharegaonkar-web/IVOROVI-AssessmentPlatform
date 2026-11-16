@@ -170,6 +170,38 @@ public class StudentService {
         return new Page<>(items, total);
     }
 
+    /**
+     * Summaries of the given students and/or of the students currently enrolled in the given batches, limited to those
+     * the caller may read (student.read down the tree). Used by the public {@code StudentDirectory}; at most 5,000 rows.
+     */
+    @Transactional(readOnly = true)
+    public List<Summary> directory(java.util.Collection<UUID> ids, java.util.Collection<UUID> batchIds) {
+        boolean byIds = ids != null && !ids.isEmpty(), byBatches = batchIds != null && !batchIds.isEmpty();
+        if (!byIds && !byBatches) return List.of();
+        List<Object> params = new ArrayList<>();
+        StringBuilder where = new StringBuilder(" WHERE (");
+        if (byIds) { where.append("s.id = ANY (?)"); params.add(ids.toArray(UUID[]::new)); }
+        if (byIds && byBatches) where.append(" OR ");
+        if (byBatches) { where.append("e.batch_id = ANY (?)"); params.add(batchIds.toArray(UUID[]::new)); }
+        where.append(")");
+        if (!access.appendVisibility("su.path", where, params)) return List.of();
+        return jdbc.sql(SELECT + where + " ORDER BY s.student_no, s.id LIMIT 5000").params(params).query(StudentService::mapSummary).list();
+    }
+
+    /** Institutional e-mail addresses of readable students (not personal contact data). */
+    @Transactional(readOnly = true)
+    public Map<UUID, String> institutionalEmails(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+        List<Object> params = new ArrayList<>();
+        params.add(ids.toArray(UUID[]::new));
+        StringBuilder where = new StringBuilder(" WHERE s.id = ANY (?) AND s.institutional_email IS NOT NULL");
+        if (!access.appendVisibility("su.path", where, params)) return Map.of();
+        Map<UUID, String> out = new java.util.LinkedHashMap<>();
+        jdbc.sql("SELECT s.id, s.institutional_email FROM student s JOIN org_unit su ON su.id = s.scope_unit_id" + where).params(params)
+                .query((rs, n) -> out.put(rs.getObject(1, UUID.class), rs.getString(2))).list();
+        return out;
+    }
+
     static Summary mapSummary(ResultSet rs, int n) throws SQLException {
         String first = rs.getString("first_name"), middle = rs.getString("middle_name"), last = rs.getString("last_name");
         return new Summary(rs.getObject("id", UUID.class), rs.getString("student_no"), rs.getString("registration_no"), rs.getString("roll_no"),

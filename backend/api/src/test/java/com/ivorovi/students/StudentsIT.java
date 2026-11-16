@@ -2,6 +2,7 @@ package com.ivorovi.students;
 
 import static com.ivorovi.support.Fixture.BELA_ORG_ADMIN_B;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -536,6 +537,106 @@ class StudentsIT extends IntegrationTest {
             assertThat(DocumentService.uploadsAllowed(Environment.STAGING, false)).isFalse();
             assertThat(DocumentService.uploadsAllowed(Environment.PRODUCTION, true)).isTrue();
             assertThat(DocumentService.uploadsAllowed(Environment.DEVELOPMENT, false)).isTrue();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------------------ module APIs (demo programme S-2)
+
+    @Autowired com.ivorovi.students.StudentAdmissions studentAdmissions;
+    @Autowired com.ivorovi.students.StudentDirectory directory;
+    @Autowired com.ivorovi.platform.security.PrincipalResolver principals;
+
+    private <T> T asUser(Fixture.Caller who, Callable<T> work) {
+        return TenantContext.callInTenant(tenant, () -> {
+            var principal = principals.resolve(tenant, who.subject()).orElseThrow();
+            org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    .setAuthentication(new com.ivorovi.platform.security.IvoroviAuthentication(principal, null));
+            try {
+                return work.call();
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            } finally {
+                org.springframework.security.core.context.SecurityContextHolder.clearContext();
+            }
+        });
+    }
+
+    private com.ivorovi.students.StudentAdmissions.Conversion conversion(UUID application, UUID batch) {
+        return new com.ivorovi.students.StudentAdmissions.Conversion(application, collegeA, "S-" + application.toString().substring(0, 8),
+                "APP-" + application.toString().substring(0, 8), LocalDate.now(),
+                "REGULAR", null, y1, btech, courseCse, batch, "Meera", null, "Iyer",
+                new com.ivorovi.students.StudentAdmissions.Personal(LocalDate.of(2006, 1, 2), com.ivorovi.students.StudentAdmissions.Gender.FEMALE, "Indian",
+                        "meera.applicant@example.test", "+91 90000 00001", "1 Test Street"));
+    }
+
+    @Nested
+    class ModuleApisForAdmissionsAndPlacement {
+
+        @Test
+        void conversionCreatesAdmittedEnrolledStudentOnceAndIsIdempotent() {
+            UUID application = UUID.randomUUID();
+            var first = asUser(officerA, () -> studentAdmissions.convert(conversion(application, batchCseB)));
+            assertThat(first.created()).isTrue();
+            assertThat(first.enrolmentId()).isNotNull();
+            assertThat(ownerJdbc().sql("SELECT status FROM student WHERE id = ?").param(first.studentId()).query(String.class).single()).isEqualTo("ENROLLED");
+            assertThat(ownerJdbc().sql("SELECT status FROM admission_record WHERE id = ?").param(first.admissionId()).query(String.class).single()).isEqualTo("CONFIRMED");
+            assertThat(ownerJdbc().sql("SELECT date_of_birth_enc FROM student WHERE id = ?").param(first.studentId()).query(String.class).single())
+                    .isNotNull().doesNotContain("2006");
+
+            var again = asUser(officerA, () -> studentAdmissions.convert(conversion(application, batchCseB)));
+            assertThat(again.created()).isFalse();
+            assertThat(again.studentId()).isEqualTo(first.studentId());
+            assertThat(again.enrolmentId()).isEqualTo(first.enrolmentId());
+            assertThat(ownerJdbc().sql("SELECT count(*) FROM admission_record WHERE tenant_id = ? AND source_application_id = ?").params(tenant, application)
+                    .query(Long.class).single()).isEqualTo(1);
+        }
+
+        @Test
+        void concurrentConversionsOfOneApplicationCreateOneStudent() throws Exception {
+            UUID application = UUID.randomUUID();
+            int[] created = concurrently(() -> asUser(officerA, () -> studentAdmissions.convert(conversion(application, null)).created() ? 1 : 0),
+                    () -> asUser(officerA, () -> studentAdmissions.convert(conversion(application, null)).created() ? 1 : 0));
+            assertThat(created[0] + created[1]).isEqualTo(1);
+            assertThat(ownerJdbc().sql("SELECT count(*) FROM admission_record WHERE tenant_id = ? AND source_application_id = ?").params(tenant, application)
+                    .query(Long.class).single()).isEqualTo(1);
+        }
+
+        @Test
+        void conversionKeepsStudentChecks() {
+            // faculty may not manage students; another college's admin is outside the scope; batch capacity is enforced
+            assertThatThrownBy(() -> asUser(facultyCse, () -> studentAdmissions.convert(conversion(UUID.randomUUID(), null))))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            assertThatThrownBy(() -> asUser(collegeAdminB, () -> studentAdmissions.convert(conversion(UUID.randomUUID(), null))))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            asUser(officerA, () -> studentAdmissions.convert(conversion(UUID.randomUUID(), batchCseA)));
+            asUser(officerA, () -> studentAdmissions.convert(conversion(UUID.randomUUID(), batchCseA)));
+            UUID third = UUID.randomUUID();
+            assertThatThrownBy(() -> asUser(officerA, () -> studentAdmissions.convert(conversion(third, batchCseA))))
+                    .isInstanceOf(com.ivorovi.platform.web.ApiException.class);
+            // the failed conversion left nothing behind
+            assertThat(ownerJdbc().sql("SELECT count(*) FROM admission_record WHERE tenant_id = ? AND source_application_id = ?").params(tenant, third)
+                    .query(Long.class).single()).isZero();
+        }
+
+        @Test
+        void directoryIsScopedAndCarriesNoPersonalData() throws Exception {
+            UUID cseStudent = activeStudent("S-100");
+            UUID phy = id(createStudent(admin, collegeB, "P-1", "Ravi"));
+            ownerJdbc().sql("UPDATE student SET institutional_email = 'ravi@bcc.test' WHERE id = ?").param(phy).update();
+            ownerJdbc().sql("UPDATE student SET institutional_email = 'asha@ait.test' WHERE id = ?").param(cseStudent).update();
+
+            var byBatch = asUser(headCse, () -> directory.find(null, List.of(batchCseB)));
+            assertThat(byBatch).extracting(com.ivorovi.students.StudentDirectory.Student::id).containsExactly(cseStudent);
+            assertThat(byBatch.getFirst().batchId()).isEqualTo(batchCseB);
+            // a CSE head does not see the other college's student, even by id
+            assertThat(asUser(headCse, () -> directory.find(List.of(cseStudent, phy), null))).extracting(com.ivorovi.students.StudentDirectory.Student::id)
+                    .containsExactly(cseStudent);
+            assertThat(asUser(headCse, () -> directory.institutionalEmails(List.of(cseStudent, phy)))).containsOnlyKeys(cseStudent);
+            assertThat(asUser(admin, () -> directory.find(List.of(cseStudent, phy), null))).hasSize(2);
+            assertThat(com.ivorovi.students.StudentDirectory.Student.class.getRecordComponents()).extracting(java.lang.reflect.RecordComponent::getName)
+                    .doesNotContain("dateOfBirth", "personalEmail", "mobile", "category", "gender");
         }
     }
 
