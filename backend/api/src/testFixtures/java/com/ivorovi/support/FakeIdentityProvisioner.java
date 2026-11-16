@@ -40,6 +40,21 @@ public class FakeIdentityProvisioner implements IdentityProvisioner {
         if (u != null) byId.put(subject, new IdpUser(u.id(), u.email(), enabled, u.tenantId()));
     }
 
+    /** Subjects the services asked to enrol an authenticator (organization MFA policy), with the number of requests. */
+    public final Map<String, Integer> authenticatorSetupRequests = new ConcurrentHashMap<>();
+
+    @Override
+    public void requireAuthenticatorSetup(String subject) {
+        check();
+        authenticatorSetupRequests.merge(subject, 1, Integer::sum);
+    }
+
+    /** The development realm's policy (deploy/compose/keycloak/realm-ivorovi.json). */
+    @Override
+    public Optional<String> passwordPolicy() {
+        return Optional.of("length(12) and notUsername");
+    }
+
     public void addExisting(String subject, String email, UUID tenantId) {
         byId.put(subject, new IdpUser(subject, email, true, tenantId));
     }

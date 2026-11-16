@@ -20,7 +20,8 @@ import org.springframework.web.client.RestClientResponseException;
 /**
  * Keycloak admin REST API through the confidential client {@code ivorovi-provisioner} (client-credentials grant;
  * the service account holds only realm-management {@code manage-users}, {@code view-users} and
- * {@code query-users}, D-P1-04). Passwords are passed through once and never logged or stored by Ivorovi.
+ * {@code query-users}, D-P1-04; optionally {@code view-realm}, only to display the realm's password policy read-only).
+ * Passwords are passed through once and never logged or stored by Ivorovi.
  */
 @Component
 class KeycloakIdentityProvisioner implements IdentityProvisioner {
@@ -81,6 +82,33 @@ class KeycloakIdentityProvisioner implements IdentityProvisioner {
         if (!enabled) {
             call(() -> http.post().uri("/admin/realms/{realm}/users/{id}/logout", cfg.realm(), subject)
                     .headers(h -> h.setBearerAuth(accessToken())).retrieve().toBodilessEntity());
+        }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void requireAuthenticatorSetup(String subject) {
+        Map<String, Object> user = call(() -> http.get().uri("/admin/realms/{realm}/users/{id}", cfg.realm(), subject)
+                .headers(h -> h.setBearerAuth(accessToken())).retrieve().body(Map.class));
+        List<String> actions = new java.util.ArrayList<>(user == null || user.get("requiredActions") == null ? List.of() : (List<String>) user.get("requiredActions"));
+        if (actions.contains("CONFIGURE_TOTP")) return;
+        actions.add("CONFIGURE_TOTP");
+        call(() -> http.put().uri("/admin/realms/{realm}/users/{id}", cfg.realm(), subject)
+                .headers(h -> h.setBearerAuth(accessToken())).contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("requiredActions", actions)).retrieve().toBodilessEntity());
+    }
+
+    /** Needs realm-management {@code view-realm} for the provisioner; without it the policy is simply not disclosed. */
+    @Override
+    @SuppressWarnings("unchecked")
+    public Optional<String> passwordPolicy() {
+        try {
+            Map<String, Object> realm = http.get().uri("/admin/realms/{realm}", cfg.realm()).headers(h -> h.setBearerAuth(accessToken()))
+                    .retrieve().body(Map.class);
+            Object p = realm == null ? null : realm.get("passwordPolicy");
+            return p == null || String.valueOf(p).isBlank() ? Optional.empty() : Optional.of(String.valueOf(p));
+        } catch (RestClientException e) {
+            return Optional.empty();
         }
     }
 
