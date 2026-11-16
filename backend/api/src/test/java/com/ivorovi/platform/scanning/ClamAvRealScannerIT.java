@@ -6,7 +6,6 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.junit.jupiter.api.AfterAll;
@@ -26,7 +25,7 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>The alert settings matter: with ClamAV's defaults an encrypted archive is reported OK, because clamd cannot look inside
  * it (verified with the same image). With {@code AlertEncrypted*} it is reported as found ({@code Heuristics.Encrypted.*}),
- * i.e. INFECTED, never CLEAN. {@code AlertExceedsMax} does not cover an archive entry larger than MaxFileSize (QA-DP-1).
+ * i.e. INFECTED, never CLEAN. {@code AlertExceedsMax} does not cover an archive entry larger than MaxFileSize (QA-DP-1, fixed in the adapter).
  */
 @Tag("clamav")
 class ClamAvRealScannerIT {
@@ -94,7 +93,7 @@ class ClamAvRealScannerIT {
 
     @Test
     void anEncryptedArchiveIsNeverClean() throws Exception {
-        MalwareScanner.Result r = scanner.scan(ZipCrypto.storedEncrypted("certificate.txt", EICAR.getBytes(StandardCharsets.US_ASCII), "synthetic-pass"));
+        MalwareScanner.Result r = scanner.scan(TestZips.storedEncrypted("certificate.txt", EICAR.getBytes(StandardCharsets.US_ASCII), "synthetic-pass"));
         assertThat(r.verdict()).as("an archive clamd cannot open (%s)", r.detail()).isEqualTo(MalwareScanner.Verdict.INFECTED);
         assertThat(r.detail()).containsIgnoringCase("encrypted");
     }
@@ -119,15 +118,16 @@ class ClamAvRealScannerIT {
      * answers OK, also with AlertExceedsMax (verified with clamd and clamscan 1.4.6, debug: "trimming output size to
      * maxfilesize"). Content after the limit is never scanned, yet the adapter reports CLEAN: a partial scan counts as clean,
      * contrary to D-19. A 5 MB upload can hold such an entry (21 MB of padding deflates to about 21 KB); XLSX imports are zip
-     * archives. Verified failing 2026-11-16.
+     * archives. Found 2026-11-16; fixed by {@link ArchiveLimits}: such a container is ERROR without asking clamd.
      */
-    @org.junit.jupiter.api.Disabled("QA-DP-1: fails until a partially scanned file can no longer be reported clean — enable with the fix")
     @Test
     void contentBeyondTheScanLimitIsNeverReportedClean() throws Exception {
         byte[] archive = zip("report.bin", padded(21 * 1024 * 1024));    // marker after 21 MB; MaxFileSize 20M
         assertThat(archive.length).isLessThan(100 * 1024);
         MalwareScanner.Result r = scanner.scan(archive);
         assertThat(r.verdict()).as("an archive entry scanned only in part (%s)", r.detail()).isNotEqualTo(MalwareScanner.Verdict.CLEAN);
+        assertThat(r.verdict()).isEqualTo(MalwareScanner.Verdict.ERROR);
+        assertThat(r.detail()).contains("not scanned completely");
     }
 
     @Test
@@ -142,70 +142,5 @@ class ClamAvRealScannerIT {
         ClamAvScanner gone = new ClamAvScanner(clamd.getHost(), 1, Duration.ofSeconds(2));
         assertThat(gone.scan(EICAR.getBytes(StandardCharsets.US_ASCII)).verdict()).isEqualTo(MalwareScanner.Verdict.ERROR);
         assertThat(gone.scan("clean".getBytes(StandardCharsets.UTF_8)).verdict()).isEqualTo(MalwareScanner.Verdict.ERROR);
-    }
-
-    /** Traditional PKWARE (ZipCrypto) encryption of one stored entry: enough to build an encrypted archive without a library. */
-    static final class ZipCrypto {
-        private int k0 = 0x12345678, k1 = 0x23456789, k2 = 0x34567890;
-        private static final int[] CRC_TABLE = new int[256];
-
-        static {
-            for (int n = 0; n < 256; n++) {
-                int c = n;
-                for (int k = 0; k < 8; k++) c = (c & 1) != 0 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-                CRC_TABLE[n] = c;
-            }
-        }
-
-        private static int crc(int crc, int b) {
-            return (crc >>> 8) ^ CRC_TABLE[(crc ^ b) & 0xff];
-        }
-
-        private void update(int b) {
-            k0 = crc(k0, b);
-            k1 = (k1 + (k0 & 0xff)) * 134775813 + 1;
-            k2 = crc(k2, k1 >>> 24);
-        }
-
-        private int encrypt(int b) {
-            int t = (k2 | 2) & 0xffff;
-            int c = b ^ (((t * (t ^ 1)) >>> 8) & 0xff);
-            update(b);
-            return c;
-        }
-
-        static byte[] storedEncrypted(String name, byte[] data, String password) {
-            CRC32 crc32 = new CRC32();
-            crc32.update(data);
-            long crc = crc32.getValue();
-            ZipCrypto z = new ZipCrypto();
-            for (byte b : password.getBytes(StandardCharsets.UTF_8)) z.update(b & 0xff);
-            byte[] header = new byte[12];
-            new SecureRandom().nextBytes(header);
-            header[11] = (byte) (crc >>> 24);
-            ByteArrayOutputStream payload = new ByteArrayOutputStream();
-            for (byte b : header) payload.write(z.encrypt(b & 0xff));
-            for (byte b : data) payload.write(z.encrypt(b & 0xff));
-            byte[] enc = payload.toByteArray();
-            byte[] n = name.getBytes(StandardCharsets.UTF_8);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            // local file header: version 20, flag 1 (encrypted), method 0 (stored)
-            le(out, 0x04034b50, 4); le(out, 20, 2); le(out, 1, 2); le(out, 0, 2); le(out, 0, 2); le(out, 0, 2);
-            le(out, crc, 4); le(out, enc.length, 4); le(out, data.length, 4); le(out, n.length, 2); le(out, 0, 2);
-            out.writeBytes(n);
-            out.writeBytes(enc);
-            int central = out.size();
-            le(out, 0x02014b50, 4); le(out, 20, 2); le(out, 20, 2); le(out, 1, 2); le(out, 0, 2); le(out, 0, 2); le(out, 0, 2);
-            le(out, crc, 4); le(out, enc.length, 4); le(out, data.length, 4); le(out, n.length, 2); le(out, 0, 2); le(out, 0, 2);
-            le(out, 0, 2); le(out, 0, 2); le(out, 0, 4); le(out, 0, 4);
-            out.writeBytes(n);
-            int centralSize = out.size() - central;
-            le(out, 0x06054b50, 4); le(out, 0, 2); le(out, 0, 2); le(out, 1, 2); le(out, 1, 2); le(out, centralSize, 4); le(out, central, 4); le(out, 0, 2);
-            return out.toByteArray();
-        }
-
-        private static void le(ByteArrayOutputStream out, long v, int bytes) {
-            for (int i = 0; i < bytes; i++) out.write((int) (v >>> (8 * i)) & 0xff);
-        }
     }
 }

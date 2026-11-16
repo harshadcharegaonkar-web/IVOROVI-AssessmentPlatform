@@ -9,8 +9,9 @@
 # 1–2 minutes to load the signatures.
 #
 # Settings (keep identical to ClamAvRealScannerIT.SETTINGS): encrypted archives and documents, which clamd cannot look
-# inside, are reported as found (Heuristics.Encrypted.*) instead of OK; limits as below. Known gap QA-DP-1: an archive
-# entry larger than MaxFileSize is scanned only up to MaxFileSize and answered OK.
+# inside, are reported as found (Heuristics.Encrypted.*) instead of OK; limits as below. clamd scans an archive entry
+# larger than MaxFileSize only up to MaxFileSize and answers OK (QA-DP-1), so the API checks zip containers against the
+# same limits first and reports ERROR when they are exceeded: keep IVOROVI_SCANNING_MAX_* equal to MaxFileSize / MaxScanSize.
 services:
   clamav:
     image: clamav/clamav:1.4@sha256:4cc4350d3fded380caf1799e76c0d1c93f3fa40af99c0cb2862ec0c9b117718a
@@ -38,5 +39,7 @@ services:
     environment:
       IVOROVI_SCANNING_CLAMD_HOST: clamav
       IVOROVI_SCANNING_CLAMD_PORT: "3310"
+      IVOROVI_SCANNING_MAX_FILE_SIZE: 20MB     # = CLAMD_CONF_MaxFileSize
+      IVOROVI_SCANNING_MAX_SCAN_SIZE: 100MB    # = CLAMD_CONF_MaxScanSize
     depends_on:
       clamav: { condition: service_healthy }

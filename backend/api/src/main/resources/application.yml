@@ -172,6 +172,8 @@ ivorovi:
     concurrency: ${IVOROVI_IMPORT_CONCURRENCY:2}
   # Malware scanning (ADR-0006): set IVOROVI_SCANNING_CLAMD_HOST (and _PORT) to enable the ClamAV adapter. Without a
   # scanner, documents stay quarantined; in STAGING/PRODUCTION uploads are refused (fail closed).
+  # ivorovi.scanning.max-file-size / max-scan-size (default 20MB / 100MB) must equal clamd's MaxFileSize / MaxScanSize: a zip
+  # container whose content exceeds them is reported ERROR, because clamd would scan it only in part (QA-DP-1).
   # Integrations, API clients and webhooks (increment 1.7). Outbound calls are SSRF-guarded: HTTPS to public hosts only,
   # unless explicitly relaxed for local development.
   integrations:
