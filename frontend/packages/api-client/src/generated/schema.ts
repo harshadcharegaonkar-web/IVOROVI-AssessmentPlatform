@@ -6567,6 +6567,7 @@ export interface components {
             /** Format: int32 */
             unanswered?: number;
             scoreStatus?: string;
+            awaitingMarks?: boolean;
         };
         ExamResults: {
             /** Format: uuid */
@@ -6575,6 +6576,8 @@ export interface components {
             inProgress?: number;
             /** Format: int32 */
             awaitingScore?: number;
+            /** Format: int32 */
+            awaitingMarks?: number;
             /** Format: int32 */
             provisional?: number;
             /** Format: int32 */
