@@ -56,7 +56,9 @@ public class ApiClientService {
     static final List<String> EXCLUDED = List.of(Permission.AUDIT_READ.key(), Permission.STUDENT_PERSONAL_READ.key(), READ,
             Permission.QUESTION_READ.key(), Permission.QUESTION_KEY_READ.key(),
             // candidate personal data and scores (Day 3): never through API clients until a reviewed integration needs them
-            Permission.EXAM_SCHEDULE_READ.key(), Permission.EXAM_RESULTS_READ.key());
+            Permission.EXAM_SCHEDULE_READ.key(), Permission.EXAM_RESULTS_READ.key(),
+            // proctoring evidence (add-on B): webcam images of candidates never leave through API clients, webhooks or exports
+            Permission.PROCTORING_EVIDENCE_VIEW.key());
 
     @Schema(name = "ApiScope")
     public record Scope(String key, String name, String description, String domain) {}
