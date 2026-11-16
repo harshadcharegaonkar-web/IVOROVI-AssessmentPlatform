@@ -69,6 +69,7 @@ public class AttemptService {
     record Attempt(UUID id, UUID scheduleId, UUID candidateId, UUID sessionId, UUID versionId, UUID paperId, String status, Instant startedAt,
                    Instant deadlineAt, int extraMinutes, Instant submittedAt, String submitKey) {}
 
+    private final List<com.ivorovi.exams.CandidateNotices> notices;
     private final JdbcClient jdbc;
     private final CandidateService candidates;
     private final DeliveryTelemetry telemetry;
@@ -84,7 +85,8 @@ public class AttemptService {
 
     AttemptService(JdbcClient jdbc, CandidateService candidates, List<ExamEligibility> eligibility, PublishedAssessments assessments, AuditLog audit,
                    Outbox outbox, TransactionTemplate tx, JsonMapper json, JobLeases leases, ProcessProperties process, DeliveryTelemetry telemetry,
-                   QuestionMarking marking) {
+                   QuestionMarking marking, List<com.ivorovi.exams.CandidateNotices> notices) {
+        this.notices = notices;
         this.jdbc = jdbc;
         this.marking = marking;
         this.candidates = candidates;
@@ -244,14 +246,16 @@ public class AttemptService {
     // ================================================================================================ submission
 
     /** Attempt heartbeat (KI-92): presence while writing, and the current deadline and status (extension, termination). */
-    public record Pulse(Instant serverTime, Instant deadlineAt, String status, int extendedMinutes) {}
+    public record Pulse(Instant serverTime, Instant deadlineAt, String status, int extendedMinutes, List<com.ivorovi.exams.CandidateNotices.Notice> notices) {}
 
     public Pulse pulse(String portalKey, UUID attemptId) {
         return candidates.runGuarded(() -> {
             Attempt a = mine(portalKey, attemptId);
             if ("IN_PROGRESS".equals(a.status())) telemetry.beat(TenantContext.requireTenantId(), a.candidateId(), a.sessionId(), false, 0);
             int extended = jdbc.sql("SELECT extended_minutes FROM exam_attempt WHERE id = ?").param(attemptId).query(Integer.class).single();
-            return new Pulse(Instant.now(), a.deadlineAt(), a.status(), extended);
+            List<com.ivorovi.exams.CandidateNotices.Notice> notices = new java.util.ArrayList<>();
+            for (com.ivorovi.exams.CandidateNotices n : this.notices) notices.addAll(n.forAttempt(attemptId));
+            return new Pulse(Instant.now(), a.deadlineAt(), a.status(), extended, List.copyOf(notices));
         });
     }
 
