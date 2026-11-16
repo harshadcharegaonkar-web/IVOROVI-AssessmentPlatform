@@ -13,8 +13,8 @@ Day 1 = 2026-11-16 … Day 14 = 2026-11-29.
 | **A** (`session_019xkx8phRJetHCNvzFyn4sN`) | Technical lead; Examination | Architecture, shared API contracts, integration decisions, **final merge approval**. Packages `questions`, `assessments`, `scheduling`, `exams` (existing) | Mandatory D (descriptive type), F (admit card), G (manual evaluation, rubrics, double marking, moderation, re-evaluation, ranks, scorecard), H (assessment and result analytics, result notifications) |
 | **2** (`session_019xkx8r4b4D93yeXL9o3MAC`) | Core platform, enterprise, coding | Existing `tenancy`, `identity`, `academics`, `students`, `features`, `platform` (shared: changes reviewed by A); new `platformadmin`, `coding`, plus the separate code-runner service | Mandatory A, B, C, I gaps; add-on I (tenant provisioning, branding, access administration, monitoring, backup and recovery, deployment configuration); add-on D (coding: runner per ADR-0004, editor, test cases, verdicts) |
 | **3** (`session_019xkx8oYw3Yct98ZXZJrXg3`) | Integrations, demo data, QA, deployment | Existing `integrations`; new `sso`, `lti`; `scripts/demo/`, the demo environment, the SBOM | Add-on H (SSO brokering, LTI 1.3 with Moodle, webhook and API workflows); the interconnected demo dataset for all 18 modules; demo environment and reset; QA and security regression evidence; demo script |
-| **4** (new) | AI, proctoring, advanced assessment | New `ai`, `proctoring`; inside `questions`, `assessments` and the exam app **only** for new question types and sections, through contracts agreed with A | Add-ons A, B, C |
-| **5** (new) | Admission, analytics, placement | New `admissions`, `analytics`, `placement` | Add-ons E, F, G |
+| **4** (`session_019xkx8oyrjLRCCT4aocNykc`) | AI, proctoring, advanced assessment | New `ai`, `proctoring`; inside `questions`, `assessments` and the exam app **only** for new question types and sections, through contracts agreed with A | Add-ons A, B, C |
+| **5** (`session_019xkx8oNt3TtuiwC4LhQAhN`) | Admission, analytics, placement | New `admissions`, `analytics`, `placement` | Add-ons E, F, G |
 
 ## Rules (no duplicates, no conflicts)
 
