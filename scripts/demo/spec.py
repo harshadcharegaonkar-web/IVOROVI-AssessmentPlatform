@@ -35,6 +35,11 @@ PERSONAS = {  # key: (email, given, family, role code, scope unit or None for th
     "principal": ("demo.principal@meridian.test", "Prakash", "Nair", "INSTITUTION_ADMIN", U(0xd101)),
     "hod": ("demo.hod@meridian.test", "Harini", "Subramanian", "DEPARTMENT_HEAD", U(0xd121)),
     "faculty": ("demo.faculty@meridian.test", "Farhan", "Qureshi", "FACULTY", U(0xd121)),
+    # examination (step 11): the first controller is the organization's bootstrap holder; the others are invited
+    "controller": ("demo.controller@meridian.test", "Chitra", "Raman", "EXAM_CONTROLLER", U(0xd101)),
+    "controller2": ("demo.controller2@meridian.test", "Imran", "Sheikh", "EXAM_CONTROLLER", U(0xd101)),
+    "designer": ("demo.designer@meridian.test", "Deepa", "Krishnan", "ASSESSMENT_DESIGNER", U(0xd101)),
+    "proctor": ("demo.invigilator@meridian.test", "Paul", "D'Souza", "EXAM_PROCTOR", U(0xd101)),
 }
 
 

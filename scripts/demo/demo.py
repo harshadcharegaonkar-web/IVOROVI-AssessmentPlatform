@@ -66,12 +66,15 @@ def context(fresh):
     return ctx
 
 
-def run(phase, steps, ctx):
-    """Runs one phase over all steps; returns {step: (status, detail)}. A failed or skipped step skips its dependants."""
+def run(phase, steps, ctx, before=None):
+    """Runs one phase over all steps; returns {step: (status, detail)}. A failed or skipped step skips its dependants, and
+    a step whose earlier phase (``before``: the seed results) did not succeed is skipped in this phase too."""
     results = {}
     for m in steps:
         blocked = [n for n in m.NEEDS if results.get(n, ("OK",))[0] != "OK"]
-        if blocked:
+        if before is not None and before.get(m.ID, ("OK",))[0] != "OK":
+            results[m.ID] = ("SKIPPED", "seed " + before[m.ID][0].lower())
+        elif blocked:
             results[m.ID] = ("SKIPPED", "needs " + ", ".join(blocked))
         elif not hasattr(m, phase):
             results[m.ID] = ("OK", f"no {phase}()")
@@ -87,6 +90,8 @@ def run(phase, steps, ctx):
                 results[m.ID] = ("FAILED", f"{type(e).__name__}: {e}\n{traceback.format_exc(limit=3)}")
         status, detail = results[m.ID]
         print(f"  {status:8} {phase:6} {m.ID:28} {m.OWNER:4} {str(detail).splitlines()[0] if detail else ''}")
+        if status == "FAILED" and "\n" in str(detail):
+            print("           " + "\n           ".join(str(detail).splitlines()[1:]))
     return results
 
 
@@ -120,8 +125,8 @@ def main():
     if cmd == "live":
         return report(run("live", steps, ctx), "live")
     seeded = run("seed", steps, ctx)
-    live = run("live", steps, ctx)
-    verified = run("verify", steps, ctx)
+    live = run("live", steps, ctx, before=seeded)
+    verified = run("verify", steps, ctx, before=seeded)
     return max(report(seeded, "seed"), report(live, "live"), report(verified, "verify"))
 
 
