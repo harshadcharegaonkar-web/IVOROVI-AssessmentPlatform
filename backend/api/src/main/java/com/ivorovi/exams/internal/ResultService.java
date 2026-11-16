@@ -43,14 +43,16 @@ public class ResultService implements ApprovalHandler {
 
     @Schema(name = "ExamResultRow")
     public record Row(UUID attemptId, UUID candidateId, String candidateName, String candidateEmail, String attemptStatus, Instant startedAt, Instant submittedAt,
-                      BigDecimal awarded, BigDecimal maxMarks, Integer correct, Integer incorrect, Integer unanswered, String scoreStatus) {}
+                      BigDecimal awarded, BigDecimal maxMarks, Integer correct, Integer incorrect, Integer unanswered, String scoreStatus,
+                      boolean awaitingMarks) {}
 
     @Schema(name = "ExamResultReview")
     public record Review(UUID id, String status, String reviewerName, String approverName, int attempts, String comment, UUID approvalId, Instant createdAt,
                          Instant decidedAt) {}
 
     @Schema(name = "ExamResults")
-    public record Results(UUID scheduleId, int inProgress, int awaitingScore, int provisional, int released, List<Row> rows, List<Review> reviews,
+    /** {@code awaitingMarks}: submitted attempts whose descriptive or coding answers still wait for evaluators or the executor (C-1). */
+    public record Results(UUID scheduleId, int inProgress, int awaitingScore, int awaitingMarks, int provisional, int released, List<Row> rows, List<Review> reviews,
                           boolean canReview) {}
 
     @Schema(name = "CandidateResult")
@@ -96,15 +98,18 @@ public class ResultService implements ApprovalHandler {
         UUID tenant = TenantContext.requireTenantId();
         List<Row> rows = jdbc.sql("""
                 SELECT a.id, a.candidate_id, c.display_name, c.email_enc, a.status, a.started_at, a.submitted_at,
-                       sc.awarded, sc.max_marks, sc.correct, sc.incorrect, sc.unanswered, sc.status AS score_status
+                       sc.awarded, sc.max_marks, sc.correct, sc.incorrect, sc.unanswered, sc.status AS score_status,
+                       (d.attempt_id IS NOT NULL AND sc.attempt_id IS NULL) AS awaiting_marks
                 FROM exam_attempt a JOIN candidate_account c ON c.id = a.candidate_id LEFT JOIN exam_score sc ON sc.attempt_id = a.id
+                LEFT JOIN exam_attempt_deferred d ON d.attempt_id = a.id
                 WHERE a.schedule_id = ? ORDER BY c.display_name NULLS LAST, a.started_at""").param(scheduleId)
                 .query((rs, n) -> new Row(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getString(3),
                         cipher.decrypt(rs.getString(4), ExamAdminService.EMAIL_FIELD, tenant), rs.getString(5), ts(rs, "started_at"), ts(rs, "submitted_at"),
                         rs.getBigDecimal(8), rs.getBigDecimal(9), (Integer) rs.getObject(10), (Integer) rs.getObject(11), (Integer) rs.getObject(12),
-                        rs.getString(13))).list();
+                        rs.getString(13), rs.getBoolean(14))).list();
         int inProgress = (int) rows.stream().filter(r -> "IN_PROGRESS".equals(r.attemptStatus())).count();
-        int awaiting = (int) rows.stream().filter(r -> !"IN_PROGRESS".equals(r.attemptStatus()) && r.scoreStatus() == null).count();
+        int awaitingMarks = (int) rows.stream().filter(Row::awaitingMarks).count();
+        int awaiting = (int) rows.stream().filter(r -> !"IN_PROGRESS".equals(r.attemptStatus()) && r.scoreStatus() == null && !r.awaitingMarks()).count();
         int provisional = (int) rows.stream().filter(r -> "PROVISIONAL".equals(r.scoreStatus())).count();
         int released = (int) rows.stream().filter(r -> "RELEASED".equals(r.scoreStatus())).count();
         List<Review> reviews = jdbc.sql("""
@@ -115,7 +120,7 @@ public class ResultService implements ApprovalHandler {
                         rs.getObject(7, UUID.class), ts(rs, "created_at"), ts(rs, "decided_at"))).list();
         boolean pending = reviews.stream().anyMatch(r -> "PENDING_APPROVAL".equals(r.status()));
         boolean canReview = provisional > 0 && !pending && authz.hasInOrgUnit(REVIEW, s.orgUnitId());
-        return new Results(scheduleId, inProgress, awaiting, provisional, released, rows, reviews, canReview);
+        return new Results(scheduleId, inProgress, awaiting, awaitingMarks, provisional, released, rows, reviews, canReview);
     }
 
     // ================================================================================================ review → approval

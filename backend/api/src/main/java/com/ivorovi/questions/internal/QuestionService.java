@@ -699,9 +699,11 @@ public class QuestionService {
     @Transactional
     public List<MarkingResult> markingPreview(UUID questionId, int versionNo, List<Object> responses) {
         Version v = versionOf(questionId, versionNo);
+        QuestionType t = type(v.type());
+        if (t.markingMode() != QuestionType.MarkingMode.AUTOMATIC)
+            throw ApiException.conflict("not_automatically_marked", "This question type is marked by people or an executor, not automatically.");
         Optional<AnswerKeyStore.Plain> key = keys.read(v.id(), AnswerKeyStore.Purpose.MARKING_PREVIEW);
         if (key.isEmpty()) throw ApiException.conflict("answer_key_missing", "This version has no answer key.");
-        QuestionType t = type(v.type());
         List<MarkingResult> out = new ArrayList<>();
         for (Object r : responses == null ? List.of() : responses.subList(0, Math.min(responses.size(), 50))) {
             QuestionType.Grade g = t.mark(v.body(), key.get().key(), v.marking(), v.marks(), v.negativeMarks(), r);

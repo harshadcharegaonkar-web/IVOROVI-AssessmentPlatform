@@ -10,6 +10,7 @@ import { Content, TYPE_LABEL } from "./QuestionShared";
 
 type ImageBlock = Extract<Block, { type: "image" }>;
 interface Option { id: string; source: string }
+interface Criterion { title: string; description: string; weight: string }
 const LETTERS = "ABCDEFGHIJ";
 
 /** Problems in the formulas of a source text (same rules as the server). */
@@ -73,6 +74,11 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
   const partial = answerKey?.partial as { tolerance?: { value?: string }; percent?: number } | undefined;
   const [partialTol, setPartialTol] = useState(partial?.tolerance?.value ?? "");
   const [partialPct, setPartialPct] = useState(String(partial?.percent ?? 50));
+  const [maxWords, setMaxWords] = useState(String(body.maxWords ?? 500));
+  const [modelAnswer, setModelAnswer] = useState(String(answerKey?.modelAnswer ?? ""));
+  const [rubric, setRubric] = useState<Criterion[]>((((version?.marking as Record<string, unknown> | undefined)?.rubric ?? []) as
+    { title: string; description?: string; weight: number }[]).map((c) => ({ title: c.title, description: c.description ?? "", weight: String(c.weight) })));
+  const rubricTotal = rubric.reduce((t, c) => t + (Number(c.weight) || 0), 0);
   const [mode, setMode] = useState(String((version?.marking as Record<string, unknown> | undefined)?.mode ?? "ALL_OR_NOTHING"));
   const [marks, setMarks] = useState(String(version?.marks ?? "1"));
   const [negative, setNegative] = useState(String(version?.negativeMarks ?? "0"));
@@ -100,7 +106,11 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
       k = type === "SINGLE_CHOICE" ? { correct: correct[0] ?? "" } : { correct };
       if (type === "MULTIPLE_CHOICE") m = { mode };
     } else if (type === "TRUE_FALSE") k = { value: tf === "true" };
-    else if (type === "SHORT_ANSWER") k = { answers: answers.split("\n").map((t) => t.trim()).filter(Boolean).map((text) => ({ text })), match };
+    else if (type === "DESCRIPTIVE") {
+      b = { maxWords: Number(maxWords) };
+      k = modelAnswer.trim() ? { modelAnswer: modelAnswer.trim() } : {};
+      if (rubric.length) m = { rubric: rubric.map((c) => ({ title: c.title.trim(), ...(c.description.trim() ? { description: c.description.trim() } : {}), weight: Number(c.weight) })) };
+    } else if (type === "SHORT_ANSWER") k = { answers: answers.split("\n").map((t) => t.trim()).filter(Boolean).map((text) => ({ text })), match };
     else {
       b = { precision: Number(precision), ...(unit.trim() ? { unit: unit.trim() } : {}) };
       k = { value, tolerance: { type: tolType, value: tolValue || "0" }, rounding,
@@ -181,6 +191,31 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
                 <Field label="Matching">{(p) => <Select {...p} value={match} onChange={(e) => setMatch(e.target.value)}><option value="NORMALIZED">Ignore case, spacing and accents</option>
                   <option value="CASE_INSENSITIVE">Ignore case</option><option value="EXACT">Exact</option></Select>}</Field>
               </>}
+              {type === "DESCRIPTIVE" && <>
+                <Field label="Word limit" hint="10–2,500 words. Candidates see the limit and a word count.">{(p) =>
+                  <Input {...p} type="number" min={10} max={2500} value={maxWords} onChange={(e) => setMaxWords(e.target.value)} className="w-32" />}</Field>
+                <Field label="Model answer (optional)" hint="Guidance for evaluators. Stored encrypted with the answer key; never shown to candidates.">{(p) =>
+                  <TextArea {...p} rows={4} maxLength={20000} value={modelAnswer} onChange={(e) => setModelAnswer(e.target.value)} />}</Field>
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium">Rubric (optional)</legend>
+                  <p className="text-sm text-muted">Evaluators award marks per criterion. Weights are percentages of the question's marks and must add up to 100. Without a rubric, evaluators mark the answer as a whole.</p>
+                  {rubric.map((c, i) => (
+                    <div key={i} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[1fr_6rem_auto]">
+                      <Input aria-label={`Criterion ${i + 1}`} placeholder="Criterion" value={c.title} maxLength={200}
+                        onChange={(e) => setRubric(rubric.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
+                      <Input aria-label={`Criterion ${i + 1} weight`} type="number" min={1} max={100} value={c.weight}
+                        onChange={(e) => setRubric(rubric.map((x, j) => (j === i ? { ...x, weight: e.target.value } : x)))} />
+                      <Button variant="ghost" size="sm" aria-label={`Remove criterion ${i + 1}`} onClick={() => setRubric(rubric.filter((_, j) => j !== i))}><Trash2 aria-hidden className="h-4 w-4" /></Button>
+                      <div className="sm:col-span-3"><TextArea aria-label={`Criterion ${i + 1} description`} placeholder="What earns full marks (optional)" rows={2} maxLength={2000}
+                        value={c.description} onChange={(e) => setRubric(rubric.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))} /></div>
+                    </div>))}
+                  <div className="flex items-center gap-3">
+                    {rubric.length < 12 && <Button variant="secondary" size="sm" onClick={() => setRubric([...rubric, { title: "", description: "", weight: rubric.length ? "" : "100" }])}>
+                      <Plus aria-hidden className="h-4 w-4" /> Add criterion</Button>}
+                    {rubric.length > 0 && <span className={`text-sm ${rubricTotal === 100 ? "text-muted" : "text-danger"}`} data-testid="rubric-total">Weights: {rubricTotal} / 100</span>}
+                  </div>
+                </fieldset>
+              </>}
               {type === "NUMERIC" && <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Correct value" hint="e.g. -12.5 or 6.02e23">{(p) => <Input {...p} inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} />}</Field>
                 <Field label="Tolerance type">{(p) => <Select {...p} value={tolType} onChange={(e) => setTolType(e.target.value)}><option value="ABSOLUTE">Absolute (±)</option><option value="PERCENT">Percent (±%)</option></Select>}</Field>
@@ -212,7 +247,7 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
           </Card>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => void navigate(-1)}>Cancel</Button>
-            <Button variant="primary" loading={save.isPending} disabled={!source.trim() || problems.length > 0} onClick={() => save.mutate()}>Save draft</Button>
+            <Button variant="primary" loading={save.isPending} disabled={!source.trim() || problems.length > 0 || (type === "DESCRIPTIVE" && rubric.length > 0 && rubricTotal !== 100)} onClick={() => save.mutate()}>Save draft</Button>
           </div>
         </div>
         <Card className="xl:sticky xl:top-4 xl:self-start">
@@ -222,6 +257,7 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
               <Content doc={doc} />
               {choice && <ol className="mt-3 space-y-2">{options.filter((o) => o.source.trim()).map((o) => (
                 <li key={o.id} className="flex gap-3 rounded-lg border border-border p-3"><span className="font-semibold">{o.id}.</span><Content doc={fromSource(o.source)} className="min-w-0 flex-1" /></li>))}</ol>}
+              {type === "DESCRIPTIVE" && <p className="mt-3 text-sm text-muted">Written answer, up to {maxWords} words. Marked by evaluators.</p>}
               {type === "NUMERIC" && <p className="mt-3 text-sm text-muted">Numeric answer{unit ? ` in ${unit}` : ""}, {precision} decimal place(s).</p>}
             </div>
           </CardBody>

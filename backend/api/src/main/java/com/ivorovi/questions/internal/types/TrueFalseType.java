@@ -28,6 +28,8 @@ public final class TrueFalseType implements QuestionType {
     public Map<String, Object> marking(Map<String, Object> raw) { allowKeys(raw, "marking"); return Map.of(); }
     public Map<String, Object> deliveryProjection(Map<String, Object> body) { return Map.copyOf(body); }
 
+    public boolean acceptsResponse(Map<String, Object> body, Object v) { return v instanceof Boolean; }
+
     public Grade mark(Map<String, Object> body, Map<String, Object> key, Map<String, Object> marking, BigDecimal marks, BigDecimal neg, Object response) {
         if (!(response instanceof Boolean b)) return new Grade(Outcome.UNANSWERED, BigDecimal.ZERO, "no answer");
         return b.equals(key.get("value")) ? new Grade(Outcome.CORRECT, marks, "correct") : new Grade(Outcome.INCORRECT, neg.negate(), "wrong");

@@ -74,6 +74,10 @@ public final class ChoiceTypes {
         public Map<String, Object> marking(Map<String, Object> raw) { allowKeys(raw, "marking"); return Map.of(); }
         public Map<String, Object> deliveryProjection(Map<String, Object> body) { return projection(body); }
 
+        public boolean acceptsResponse(Map<String, Object> body, Object v) {
+            return v instanceof String s && QuestionType.optionIds(body).contains(s);
+        }
+
         public Grade mark(Map<String, Object> body, Map<String, Object> key, Map<String, Object> marking, BigDecimal marks, BigDecimal neg, Object response) {
             if (response == null || String.valueOf(response).isBlank()) return new Grade(Outcome.UNANSWERED, BigDecimal.ZERO, "no answer");
             return String.valueOf(key.get("correct")).equals(String.valueOf(response))
@@ -111,6 +115,12 @@ public final class ChoiceTypes {
         }
 
         public Map<String, Object> deliveryProjection(Map<String, Object> body) { return projection(body); }
+
+        public boolean acceptsResponse(Map<String, Object> body, Object v) {
+            java.util.Set<String> ids = QuestionType.optionIds(body);
+            return v instanceof List<?> l && l.size() <= ids.size() && l.stream().allMatch(o -> o instanceof String s && ids.contains(s))
+                    && new java.util.HashSet<>(l).size() == l.size();
+        }
 
         public Grade mark(Map<String, Object> body, Map<String, Object> key, Map<String, Object> marking, BigDecimal marks, BigDecimal neg, Object response) {
             if (!(response instanceof List<?> r) || r.isEmpty()) return new Grade(Outcome.UNANSWERED, BigDecimal.ZERO, "no answer");
