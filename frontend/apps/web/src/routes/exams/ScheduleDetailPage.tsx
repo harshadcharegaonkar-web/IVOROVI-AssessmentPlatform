@@ -180,13 +180,13 @@ function ResultsCard({ scheduleId }: { scheduleId: string }) {
   const columns: Column<ExamResultRow>[] = [
     { key: "c", header: "Candidate", cell: (row) => <span className="flex flex-col"><span>{row.candidateName ?? row.candidateEmail}</span><span className="text-xs text-muted">{row.candidateEmail}</span></span> },
     { key: "a", header: "Attempt", cell: (row) => ({ IN_PROGRESS: "In progress", SUBMITTED: "Submitted", AUTO_SUBMITTED: "Submitted at time-up" }[row.attemptStatus ?? ""] ?? row.attemptStatus) },
-    { key: "s", header: "Score", cell: (row) => row.awarded == null ? "Not scored yet" : `${row.awarded} / ${row.maxMarks}` },
+    { key: "s", header: "Score", cell: (row) => row.awarded != null ? `${row.awarded} / ${row.maxMarks}` : row.awaitingMarks ? "Awaiting evaluation" : "Not scored yet" },
     { key: "o", header: "Correct · wrong · blank", cell: (row) => row.correct == null ? "—" : `${row.correct} · ${row.incorrect} · ${row.unanswered}`, hideOnMobile: true },
     { key: "p", header: "Status", cell: (row) => row.scoreStatus === "RELEASED" ? <Badge tone="success">Published</Badge> : row.scoreStatus === "PROVISIONAL" ? <Badge tone="warning">Provisional</Badge> : <Badge tone="neutral">—</Badge> },
   ];
   return (
     <Card>
-      <CardHeader title="Results" description={`${x.provisional} provisional · ${x.released} published · ${x.awaitingScore} awaiting scoring · ${x.inProgress} in progress`}
+      <CardHeader title="Results" description={`${x.provisional} provisional · ${x.released} published · ${x.awaitingMarks ? `${x.awaitingMarks} awaiting evaluation · ` : ""}${x.awaitingScore} awaiting scoring · ${x.inProgress} in progress`}
         actions={x.canReview && <Button variant="primary" onClick={() => setReviewing(true)}>Review results</Button>} />
       {pending && <div className="px-5 pt-3"><Alert tone="info">Reviewed by {pending.reviewerName}: {pending.attempts} result(s) wait for approval by another person.{" "}
         <Link to="/approvals" className="underline">Open approvals</Link></Alert></div>}

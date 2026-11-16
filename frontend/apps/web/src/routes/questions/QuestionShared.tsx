@@ -8,7 +8,7 @@ import { useApi } from "../../api/ApiProvider";
 
 export const TYPE_LABEL: Record<string, string> = {
   SINGLE_CHOICE: "Multiple choice (one answer)", MULTIPLE_CHOICE: "Multiple choice (several answers)", TRUE_FALSE: "True / false",
-  SHORT_ANSWER: "Short answer", NUMERIC: "Numeric",
+  SHORT_ANSWER: "Short answer", NUMERIC: "Numeric", DESCRIPTIVE: "Descriptive (written answer)",
 };
 
 const STATE_TONE: Record<string, BadgeTone> = { DRAFT: "neutral", IN_REVIEW: "info", REVIEWED: "info", APPROVED: "success", SUPERSEDED: "neutral", RETIRED: "warning" };

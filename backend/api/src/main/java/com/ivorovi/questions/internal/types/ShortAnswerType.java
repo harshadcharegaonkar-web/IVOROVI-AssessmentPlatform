@@ -61,6 +61,8 @@ public final class ShortAnswerType implements QuestionType {
         };
     }
 
+    public boolean acceptsResponse(Map<String, Object> body, Object v) { return v instanceof String s && s.length() <= 1000; }
+
     public Grade mark(Map<String, Object> body, Map<String, Object> key, Map<String, Object> marking, BigDecimal marks, BigDecimal neg, Object response) {
         if (response == null || String.valueOf(response).isBlank()) return new Grade(Outcome.UNANSWERED, BigDecimal.ZERO, "no answer");
         String match = String.valueOf(key.get("match"));

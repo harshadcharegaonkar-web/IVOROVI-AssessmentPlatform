@@ -17537,6 +17537,9 @@
           },
           "scoreStatus" : {
             "type" : "string"
+          },
+          "awaitingMarks" : {
+            "type" : "boolean"
           }
         }
       },
@@ -17552,6 +17555,10 @@
             "format" : "int32"
           },
           "awaitingScore" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "awaitingMarks" : {
             "type" : "integer",
             "format" : "int32"
           },

@@ -83,6 +83,36 @@ test.describe.serial("question bank lifecycle", () => {
     }
   });
 
+  test("M-D · an author writes a descriptive question with a model answer and a rubric", async ({ page, request }) => {
+    const bank = await bankId(request);
+    await signIn(page, FACULTY, `/questions/banks/${bank}/new`);
+    await page.getByLabel("Type").selectOption("DESCRIPTIVE");
+    await page.getByLabel("Statement").fill(`Explain Newton's third law ${RUN}.`);
+    await page.getByLabel("Word limit").fill("200");
+    await page.getByLabel("Model answer (optional)").fill(`Every action has an equal and opposite reaction ${RUN}.`);
+    await page.getByRole("button", { name: "Add criterion" }).click();
+    await page.getByLabel("Criterion 1", { exact: true }).fill("Statement of the law");
+    await page.getByLabel("Criterion 1 weight").fill("60");
+    await page.getByRole("button", { name: "Add criterion" }).click();
+    await page.getByLabel("Criterion 2", { exact: true }).fill("Example");
+    await page.getByLabel("Criterion 2 weight").fill("30");
+    await expect(page.getByTestId("rubric-total")).toHaveText("Weights: 90 / 100");
+    await expect(page.getByRole("button", { name: "Save draft" })).toBeDisabled();             // weights must add up to 100
+    await page.getByLabel("Criterion 2 weight").fill("40");
+    await expect(page.getByTestId("question-preview")).toContainText("Written answer, up to 200 words.");
+    await expect(page.getByTestId("question-preview")).not.toContainText("Every action");     // the preview carries no key
+    await page.getByRole("button", { name: "Save draft" }).click();
+    await expect(page.getByText("Question · version 1")).toBeVisible();
+    await expect(page.getByTestId("rubric")).toContainText("Statement of the law");
+    await expect(page.getByTestId("rubric")).toContainText("40%");
+    const q = await questionByText(request, bank, `third law ${RUN}`);
+    const detail = await (await request.get(`/api/v1/questions/${q}`, { headers: await api(request, FACULTY) })).json() as { current: { type: string; body: unknown; marking: { rubric: { id: string; weight: number }[] } } };
+    expect(detail.current.type).toBe("DESCRIPTIVE");
+    expect(detail.current.body).toEqual({ maxWords: 200 });
+    expect(detail.current.marking.rubric.map((c) => `${c.id}:${c.weight}`)).toEqual(["C1:60", "C2:40"]);
+    expect(JSON.stringify(detail)).not.toContain("Every action");                               // key only through the audited key endpoint
+  });
+
   test("5–6 · submission, independent review and approval", async ({ page, request }) => {
     await signIn(page, FACULTY);
     await openQuestion(page, request, `Kinematics ${RUN}`);
@@ -118,7 +148,9 @@ test.describe.serial("question bank lifecycle", () => {
     await page.getByLabel("Statement").fill(`Kinematics ${RUN} (revised): which expression gives the speed after $t$ seconds?`);
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page.getByText("Approved version 1 (unchanged)")).toBeVisible();
-    await expect(page.getByText(/a body falls for/)).toBeVisible();
+    // the saved draft is shown first; until it has loaded, a stale copy of version 2 can still carry the old text
+    await expect(page.getByText(/\(revised\): which expression/)).toBeVisible();
+    await expect(page.getByText(/a body falls for/)).toHaveCount(1);                   // only the approved version keeps it
   });
 
   test("9 · answer keys only for permitted staff", async ({ page, request }) => {

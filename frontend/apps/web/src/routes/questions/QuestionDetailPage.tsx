@@ -15,6 +15,8 @@ function VersionView({ v }: { v: QuestionVersion }) {
     <div className="space-y-3">
       <Content doc={asDoc(v.content)} />
       <OptionsView body={body} />
+      {v.type === "DESCRIPTIVE" && <DescriptiveView maxWords={Number(body?.maxWords ?? 500)}
+        rubric={((v.marking as Record<string, unknown> | undefined)?.rubric ?? []) as { id: string; title: string; description?: string; weight: number }[]} />}
       {v.type === "NUMERIC" && <p className="text-sm text-muted">Numeric answer{body?.unit ? ` in ${String(body.unit)}` : ""}, {String(body?.precision ?? 2)} decimal place(s).</p>}
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
         <div><dt className="text-muted">Type</dt><dd>{TYPE_LABEL[v.type ?? ""] ?? v.type}</dd></div>
@@ -23,6 +25,25 @@ function VersionView({ v }: { v: QuestionVersion }) {
         <div><dt className="text-muted">Approved by</dt><dd>{v.approvedByName ?? "—"}</dd></div>
       </dl>
       {(v.tags ?? []).length > 0 && <p className="flex flex-wrap gap-1">{(v.tags ?? []).map((t) => <Badge key={t}>{t}</Badge>)}</p>}
+    </div>
+  );
+}
+
+/** Word limit and rubric of a descriptive question (staff only; neither the rubric nor the model answer is delivered). */
+function DescriptiveView({ maxWords, rubric }: { maxWords: number; rubric: { id: string; title: string; description?: string; weight: number }[] }) {
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="text-muted">Written answer, up to {maxWords} words. Marked by evaluators.</p>
+      {rubric.length === 0 ? <p className="text-muted">No rubric: evaluators mark the answer as a whole.</p> : (
+        <table className="w-full text-left" data-testid="rubric">
+          <caption className="sr-only">Rubric</caption>
+          <thead><tr className="text-muted"><th className="py-1 font-medium">Criterion</th><th className="py-1 text-right font-medium">Weight</th></tr></thead>
+          <tbody>{rubric.map((c) => (
+            <tr key={c.id} className="border-t border-border align-top">
+              <td className="py-1"><span className="font-medium">{c.title}</span>{c.description && <span className="block text-muted">{c.description}</span>}</td>
+              <td className="py-1 text-right tabular-nums">{c.weight}%</td>
+            </tr>))}</tbody>
+        </table>)}
     </div>
   );
 }
@@ -43,10 +64,10 @@ function KeyPanel({ questionId, v }: { questionId: string; v: QuestionVersion })
     <div className="space-y-3 text-sm" data-testid="answer-key">
       <pre className="overflow-x-auto rounded-md bg-bg p-3 text-xs">{JSON.stringify(key.data.key, null, 2)}</pre>
       {key.data.explanation && <p><span className="text-muted">Explanation: </span>{key.data.explanation}</p>}
-      <div className="flex items-end gap-2">
+      {v.type !== "DESCRIPTIVE" && <div className="flex items-end gap-2">
         <Field label="Try a response">{(p) => <Input {...p} value={response} onChange={(e) => setResponse(e.target.value)} placeholder={v.type === "MULTIPLE_CHOICE" ? "A, C" : ""} />}</Field>
         <Button variant="secondary" loading={preview.isPending} onClick={() => preview.mutate()}>Mark</Button>
-      </div>
+      </div>}
       {preview.data?.[0] && <p data-testid="marking-result">{humanize(preview.data[0].outcome)} · {preview.data[0].awarded} marks · {preview.data[0].detail}</p>}
       <Button variant="ghost" size="sm" onClick={() => setShown(false)}>Hide</Button>
     </div>

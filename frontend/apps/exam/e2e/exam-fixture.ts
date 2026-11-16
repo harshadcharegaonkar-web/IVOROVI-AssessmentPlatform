@@ -12,12 +12,13 @@ export const PUBLISHER = "eshan.controller@aurora.test";  // exam controller: as
 export const FACULTY = "arun.faculty@aurora.test";        // authors questions
 export const COLLEGE = "0192a000-0000-7000-8000-00000000a101";
 
-const content = (text: string) => ({ format: "ivorovi.content.v1", blocks: [{ type: "paragraph", runs: [{ text }] }] });
+export const content = (text: string) => ({ format: "ivorovi.content.v1", blocks: [{ type: "paragraph", runs: [{ text }] }] });
 
 export const SECRET_EXPLANATION = "Secret explanation for the examination journeys";
 
 /** Publishes an assessment of {@code questions} single-choice questions (correct answer B) and returns its published version id. */
-export async function publishedVersion(request: APIRequestContext, run: string, durationMinutes: number, questions = 3): Promise<string> {
+export async function publishedVersion(request: APIRequestContext, run: string, durationMinutes: number, questions = 3,
+  extra: Record<string, unknown>[] = []): Promise<string> {
   const author = await staffToken(request, AUTHOR);
   const faculty = await staffToken(request, FACULTY);
   const reviewer = await staffToken(request, REVIEWER);
@@ -26,11 +27,14 @@ export async function publishedVersion(request: APIRequestContext, run: string, 
     orgUnitId: COLLEGE, code: `EX${run}`.slice(0, 40), name: `E2E examination bank ${run}`, intendedUses: ["ACADEMIC"],
     policy: { approvalPolicy: "STANDARD", requiredReviews: 1, approverDistinct: false } });
   const ids: string[] = [];
-  for (let i = 1; i <= questions; i++) {
-    const q = await staffApi<{ id: string }>(request, faculty, "POST", `/api/v1/question-banks/${bank.id}/questions`, {
-      type: "SINGLE_CHOICE", content: content(`Examination ${run} question ${i}`), marks: 2, negativeMarks: 0.5,
-      body: { options: [{ id: "A", content: content(`Alpha ${i}`) }, { id: "B", content: content(`Beta ${i}`) }, { id: "C", content: content(`Gamma ${i}`) }] },
-      answerKey: { correct: "B" }, explanation: SECRET_EXPLANATION });
+  const drafts: Record<string, unknown>[] = [];
+  for (let i = 1; i <= questions; i++) drafts.push({
+    type: "SINGLE_CHOICE", content: content(`Examination ${run} question ${i}`), marks: 2, negativeMarks: 0.5,
+    body: { options: [{ id: "A", content: content(`Alpha ${i}`) }, { id: "B", content: content(`Beta ${i}`) }, { id: "C", content: content(`Gamma ${i}`) }] },
+    answerKey: { correct: "B" }, explanation: SECRET_EXPLANATION });
+  drafts.push(...extra);
+  for (const d of drafts) {
+    const q = await staffApi<{ id: string }>(request, faculty, "POST", `/api/v1/question-banks/${bank.id}/questions`, d);
     await staffApi(request, faculty, "POST", `/api/v1/questions/${q.id}/submit`, {});
     await staffApi(request, reviewer, "POST", `/api/v1/questions/${q.id}/reviews`, { decision: "REVIEWED", checklist: { accurate: true } });
     await staffApi(request, publisher, "POST", `/api/v1/questions/${q.id}/approve`, { reason: "E2E" });
