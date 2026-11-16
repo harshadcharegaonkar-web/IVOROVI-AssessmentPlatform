@@ -21,6 +21,7 @@ Codes are stable identifiers; display names may change. Administrators cannot cr
 | Code | Name | Level | Scope | Availability | Description |
 |---|---|---|---|---|---|
 | `tenant.settings.manage` | Change organization settings | MANAGE | ORGANIZATION | AVAILABLE | Change organization settings such as terminology and time zone |
+| `tenant.security.manage` | Manage the security policy | MANAGE | ORGANIZATION | AVAILABLE | Set the organization's second-factor requirement and session limits (weakening needs a second administrator's approval) |
 | `feature.read` | View feature settings | READ | UNIT | AVAILABLE | View which modules and AI capabilities are switched on |
 | `feature.manage` | Change feature settings | MANAGE | UNIT | AVAILABLE | Switch modules and AI capabilities on or off within their limits |
 
