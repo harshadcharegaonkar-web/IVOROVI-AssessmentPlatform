@@ -43,12 +43,12 @@ public class PaperService {
 
     @Schema(name = "AssessmentPaperItem")
     public record PaperItem(int position, UUID questionVersionId, String type, Map<String, Object> content, Map<String, Object> projection,
-                            List<String> optionOrder, BigDecimal marks, BigDecimal negativeMarks, String source) {}
+                            List<String> optionOrder, BigDecimal marks, BigDecimal negativeMarks, String source, Integer sectionNo) {}
 
     @Schema(name = "AssessmentPaper")
     public record PaperView(UUID id, UUID assessmentId, UUID versionId, int versionNo, String versionState, String purpose, int generatorVersion,
                             String hash, BigDecimal totalMarks, int durationMinutes, String title, String instructions, Instant createdAt,
-                            List<PaperItem> items) {}
+                            List<PaperItem> items, List<AssessmentService.Section> sections) {}
 
     @Schema(name = "AssessmentPaperReproduction")
     public record Reproduction(UUID paperId, boolean identical, String storedHash, String regeneratedHash, String note) {}
@@ -143,7 +143,7 @@ public class PaperService {
             ApprovedQuestions.Approved a = fixedQ.get(it.questionVersionId());
             if (a == null) throw ApiException.conflict("question_missing", "A question of this assessment no longer exists.");
             fixed.add(new PaperGenerator.Fixed(it.questionVersionId(), a.questionId(), it.marks(), it.negativeMarks(), ApprovedQuestions.optionIds(a.projection()),
-                    shufflable(a.projection())));
+                    shufflable(a.projection()), it.sectionNo()));
         }
         List<PaperGenerator.Rule> rules = new ArrayList<>();
         for (AssessmentService.Rule r : v.rules()) {
@@ -155,10 +155,12 @@ public class PaperService {
                 if (a == null) continue;
                 candidates.add(new PaperGenerator.Candidate(e.versionId(), e.questionId(), ApprovedQuestions.optionIds(a.projection()), shufflable(a.projection())));
             }
-            rules.add(new PaperGenerator.Rule(r.id(), r.count(), r.marks(), r.negativeMarks(), candidates));
+            rules.add(new PaperGenerator.Rule(r.id(), r.count(), r.marks(), r.negativeMarks(), candidates, r.sectionNo()));
         }
         try {
-            return PaperGenerator.generate(versionId, fixed, rules, v.shuffleQuestions(), v.shuffleOptions(), seed);
+            if (v.sections().isEmpty()) return PaperGenerator.generate(versionId, fixed, rules, v.shuffleQuestions(), v.shuffleOptions(), seed);
+            return PaperGenerator.generateSectioned(versionId, v.sections().stream().map(AssessmentService.Section::sectionNo).toList(), fixed, rules,
+                    v.shuffleQuestions(), v.shuffleOptions(), seed);
         } catch (PaperGenerator.PoolExhausted e) {
             throw ApiException.conflict("pool_too_small", "A random rule has too few questions left to draw from.");
         }
@@ -176,7 +178,7 @@ public class PaperService {
         jdbc.sql("""
                 INSERT INTO assessment_paper (id, tenant_id, version_id, purpose, attempt_ref, seed_enc, generator_version, items, total_marks, paper_hash, created_by)
                 VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?)""")
-                .params(id, tenant, versionId, purpose, attemptRef, seedEnc, PaperGenerator.VERSION, json.writeValueAsString(PaperGenerator.toJson(paper.entries())),
+                .params(id, tenant, versionId, purpose, attemptRef, seedEnc, paper.generatorVersion(), json.writeValueAsString(PaperGenerator.toJson(paper.entries())),
                         paper.totalMarks(), paper.hash(), by).update();
         return id;
     }
@@ -216,17 +218,27 @@ public class PaperService {
             ApprovedQuestions.Approved a = q.get(qv);
             List<String> order = e.get("options") instanceof List<?> l ? l.stream().map(String::valueOf).toList() : null;
             items.add(new PaperItem(++pos, qv, a == null ? null : a.type(), a == null ? null : a.content(), a == null ? null : reorder(a.projection(), order), order,
-                    new BigDecimal(String.valueOf(e.get("marks"))), new BigDecimal(String.valueOf(e.get("negativeMarks"))), String.valueOf(e.get("source"))));
+                    new BigDecimal(String.valueOf(e.get("marks"))), new BigDecimal(String.valueOf(e.get("negativeMarks"))), String.valueOf(e.get("source")),
+                    section(e)));
         }
         var meta = jdbc.sql("SELECT version_no, state, duration_minutes, title, instructions FROM assessment_version WHERE id = ?").param(r.versionId())
                 .query((rs, n) -> new Object[] {rs.getInt(1), rs.getString(2), rs.getInt(3), rs.getString(4), rs.getString(5)}).single();
         return new PaperView(r.id(), h.id(), r.versionId(), (Integer) meta[0], (String) meta[1], r.purpose(), r.generatorVersion(), r.hash(), r.total(),
-                (Integer) meta[2], (String) meta[3], (String) meta[4], r.createdAt(), items);
+                (Integer) meta[2], (String) meta[3], (String) meta[4], r.createdAt(), items, sections(r.versionId()));
+    }
+
+    private static Integer section(Map<String, Object> entry) {
+        return entry.get("section") instanceof Number n ? n.intValue() : null;
+    }
+
+    private List<AssessmentService.Section> sections(UUID versionId) {
+        return jdbc.sql("SELECT section_no, title, instructions FROM assessment_section WHERE version_id = ? ORDER BY section_no").param(versionId)
+                .query((rs, n) -> new AssessmentService.Section(rs.getInt(1), rs.getString(2), rs.getString(3))).list();
     }
 
     /** One question of a candidate's paper: candidate projection, drawn option order, marks. Nothing else. */
     public record CandidateItem(int position, UUID questionVersionId, String type, Map<String, Object> content, Map<String, Object> projection,
-                                BigDecimal marks, BigDecimal negativeMarks) {}
+                                BigDecimal marks, BigDecimal negativeMarks, Integer sectionNo, String sectionTitle, String sectionInstructions) {}
 
     /**
      * The paper as delivered to its candidate. No authorization here: the delivery module calls it only for the paper
@@ -238,14 +250,19 @@ public class PaperService {
         Row r = row(paperId);
         List<Map<String, Object>> entries = json.readValue(r.itemsJson(), List.class);
         Map<UUID, ApprovedQuestions.Approved> q = questions.versions(entries.stream().map(e -> UUID.fromString(String.valueOf(e.get("questionVersionId")))).toList());
+        Map<Integer, AssessmentService.Section> sections = new HashMap<>();
+        sections(r.versionId()).forEach(sec -> sections.put(sec.sectionNo(), sec));
         List<CandidateItem> items = new ArrayList<>();
         int pos = 0;
         for (Map<String, Object> e : entries) {
             UUID qv = UUID.fromString(String.valueOf(e.get("questionVersionId")));
             ApprovedQuestions.Approved a = q.get(qv);
             List<String> order = e.get("options") instanceof List<?> l ? l.stream().map(String::valueOf).toList() : null;
+            Integer sec = section(e);
+            AssessmentService.Section header = sec == null ? null : sections.get(sec);
             items.add(new CandidateItem(++pos, qv, a == null ? null : a.type(), a == null ? null : a.content(), a == null ? null : reorder(a.projection(), order),
-                    new BigDecimal(String.valueOf(e.get("marks"))), new BigDecimal(String.valueOf(e.get("negativeMarks")))));
+                    new BigDecimal(String.valueOf(e.get("marks"))), new BigDecimal(String.valueOf(e.get("negativeMarks"))), sec,
+                    header == null ? null : header.title(), header == null ? null : header.instructions()));
         }
         return items;
     }
@@ -285,8 +302,9 @@ public class PaperService {
         Row r = row(paperId);
         AssessmentService.Head h = assessments.head(r.assessmentId(), false);
         requirePreviewer(h);
-        if (r.generatorVersion() != PaperGenerator.VERSION) {
-            return new Reproduction(paperId, false, r.hash(), null, "Generated by generator version " + r.generatorVersion() + "; this server runs version " + PaperGenerator.VERSION + ".");
+        if (!PaperGenerator.SUPPORTED.contains(r.generatorVersion())) {
+            return new Reproduction(paperId, false, r.hash(), null, "Generated by generator version " + r.generatorVersion() + "; this server supports versions "
+                    + new java.util.TreeSet<>(PaperGenerator.SUPPORTED) + ".");
         }
         byte[] seed = Base64.getDecoder().decode(cipher.decrypt(r.seedEnc(), SEED_FIELD, TenantContext.requireTenantId()));
         String regenerated;

@@ -23,20 +23,47 @@ import javax.crypto.spec.SecretKeySpec;
  * Randomness: HMAC-SHA-256(seed, counter) as a deterministic stream, unbiased integers by rejection sampling. Fixed
  * questions first (in order), then each rule draws without replacement from its pool (sorted, excluding questions
  * already used), then optional question shuffle; option order is shuffled per choice question when allowed.
+ * <p>
+ * Version 2 (add-on C, sections): the same stream and steps, applied section by section in section order — fixed
+ * questions of the section, then its rules' draws, then option orders, then (optionally) a question shuffle WITHIN the
+ * section. Sections never mix. Entries carry their section number and the hash is domain-separated ("v2"). Version 1
+ * stays bit-identical for versions without sections ({@link #generate}).
  */
 public final class PaperGenerator {
 
+    /** Version for papers without sections. */
     public static final int VERSION = 1;
+    /** Version for papers with sections. */
+    public static final int VERSION_SECTIONS = 2;
+    public static final java.util.Set<Integer> SUPPORTED = java.util.Set.of(VERSION, VERSION_SECTIONS);
 
-    public record Fixed(UUID questionVersionId, UUID questionId, BigDecimal marks, BigDecimal negativeMarks, List<String> optionIds, boolean optionsShufflable) {}
+    public record Fixed(UUID questionVersionId, UUID questionId, BigDecimal marks, BigDecimal negativeMarks, List<String> optionIds, boolean optionsShufflable,
+                        int sectionNo) {
+        public Fixed(UUID questionVersionId, UUID questionId, BigDecimal marks, BigDecimal negativeMarks, List<String> optionIds, boolean optionsShufflable) {
+            this(questionVersionId, questionId, marks, negativeMarks, optionIds, optionsShufflable, 1);
+        }
+    }
 
     public record Candidate(UUID questionVersionId, UUID questionId, List<String> optionIds, boolean optionsShufflable) {}
 
-    public record Rule(UUID ruleId, int count, BigDecimal marks, BigDecimal negativeMarks, List<Candidate> pool) {}
+    public record Rule(UUID ruleId, int count, BigDecimal marks, BigDecimal negativeMarks, List<Candidate> pool, int sectionNo) {
+        public Rule(UUID ruleId, int count, BigDecimal marks, BigDecimal negativeMarks, List<Candidate> pool) {
+            this(ruleId, count, marks, negativeMarks, pool, 1);
+        }
+    }
 
-    public record Entry(UUID questionVersionId, BigDecimal marks, BigDecimal negativeMarks, List<String> options, String source) {}
+    /** One paper entry; {@code sectionNo} is null in version-1 papers. */
+    public record Entry(UUID questionVersionId, BigDecimal marks, BigDecimal negativeMarks, List<String> options, String source, Integer sectionNo) {
+        public Entry(UUID questionVersionId, BigDecimal marks, BigDecimal negativeMarks, List<String> options, String source) {
+            this(questionVersionId, marks, negativeMarks, options, source, null);
+        }
+    }
 
-    public record Paper(List<Entry> entries, BigDecimal totalMarks, String hash) {}
+    public record Paper(List<Entry> entries, BigDecimal totalMarks, String hash, int generatorVersion) {
+        public Paper(List<Entry> entries, BigDecimal totalMarks, String hash) {
+            this(entries, totalMarks, hash, VERSION);
+        }
+    }
 
     /** Thrown when a rule's pool cannot supply its draws (validation prevents this for publishable versions). */
     public static final class PoolExhausted extends RuntimeException {
@@ -81,6 +108,7 @@ public final class PaperGenerator {
         }
     }
 
+    /** Version 1: one unnamed section (section numbers on the inputs are ignored). Unchanged since Increment 2.2. */
     public static Paper generate(UUID versionId, List<Fixed> fixed, List<Rule> rules, boolean shuffleQuestions, boolean shuffleOptions, byte[] seed) {
         Stream rnd = new Stream(seed);
         List<Entry> entries = new ArrayList<>();
@@ -121,6 +149,61 @@ public final class PaperGenerator {
         return new Paper(List.copyOf(withOptions), total, hash(versionId, withOptions));
     }
 
+    /**
+     * Version 2: sections in the given order (each section number once); every fixed question and rule must belong to
+     * one of them. A question is never drawn twice across sections (fixed questions of any section are excluded from
+     * every pool, and earlier draws from later pools).
+     */
+    public static Paper generateSectioned(UUID versionId, List<Integer> sectionOrder, List<Fixed> fixed, List<Rule> rules, boolean shuffleQuestions,
+                                          boolean shuffleOptions, byte[] seed) {
+        if (sectionOrder.isEmpty() || new HashSet<>(sectionOrder).size() != sectionOrder.size()) throw new IllegalArgumentException("section order");
+        Set<Integer> known = new HashSet<>(sectionOrder);
+        for (Fixed f : fixed) if (!known.contains(f.sectionNo())) throw new IllegalArgumentException("fixed question in undeclared section " + f.sectionNo());
+        for (Rule r : rules) if (!known.contains(r.sectionNo())) throw new IllegalArgumentException("rule in undeclared section " + r.sectionNo());
+        Stream rnd = new Stream(seed);
+        Set<UUID> used = new HashSet<>();
+        for (Fixed f : fixed) used.add(f.questionId());
+        List<Entry> all = new ArrayList<>();
+        for (int section : sectionOrder) {
+            List<Entry> entries = new ArrayList<>();
+            List<List<String>> optionLists = new ArrayList<>();
+            List<Boolean> shufflable = new ArrayList<>();
+            for (Fixed f : fixed) {
+                if (f.sectionNo() != section) continue;
+                entries.add(new Entry(f.questionVersionId(), f.marks(), f.negativeMarks(), null, "FIXED", section));
+                optionLists.add(f.optionIds());
+                shufflable.add(f.optionsShufflable());
+            }
+            for (Rule r : rules) {
+                if (r.sectionNo() != section) continue;
+                List<Candidate> pool = new ArrayList<>(r.pool().stream().filter(c -> !used.contains(c.questionId())).toList());
+                pool.sort((a, b) -> a.questionVersionId().compareTo(b.questionVersionId()));
+                if (pool.size() < r.count()) throw new PoolExhausted("Rule " + r.ruleId() + " needs " + r.count() + " questions; only " + pool.size() + " remain");
+                for (int i = 0; i < r.count(); i++) {
+                    int j = i + rnd.nextInt(pool.size() - i);
+                    Candidate c = pool.get(j);
+                    pool.set(j, pool.get(i));
+                    pool.set(i, c);
+                    used.add(c.questionId());
+                    entries.add(new Entry(c.questionVersionId(), r.marks(), r.negativeMarks(), null, "RULE:" + r.ruleId(), section));
+                    optionLists.add(c.optionIds());
+                    shufflable.add(c.optionsShufflable());
+                }
+            }
+            List<Entry> withOptions = new ArrayList<>();
+            for (int i = 0; i < entries.size(); i++) {
+                List<String> opts = optionLists.get(i) == null ? List.of() : new ArrayList<>(optionLists.get(i));
+                if (shuffleOptions && shufflable.get(i)) shuffle(opts, rnd);
+                Entry e = entries.get(i);
+                withOptions.add(new Entry(e.questionVersionId(), e.marks(), e.negativeMarks(), opts.isEmpty() ? null : List.copyOf(opts), e.source(), section));
+            }
+            if (shuffleQuestions) shuffle(withOptions, rnd);
+            all.addAll(withOptions);
+        }
+        BigDecimal total = all.stream().map(Entry::marks).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new Paper(List.copyOf(all), total, hash(VERSION_SECTIONS, versionId, all), VERSION_SECTIONS);
+    }
+
     private static <T> void shuffle(List<T> list, Stream rnd) {
         for (int i = list.size() - 1; i > 0; i--) {
             int j = rnd.nextInt(i + 1);
@@ -140,13 +223,18 @@ public final class PaperGenerator {
             m.put("negativeMarks", e.negativeMarks().stripTrailingZeros().toPlainString());
             if (e.options() != null) m.put("options", e.options());
             m.put("source", e.source());
+            if (e.sectionNo() != null) m.put("section", e.sectionNo());
             out.add(m);
         }
         return out;
     }
 
     static String hash(UUID versionId, List<Entry> entries) {
-        StringBuilder sb = new StringBuilder("ivorovi.paper.v").append(VERSION).append('|').append(versionId);
+        return hash(VERSION, versionId, entries);
+    }
+
+    static String hash(int generatorVersion, UUID versionId, List<Entry> entries) {
+        StringBuilder sb = new StringBuilder("ivorovi.paper.v").append(generatorVersion).append('|').append(versionId);
         for (Map<String, Object> m : toJson(entries)) sb.append('|').append(new TreeMap<>(m));
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(sb.toString().getBytes(StandardCharsets.UTF_8)));

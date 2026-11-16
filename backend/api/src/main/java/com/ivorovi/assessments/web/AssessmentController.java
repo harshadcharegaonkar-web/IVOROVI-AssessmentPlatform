@@ -52,18 +52,28 @@ class AssessmentController {
 
     @Schema(name = "AssessmentItemRequest")
     record ItemRequest(@NotNull UUID questionVersionId, @DecimalMin("0") @DecimalMax("1000") BigDecimal marks,
-                       @DecimalMin("0") @DecimalMax("1000") BigDecimal negativeMarks) {}
+                       @DecimalMin("0") @DecimalMax("1000") BigDecimal negativeMarks, @Min(1) @Max(20) Integer sectionNo) {}
 
     @Schema(name = "AssessmentRuleRequest")
     record RuleRequest(@Size(max = 150) String label, @NotNull UUID bankId, UUID subjectId, UUID topicId, UUID difficultyId, @Size(max = 40) String questionType,
                        @Min(1) @Max(500) int count, @NotNull @DecimalMin("0") @DecimalMax("1000") BigDecimal marks,
-                       @DecimalMin("0") @DecimalMax("1000") BigDecimal negativeMarks) {}
+                       @DecimalMin("0") @DecimalMax("1000") BigDecimal negativeMarks, @Min(1) @Max(20) Integer sectionNo) {}
+
+    @Schema(name = "AssessmentSectionRequest", description = "A section header (add-on C). Without sections the paper is one unnamed section.")
+    record SectionRequest(@Min(1) @Max(20) int sectionNo, @NotBlank @Size(max = 150) String title, @Size(max = 4000) String instructions) {}
+
+    @Schema(name = "AssessmentBlueprintRequest", description = "Coverage every generated paper must have, for the whole paper (sectionNo null) or one section. "
+            + "SUBJECT, TOPIC and DIFFICULTY take targetId; QUESTION_TYPE takes targetCode.")
+    record BlueprintRequest(@Min(1) @Max(20) Integer sectionNo, @NotNull @Pattern(regexp = "SUBJECT|TOPIC|DIFFICULTY|QUESTION_TYPE") String dimension,
+                            UUID targetId, @Size(max = 40) String targetCode, @Min(0) @Max(500) Integer minCount, @Min(0) @Max(500) Integer maxCount,
+                            @DecimalMin("0") @DecimalMax("100000") BigDecimal minMarks) {}
 
     @Schema(name = "AssessmentDraftRequest")
     record DraftRequest(@NotBlank @Size(max = 200) String title, @Size(max = 2000) String description, @Size(max = 10000) String instructions,
                         @Min(1) @Max(600) Integer durationMinutes, @DecimalMin("0") @DecimalMax("100000") BigDecimal declaredTotalMarks,
                         @Pattern(regexp = "OFF|QUESTION|CUSTOM") String negativeMarking, Boolean shuffleQuestions, Boolean shuffleOptions,
-                        @Size(max = 500) List<@Valid ItemRequest> items, @Size(max = 50) List<@Valid RuleRequest> rules, @NotNull Long version) {}
+                        @Size(max = 500) List<@Valid ItemRequest> items, @Size(max = 50) List<@Valid RuleRequest> rules,
+                        @Size(max = 20) List<@Valid SectionRequest> sections, @Size(max = 50) List<@Valid BlueprintRequest> blueprint, @NotNull Long version) {}
 
     @Schema(name = "AssessmentReasonRequest")
     record ReasonRequest(@Size(max = 500) String reason) {}
@@ -113,12 +123,17 @@ class AssessmentController {
     @Operation(summary = "Replace the open version's definition (a version in review returns to draft)")
     AssessmentService.Detail update(@PathVariable UUID id, @Valid @RequestBody DraftRequest r) {
         List<AssessmentService.ItemInput> items = r.items() == null ? List.of()
-                : r.items().stream().map(i -> new AssessmentService.ItemInput(i.questionVersionId(), i.marks(), i.negativeMarks())).toList();
+                : r.items().stream().map(i -> new AssessmentService.ItemInput(i.questionVersionId(), i.marks(), i.negativeMarks(), i.sectionNo())).toList();
         List<AssessmentService.RuleInput> rules = r.rules() == null ? List.of()
                 : r.rules().stream().map(x -> new AssessmentService.RuleInput(x.label(), x.bankId(), x.subjectId(), x.topicId(), x.difficultyId(), x.questionType(),
-                        x.count(), x.marks(), x.negativeMarks())).toList();
+                        x.count(), x.marks(), x.negativeMarks(), x.sectionNo())).toList();
+        List<AssessmentService.SectionInput> sections = r.sections() == null ? List.of()
+                : r.sections().stream().map(x -> new AssessmentService.SectionInput(x.sectionNo(), x.title(), x.instructions())).toList();
+        List<AssessmentService.ConstraintInput> blueprint = r.blueprint() == null ? List.of()
+                : r.blueprint().stream().map(x -> new AssessmentService.ConstraintInput(x.sectionNo(), x.dimension(), x.targetId(), x.targetCode(), x.minCount(),
+                        x.maxCount(), x.minMarks())).toList();
         return assessments.update(id, new AssessmentService.DraftInput(r.title(), r.description(), r.instructions(), r.durationMinutes(), r.declaredTotalMarks(),
-                r.negativeMarking(), r.shuffleQuestions(), r.shuffleOptions(), items, rules, r.version()));
+                r.negativeMarking(), r.shuffleQuestions(), r.shuffleOptions(), items, rules, sections, blueprint, r.version()));
     }
 
     @GetMapping("/assessments/{id}/validation")

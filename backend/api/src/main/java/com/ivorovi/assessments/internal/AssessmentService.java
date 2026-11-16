@@ -56,21 +56,58 @@ public class AssessmentService {
 
     public record CreateInput(UUID orgUnitId, String code, String purpose, String title, String description, Integer durationMinutes) {}
 
-    public record ItemInput(UUID questionVersionId, BigDecimal marks, BigDecimal negativeMarks) {}
+    /** A fixed question; {@code sectionNo} null means section 1. */
+    public record ItemInput(UUID questionVersionId, BigDecimal marks, BigDecimal negativeMarks, Integer sectionNo) {
+        public ItemInput(UUID questionVersionId, BigDecimal marks, BigDecimal negativeMarks) {
+            this(questionVersionId, marks, negativeMarks, null);
+        }
+    }
 
+    /** A random rule; {@code sectionNo} null means section 1. */
     public record RuleInput(String label, UUID bankId, UUID subjectId, UUID topicId, UUID difficultyId, String questionType, int count, BigDecimal marks,
-                            BigDecimal negativeMarks) {}
+                            BigDecimal negativeMarks, Integer sectionNo) {
+        public RuleInput(String label, UUID bankId, UUID subjectId, UUID topicId, UUID difficultyId, String questionType, int count, BigDecimal marks,
+                         BigDecimal negativeMarks) {
+            this(label, bankId, subjectId, topicId, difficultyId, questionType, count, marks, negativeMarks, null);
+        }
+    }
+
+    /** A section header (add-on C). A version without headers is one unnamed section. */
+    public record SectionInput(int sectionNo, String title, String instructions) {}
+
+    /**
+     * A blueprint constraint (add-on C): coverage every paper must have, for the whole paper ({@code sectionNo} null) or
+     * one section. {@code dimension} SUBJECT, TOPIC or DIFFICULTY take {@code targetId}; QUESTION_TYPE takes {@code targetCode}.
+     */
+    public record ConstraintInput(Integer sectionNo, String dimension, UUID targetId, String targetCode, Integer minCount, Integer maxCount, BigDecimal minMarks) {}
 
     public record DraftInput(String title, String description, String instructions, Integer durationMinutes, BigDecimal declaredTotalMarks,
-                             String negativeMarking, Boolean shuffleQuestions, Boolean shuffleOptions, List<ItemInput> items, List<RuleInput> rules, Long version) {}
+                             String negativeMarking, Boolean shuffleQuestions, Boolean shuffleOptions, List<ItemInput> items, List<RuleInput> rules,
+                             List<SectionInput> sections, List<ConstraintInput> blueprint, Long version) {
+        public DraftInput(String title, String description, String instructions, Integer durationMinutes, BigDecimal declaredTotalMarks,
+                          String negativeMarking, Boolean shuffleQuestions, Boolean shuffleOptions, List<ItemInput> items, List<RuleInput> rules, Long version) {
+            this(title, description, instructions, durationMinutes, declaredTotalMarks, negativeMarking, shuffleQuestions, shuffleOptions, items, rules, null, null, version);
+        }
+    }
 
     @Schema(name = "AssessmentItem")
     public record Item(UUID id, int ordinal, UUID questionVersionId, UUID questionId, UUID bankId, String type, String excerpt, String subjectName,
-                       String topicName, String difficultyLabel, BigDecimal marks, BigDecimal negativeMarks, String questionState, boolean usable) {}
+                       String topicName, String difficultyLabel, BigDecimal marks, BigDecimal negativeMarks, String questionState, boolean usable, int sectionNo) {}
 
     @Schema(name = "AssessmentRule")
     public record Rule(UUID id, int ordinal, String label, UUID bankId, String bankName, UUID subjectId, UUID topicId, UUID difficultyId, String questionType,
-                       int count, BigDecimal marks, BigDecimal negativeMarks, int poolSize, boolean poolFrozen) {}
+                       int count, BigDecimal marks, BigDecimal negativeMarks, int poolSize, boolean poolFrozen, int sectionNo) {}
+
+    @Schema(name = "AssessmentSection")
+    public record Section(int sectionNo, String title, String instructions) {}
+
+    @Schema(name = "AssessmentBlueprintConstraint")
+    public record Constraint(UUID id, int ordinal, Integer sectionNo, String dimension, UUID targetId, String targetCode, String targetLabel, int minCount,
+                             Integer maxCount, BigDecimal minMarks) {}
+
+    /** What every paper of the version is guaranteed to contain for one constraint (proved from fixed questions and pools). */
+    @Schema(name = "AssessmentBlueprintCoverage")
+    public record Coverage(int ordinal, String description, int guaranteedMin, int possibleMax, BigDecimal guaranteedMarks, boolean met) {}
 
     @Schema(name = "AssessmentReview")
     public record Review(UUID id, UUID reviewerId, String reviewerName, String decision, String comment, Instant at, boolean valid, String invalidatedReason) {}
@@ -78,8 +115,8 @@ public class AssessmentService {
     @Schema(name = "AssessmentVersion")
     public record Version(UUID id, int versionNo, String state, String governance, String title, String description, String instructions, int durationMinutes,
                           BigDecimal declaredTotalMarks, BigDecimal totalMarks, String negativeMarking, boolean shuffleQuestions, boolean shuffleOptions,
-                          List<Item> items, List<Rule> rules, List<Review> reviews, UUID authorId, String authorName, UUID publishedBy, String publishedByName,
-                          Instant publishedAt, Instant createdAt, long version) {}
+                          List<Item> items, List<Rule> rules, List<Section> sections, List<Constraint> blueprint, List<Review> reviews, UUID authorId,
+                          String authorName, UUID publishedBy, String publishedByName, Instant publishedAt, Instant createdAt, long version) {}
 
     @Schema(name = "AssessmentVersionSummary")
     public record VersionSummary(UUID id, int versionNo, String state, String authorName, Instant createdAt, Instant publishedAt) {}
@@ -91,7 +128,8 @@ public class AssessmentService {
     public record Issue(String code, String message) {}
 
     @Schema(name = "AssessmentValidation")
-    public record Validation(List<Issue> errors, List<Issue> warnings, int questionCount, BigDecimal totalMarks, Map<String, Integer> byDifficulty) {
+    public record Validation(List<Issue> errors, List<Issue> warnings, int questionCount, BigDecimal totalMarks, Map<String, Integer> byDifficulty,
+                             List<Coverage> blueprint) {
         public boolean ok() {
             return errors.isEmpty();
         }
@@ -249,6 +287,8 @@ public class AssessmentService {
             if (r.marks() == null || r.marks().signum() <= 0 || r.marks().compareTo(BigDecimal.valueOf(1000)) > 0) throw ApiException.badRequest("invalid_marks", "Each random rule needs marks above 0.");
             requireEligibleBank(h, r.bankId());
         }
+        List<SectionInput> sections = checkSections(in.sections(), items, rules);
+        List<ConstraintInput> blueprint = checkBlueprint(in.blueprint(), sections);
 
         String title = required(in.title(), "title", 200);
         jdbc.sql("""
@@ -259,7 +299,21 @@ public class AssessmentService {
                         Boolean.TRUE.equals(in.shuffleQuestions()), !Boolean.FALSE.equals(in.shuffleOptions()), c.id()).update();
         jdbc.sql("DELETE FROM assessment_item WHERE version_id = ?").param(c.id()).update();
         jdbc.sql("DELETE FROM assessment_rule WHERE version_id = ?").param(c.id()).update();
+        jdbc.sql("DELETE FROM assessment_section WHERE version_id = ?").param(c.id()).update();
+        jdbc.sql("DELETE FROM assessment_blueprint_constraint WHERE version_id = ?").param(c.id()).update();
         UUID tenant = TenantContext.requireTenantId();
+        for (SectionInput sec : sections) {
+            jdbc.sql("INSERT INTO assessment_section (tenant_id, version_id, section_no, title, instructions) VALUES (?, ?, ?, ?, ?)")
+                    .params(tenant, c.id(), sec.sectionNo(), sec.title(), sec.instructions()).update();
+        }
+        int cno = 0;
+        for (ConstraintInput b : blueprint) {
+            jdbc.sql("""
+                    INSERT INTO assessment_blueprint_constraint (id, tenant_id, version_id, ordinal, section_no, dimension, target_id, target_code, min_count, max_count, min_marks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+                    .params(Ids.newId(), tenant, c.id(), ++cno, b.sectionNo(), b.dimension(), b.targetId(), b.targetCode(), b.minCount(), b.maxCount(), b.minMarks())
+                    .update();
+        }
         int ordinal = 0;
         for (ItemInput it : items) {
             ApprovedQuestions.Approved q = versions.get(it.questionVersionId());
@@ -270,17 +324,17 @@ public class AssessmentService {
                 default -> it.negativeMarks() == null ? BigDecimal.ZERO : it.negativeMarks();
             };
             checkMarks(marks, neg);
-            jdbc.sql("INSERT INTO assessment_item (id, tenant_id, version_id, ordinal, question_version_id, marks, negative_marks) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                    .params(Ids.newId(), tenant, c.id(), ++ordinal, it.questionVersionId(), marks, neg).update();
+            jdbc.sql("INSERT INTO assessment_item (id, tenant_id, version_id, section_no, ordinal, question_version_id, marks, negative_marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                    .params(Ids.newId(), tenant, c.id(), sectionOf(it.sectionNo()), ++ordinal, it.questionVersionId(), marks, neg).update();
         }
         ordinal = 0;
         for (RuleInput r : rules) {
             BigDecimal neg = "OFF".equals(negative) || r.negativeMarks() == null ? BigDecimal.ZERO : r.negativeMarks();
             checkMarks(r.marks(), neg);
             jdbc.sql("""
-                    INSERT INTO assessment_rule (id, tenant_id, version_id, ordinal, label, bank_id, subject_id, topic_id, difficulty_id, question_type, draw_count, marks, negative_marks)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
-                    .params(Ids.newId(), tenant, c.id(), ++ordinal, optional(r.label(), 150), r.bankId(), r.subjectId(), r.topicId(), r.difficultyId(),
+                    INSERT INTO assessment_rule (id, tenant_id, version_id, section_no, ordinal, label, bank_id, subject_id, topic_id, difficulty_id, question_type, draw_count, marks, negative_marks)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
+                    .params(Ids.newId(), tenant, c.id(), sectionOf(r.sectionNo()), ++ordinal, optional(r.label(), 150), r.bankId(), r.subjectId(), r.topicId(), r.difficultyId(),
                             r.questionType() == null || r.questionType().isBlank() ? null : r.questionType().strip(), r.count(), r.marks(), neg).update();
         }
         refreshHash(c.id());
@@ -290,8 +344,93 @@ public class AssessmentService {
             audit.recordSuccess("assessment.reviews_invalidated", "assessment_version", c.id().toString(), Map.of("assessment", id.toString()));
         }
         audit.recordSuccess("assessment.draft_updated", "assessment_version", c.id().toString(), Map.of("assessment", id.toString(),
-                "questions", String.valueOf(items.size()), "rules", String.valueOf(rules.size())));
+                "questions", String.valueOf(items.size()), "rules", String.valueOf(rules.size()), "sections", String.valueOf(sections.size()),
+                "blueprintConstraints", String.valueOf(blueprint.size())));
         return detail(id);
+    }
+
+    static final int MAX_SECTIONS = 20;
+    static final int MAX_CONSTRAINTS = 50;
+    static final Set<String> DIMENSIONS = Set.of("SUBJECT", "TOPIC", "DIFFICULTY", "QUESTION_TYPE");
+
+    private static int sectionOf(Integer n) {
+        return n == null ? 1 : n;
+    }
+
+    /**
+     * Section headers (add-on C). Without headers every question and rule must be in section 1 (the single unnamed
+     * section, as before). With headers, numbers are unique (1–20) and every question and rule names a declared section.
+     */
+    static List<SectionInput> checkSections(List<SectionInput> raw, List<ItemInput> items, List<RuleInput> rules) {
+        List<SectionInput> in = raw == null ? List.of() : raw;
+        if (in.size() > MAX_SECTIONS) throw ApiException.badRequest("invalid_section", "At most " + MAX_SECTIONS + " sections.");
+        List<SectionInput> out = new ArrayList<>();
+        Set<Integer> numbers = new HashSet<>();
+        for (SectionInput s : in) {
+            if (s == null || s.sectionNo() < 1 || s.sectionNo() > MAX_SECTIONS) throw ApiException.badRequest("invalid_section", "Section numbers are 1–" + MAX_SECTIONS + ".");
+            if (!numbers.add(s.sectionNo())) throw ApiException.badRequest("invalid_section", "Section " + s.sectionNo() + " is declared twice.");
+            String title = s.title() == null ? "" : s.title().strip();
+            if (title.isEmpty() || title.length() > 150) throw ApiException.badRequest("invalid_section", "Each section needs a title of at most 150 characters.");
+            out.add(new SectionInput(s.sectionNo(), title, optional(s.instructions(), 4000)));
+        }
+        out.sort(java.util.Comparator.comparingInt(SectionInput::sectionNo));
+        Set<Integer> used = new HashSet<>();
+        items.forEach(i -> used.add(sectionOf(i.sectionNo())));
+        rules.forEach(r -> used.add(sectionOf(r.sectionNo())));
+        for (int n : used) {
+            if (n < 1 || n > MAX_SECTIONS) throw ApiException.badRequest("invalid_section", "Section numbers are 1–" + MAX_SECTIONS + ".");
+            if (out.isEmpty() ? n != 1 : !numbers.contains(n)) {
+                throw ApiException.badRequest("unknown_section", "Section " + n + " is used by a question or rule but not declared.");
+            }
+        }
+        return out;
+    }
+
+    /** Blueprint constraints: known dimension and target, a section that exists, a meaningful range. */
+    List<ConstraintInput> checkBlueprint(List<ConstraintInput> raw, List<SectionInput> sections) {
+        List<ConstraintInput> in = raw == null ? List.of() : raw;
+        if (in.size() > MAX_CONSTRAINTS) throw ApiException.badRequest("invalid_blueprint", "At most " + MAX_CONSTRAINTS + " blueprint constraints.");
+        Set<Integer> declared = new HashSet<>();
+        sections.forEach(s -> declared.add(s.sectionNo()));
+        List<ConstraintInput> out = new ArrayList<>();
+        for (ConstraintInput b : in) {
+            if (b == null) throw ApiException.badRequest("invalid_blueprint", "Empty blueprint constraint.");
+            String dim = b.dimension() == null ? "" : b.dimension().strip().toUpperCase();
+            if (!DIMENSIONS.contains(dim)) throw ApiException.badRequest("invalid_blueprint", "Blueprint dimension: SUBJECT, TOPIC, DIFFICULTY or QUESTION_TYPE.");
+            if (b.sectionNo() != null && !(declared.isEmpty() ? b.sectionNo() == 1 : declared.contains(b.sectionNo()))) {
+                throw ApiException.badRequest("unknown_section", "A blueprint constraint refers to section " + b.sectionNo() + ", which is not declared.");
+            }
+            UUID target = null;
+            String code = null;
+            if ("QUESTION_TYPE".equals(dim)) {
+                code = b.targetCode() == null ? "" : b.targetCode().strip().toUpperCase();
+                if (!code.matches("[A-Z_]{2,40}")) throw ApiException.badRequest("invalid_blueprint", "A question-type constraint needs a type code.");
+            } else {
+                target = b.targetId();
+                if (target == null || targetLabel(dim, target) == null) throw ApiException.badRequest("invalid_blueprint", "Unknown " + dim.toLowerCase() + " in the blueprint.");
+            }
+            int min = b.minCount() == null ? 0 : b.minCount();
+            if (min < 0 || min > MAX_QUESTIONS || (b.maxCount() != null && (b.maxCount() < min || b.maxCount() > MAX_QUESTIONS))) {
+                throw ApiException.badRequest("invalid_blueprint", "Blueprint counts are 0–" + MAX_QUESTIONS + ", with the maximum not below the minimum.");
+            }
+            if (b.minMarks() != null && (b.minMarks().signum() < 0 || b.minMarks().scale() > 2)) {
+                throw ApiException.badRequest("invalid_blueprint", "Minimum marks must be zero or more, with at most two decimals.");
+            }
+            if (min == 0 && b.maxCount() == null && b.minMarks() == null) throw ApiException.badRequest("invalid_blueprint", "A blueprint constraint needs a minimum, a maximum or minimum marks.");
+            out.add(new ConstraintInput(b.sectionNo(), dim, target, code, min, b.maxCount(), b.minMarks()));
+        }
+        return out;
+    }
+
+    /** Name of a subject, topic or difficulty of this organization (RLS), or null when unknown. */
+    String targetLabel(String dimension, UUID id) {
+        String sql = switch (dimension) {
+            case "SUBJECT" -> "SELECT name FROM question_subject WHERE id = ?";
+            case "TOPIC" -> "SELECT name FROM question_topic WHERE id = ?";
+            case "DIFFICULTY" -> "SELECT label FROM difficulty_level WHERE id = ?";
+            default -> null;
+        };
+        return sql == null ? null : jdbc.sql(sql).param(id).query(String.class).optional().orElse(null);
     }
 
     private static void checkMarks(BigDecimal marks, BigDecimal neg) {
@@ -375,7 +514,86 @@ public class AssessmentService {
         if (v.declaredTotalMarks() != null && v.declaredTotalMarks().compareTo(total) != 0) {
             errors.add(new Issue("total_mismatch", "Declared total " + v.declaredTotalMarks().toPlainString() + " differs from the computed total " + total.toPlainString() + "."));
         }
-        return new Validation(errors, warnings, count, total, byDifficulty);
+        for (Section sec : v.sections()) {
+            boolean used = v.items().stream().anyMatch(it -> it.sectionNo() == sec.sectionNo()) || v.rules().stream().anyMatch(r -> r.sectionNo() == sec.sectionNo());
+            if (!used) errors.add(new Issue("section_empty", "Section " + sec.sectionNo() + " (" + sec.title() + ") has no questions or random rules."));
+        }
+        List<Coverage> coverage = v.blueprint().isEmpty() ? List.of() : coverage(v, frozen, fixedQuestions);
+        for (Coverage cv : coverage) {
+            if (!cv.met()) errors.add(new Issue("blueprint_unmet", cv.description()));
+        }
+        return new Validation(errors, warnings, count, total, byDifficulty, coverage);
+    }
+
+    /** Attributes a blueprint constraint can select on. */
+    record Attrs(UUID subjectId, UUID topicId, UUID difficultyId, String type) {
+        static Attrs of(ApprovedQuestions.Approved a) {
+            return a == null ? new Attrs(null, null, null, null) : new Attrs(a.subjectId(), a.topicId(), a.difficultyId(), a.type());
+        }
+
+        boolean matches(Constraint c) {
+            return switch (c.dimension()) {
+                case "SUBJECT" -> c.targetId().equals(subjectId);
+                case "TOPIC" -> c.targetId().equals(topicId);
+                case "DIFFICULTY" -> c.targetId().equals(difficultyId);
+                default -> c.targetCode().equals(type);
+            };
+        }
+    }
+
+    /**
+     * Proves each constraint for EVERY paper the version can generate. Fixed questions count exactly. A rule draws k of
+     * the n questions in its pool (fixed questions excluded); if m of them match, any paper holds between
+     * max(0, k − (n − m)) and min(k, m) matching questions from that rule. Rules' pools are disjoint (rules_overlap is an
+     * error), so the bounds add up and are exact. Pools are the frozen ones for published versions and the live ones
+     * otherwise (publication re-runs this before freezing).
+     */
+    List<Coverage> coverage(Version v, boolean frozen, Set<UUID> fixedQuestions) {
+        Map<UUID, ApprovedQuestions.Approved> fixedQ = questions.versions(v.items().stream().map(Item::questionVersionId).toList());
+        Map<UUID, List<Attrs>> poolAttrs = new HashMap<>();
+        for (Rule r : v.rules()) {
+            List<ApprovedQuestions.PoolEntry> pool = poolOf(r, frozen).stream().filter(e -> !fixedQuestions.contains(e.questionId())).toList();
+            Map<UUID, ApprovedQuestions.Approved> pq = questions.versions(pool.stream().map(ApprovedQuestions.PoolEntry::versionId).toList());
+            poolAttrs.put(r.id(), pool.stream().map(e -> Attrs.of(pq.get(e.versionId()))).toList());
+        }
+        Map<Integer, String> titles = new HashMap<>();
+        v.sections().forEach(sec -> titles.put(sec.sectionNo(), sec.title()));
+        List<Coverage> out = new ArrayList<>();
+        for (Constraint c : v.blueprint()) {
+            int min = 0;
+            int max = 0;
+            BigDecimal marks = BigDecimal.ZERO;
+            for (Item it : v.items()) {
+                if (c.sectionNo() != null && it.sectionNo() != c.sectionNo()) continue;
+                if (Attrs.of(fixedQ.get(it.questionVersionId())).matches(c)) {
+                    min++;
+                    max++;
+                    marks = marks.add(it.marks());
+                }
+            }
+            for (Rule r : v.rules()) {
+                if (c.sectionNo() != null && r.sectionNo() != c.sectionNo()) continue;
+                List<Attrs> pool = poolAttrs.get(r.id());
+                int n = pool.size();
+                int m = (int) pool.stream().filter(a -> a.matches(c)).count();
+                int k = Math.min(r.count(), n);
+                int lo = Math.max(0, k - (n - m));
+                min += lo;
+                max += Math.min(k, m);
+                marks = marks.add(r.marks().multiply(BigDecimal.valueOf(lo)));
+            }
+            String scope = c.sectionNo() == null ? "the paper" : "section " + c.sectionNo() + (titles.containsKey(c.sectionNo()) ? " (" + titles.get(c.sectionNo()) + ")" : "");
+            String what = ("QUESTION_TYPE".equals(c.dimension()) ? c.targetCode() : c.targetLabel()) + " questions in " + scope;
+            List<String> problems = new ArrayList<>();
+            if (min < c.minCount()) problems.add("at least " + c.minCount() + " required, but a paper can contain as few as " + min);
+            if (c.maxCount() != null && max > c.maxCount()) problems.add("at most " + c.maxCount() + " allowed, but a paper can contain " + max);
+            if (c.minMarks() != null && marks.compareTo(c.minMarks()) < 0) {
+                problems.add("at least " + c.minMarks().toPlainString() + " marks required, but only " + marks.toPlainString() + " are guaranteed");
+            }
+            String desc = "Blueprint " + c.ordinal() + ": " + what + (problems.isEmpty() ? " — guaranteed (" + min + "–" + max + ")" : ": " + String.join("; ", problems)) + ".";
+            out.add(new Coverage(c.ordinal(), desc, min, max, marks, problems.isEmpty()));
+        }
+        return out;
     }
 
     List<ApprovedQuestions.PoolEntry> poolOf(Rule r, boolean frozen) {
@@ -541,9 +759,16 @@ public class AssessmentService {
                     continue;
                 }
             }
-            jdbc.sql("INSERT INTO assessment_item (id, tenant_id, version_id, ordinal, question_version_id, marks, negative_marks) VALUES (?, ?, ?, ?, ?, ?, ?)")
-                    .params(Ids.newId(), tenant, vid, ++ordinal, use, it.marks(), it.negativeMarks()).update();
+            jdbc.sql("INSERT INTO assessment_item (id, tenant_id, version_id, section_no, ordinal, question_version_id, marks, negative_marks) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+                    .params(Ids.newId(), tenant, vid, it.sectionNo(), ++ordinal, use, it.marks(), it.negativeMarks()).update();
         }
+        jdbc.sql("""
+                INSERT INTO assessment_section (tenant_id, version_id, section_no, title, instructions)
+                SELECT tenant_id, ?, section_no, title, instructions FROM assessment_section WHERE version_id = ?""").params(vid, h.publishedId()).update();
+        jdbc.sql("""
+                INSERT INTO assessment_blueprint_constraint (id, tenant_id, version_id, ordinal, section_no, dimension, target_id, target_code, min_count, max_count, min_marks)
+                SELECT gen_random_uuid(), tenant_id, ?, ordinal, section_no, dimension, target_id, target_code, min_count, max_count, min_marks
+                FROM assessment_blueprint_constraint WHERE version_id = ?""").params(vid, h.publishedId()).update();
         jdbc.sql("""
                 INSERT INTO assessment_rule (id, tenant_id, version_id, section_no, ordinal, label, bank_id, subject_id, topic_id, difficulty_id, question_type, draw_count, marks, negative_marks)
                 SELECT gen_random_uuid(), tenant_id, ?, section_no, ordinal, label, bank_id, subject_id, topic_id, difficulty_id, question_type, draw_count, marks, negative_marks
@@ -641,25 +866,27 @@ public class AssessmentService {
         List<UUID> itemVersions = jdbc.sql("SELECT question_version_id FROM assessment_item WHERE version_id = ? ORDER BY ordinal").param(vid).query(UUID.class).list();
         Map<UUID, ApprovedQuestions.Approved> qv = questions.versions(itemVersions);
         Map<UUID, ApprovedQuestions.State> st = questions.states(itemVersions);
-        List<Item> items = jdbc.sql("SELECT id, ordinal, question_version_id, marks, negative_marks FROM assessment_item WHERE version_id = ? ORDER BY ordinal").param(vid)
+        List<Item> items = jdbc.sql("SELECT id, ordinal, question_version_id, marks, negative_marks, section_no FROM assessment_item WHERE version_id = ? ORDER BY ordinal").param(vid)
                 .query((rs, n) -> {
                     UUID q = rs.getObject(3, UUID.class);
                     ApprovedQuestions.Approved a = qv.get(q);
                     ApprovedQuestions.State s = st.get(q);
                     return new Item(rs.getObject(1, UUID.class), rs.getInt(2), q, a == null ? null : a.questionId(), a == null ? null : a.bankId(),
                             a == null ? null : a.type(), a == null ? null : a.excerpt(), a == null ? null : a.subjectName(), a == null ? null : a.topicName(),
-                            a == null ? null : a.difficultyLabel(), rs.getBigDecimal(4), rs.getBigDecimal(5), s == null ? "UNKNOWN" : s.state(), s != null && s.usable());
+                            a == null ? null : a.difficultyLabel(), rs.getBigDecimal(4), rs.getBigDecimal(5), s == null ? "UNKNOWN" : s.state(), s != null && s.usable(),
+                            rs.getInt(6));
                 }).list();
         if (frozen) {
             jdbc.sql("SELECT r.id, count(p.question_version_id) FROM assessment_rule r LEFT JOIN assessment_rule_pool p ON p.rule_id = r.id WHERE r.version_id = ? GROUP BY r.id")
                     .param(vid).query((rs, n) -> { poolSizes.put(rs.getObject(1, UUID.class), rs.getInt(2)); return null; }).list();
         }
         List<Rule> rules = jdbc.sql("""
-                SELECT r.id, r.ordinal, r.label, r.bank_id, b.name, r.subject_id, r.topic_id, r.difficulty_id, r.question_type, r.draw_count, r.marks, r.negative_marks
+                SELECT r.id, r.ordinal, r.label, r.bank_id, b.name, r.subject_id, r.topic_id, r.difficulty_id, r.question_type, r.draw_count, r.marks, r.negative_marks,
+                       r.section_no
                 FROM assessment_rule r JOIN question_bank b ON b.id = r.bank_id WHERE r.version_id = ? ORDER BY r.ordinal""").param(vid)
                 .query((rs, n) -> new Rule(rs.getObject(1, UUID.class), rs.getInt(2), rs.getString(3), rs.getObject(4, UUID.class), rs.getString(5),
                         rs.getObject(6, UUID.class), rs.getObject(7, UUID.class), rs.getObject(8, UUID.class), rs.getString(9), rs.getInt(10), rs.getBigDecimal(11),
-                        rs.getBigDecimal(12), -1, frozen)).list();
+                        rs.getBigDecimal(12), -1, frozen, rs.getInt(13))).list();
         List<Rule> sized = new ArrayList<>();
         for (Rule r : rules) {
             int size;
@@ -672,8 +899,20 @@ public class AssessmentService {
                 }
             }
             sized.add(new Rule(r.id(), r.ordinal(), r.label(), r.bankId(), r.bankName(), r.subjectId(), r.topicId(), r.difficultyId(), r.questionType(),
-                    r.count(), r.marks(), r.negativeMarks(), size, frozen));
+                    r.count(), r.marks(), r.negativeMarks(), size, frozen, r.sectionNo()));
         }
+        List<Section> sections = jdbc.sql("SELECT section_no, title, instructions FROM assessment_section WHERE version_id = ? ORDER BY section_no").param(vid)
+                .query((rs, n) -> new Section(rs.getInt(1), rs.getString(2), rs.getString(3))).list();
+        List<Constraint> blueprint = jdbc.sql("""
+                SELECT id, ordinal, section_no, dimension, target_id, target_code, min_count, max_count, min_marks FROM assessment_blueprint_constraint
+                WHERE version_id = ? ORDER BY ordinal""").param(vid)
+                .query((rs, n) -> {
+                    String dim = rs.getString(4);
+                    UUID target = rs.getObject(5, UUID.class);
+                    return new Constraint(rs.getObject(1, UUID.class), rs.getInt(2), (Integer) rs.getObject(3), dim, target, rs.getString(6),
+                            target == null ? rs.getString(6) : java.util.Objects.requireNonNullElse(targetLabel(dim, target), "Unknown"), rs.getInt(7),
+                            (Integer) rs.getObject(8), rs.getBigDecimal(9));
+                }).list();
         List<Review> reviews = jdbc.sql("""
                 SELECT r.id, r.reviewer_id, u.display_name, r.decision, r.comment, r.created_at, r.invalidated_at, r.invalidated_reason, r.reviewed_hash, v.review_hash
                 FROM assessment_review r JOIN assessment_version v ON v.id = r.version_id LEFT JOIN user_account u ON u.id = r.reviewer_id
@@ -686,7 +925,7 @@ public class AssessmentService {
                 .query((rs, n) -> new Version(rs.getObject("id", UUID.class), rs.getInt("version_no"), rs.getString("state"), rs.getString("governance"),
                         rs.getString("title"), rs.getString("description"), rs.getString("instructions"), rs.getInt("duration_minutes"),
                         rs.getBigDecimal("declared_total_marks"), rs.getBigDecimal("total_marks"), rs.getString("negative_marking"), rs.getBoolean("shuffle_questions"),
-                        rs.getBoolean("shuffle_options"), items, sized, reviews, rs.getObject("author_id", UUID.class), rs.getString("author_name"),
+                        rs.getBoolean("shuffle_options"), items, sized, sections, blueprint, reviews, rs.getObject("author_id", UUID.class), rs.getString("author_name"),
                         rs.getObject("published_by", UUID.class), rs.getString("publisher_name"), ts(rs, "published_at"), ts(rs, "created_at"), rs.getLong("version")))
                 .single();
     }
@@ -757,6 +996,20 @@ public class AssessmentService {
                 SELECT ordinal, coalesce(label, ''), bank_id, coalesce(subject_id::text, ''), coalesce(topic_id::text, ''), coalesce(difficulty_id::text, ''),
                        coalesce(question_type, ''), draw_count, marks, negative_marks FROM assessment_rule WHERE version_id = ? ORDER BY ordinal""").param(vid)
                 .query((rs, n) -> { sb.append("R"); for (int i = 1; i <= 10; i++) sb.append('|').append(rs.getString(i)); sb.append('\u001e'); return null; }).list();
+        // add-on C: sections and blueprint are reviewed content too. Appended only when present, so the hash of a version
+        // without sections or blueprint is exactly what it was before (no spurious review invalidation).
+        boolean sectioned = jdbc.sql("SELECT EXISTS (SELECT 1 FROM assessment_section WHERE version_id = ?) OR EXISTS (SELECT 1 FROM assessment_blueprint_constraint WHERE version_id = ?)")
+                .params(vid, vid).query(Boolean.class).single();
+        if (sectioned) {
+            jdbc.sql("SELECT section_no, title, coalesce(instructions, '') FROM assessment_section WHERE version_id = ? ORDER BY section_no").param(vid)
+                    .query((rs, n) -> { sb.append("S|").append(rs.getInt(1)).append('|').append(rs.getString(2)).append('|').append(rs.getString(3)).append('\u001e'); return null; }).list();
+            jdbc.sql("SELECT 'I', ordinal, section_no FROM assessment_item WHERE version_id = ? UNION ALL SELECT 'R', ordinal, section_no FROM assessment_rule WHERE version_id = ? ORDER BY 1, 2")
+                    .params(vid, vid).query((rs, n) -> { sb.append("P|").append(rs.getString(1)).append(rs.getInt(2)).append('|').append(rs.getInt(3)).append('\u001e'); return null; }).list();
+            jdbc.sql("""
+                    SELECT ordinal, coalesce(section_no::text, ''), dimension, coalesce(target_id::text, ''), coalesce(target_code, ''), min_count,
+                           coalesce(max_count::text, ''), coalesce(min_marks::text, '') FROM assessment_blueprint_constraint WHERE version_id = ? ORDER BY ordinal""").param(vid)
+                    .query((rs, n) -> { sb.append("B"); for (int i = 1; i <= 8; i++) sb.append('|').append(rs.getString(i)); sb.append('\u001e'); return null; }).list();
+        }
         String hash;
         try {
             hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(sb.toString().getBytes(StandardCharsets.UTF_8)));

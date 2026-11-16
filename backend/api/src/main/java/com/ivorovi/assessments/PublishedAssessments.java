@@ -35,10 +35,13 @@ public class PublishedAssessments {
     public record Published(UUID assessmentId, UUID versionId, int versionNo, String code, String title, String purpose, String governance,
                             UUID orgUnitId, int durationMinutes, BigDecimal totalMarks, String state, Instant publishedAt) {}
 
-    /** One question of a candidate's paper: candidate projection (options in drawn order) and marks. Nothing else. */
+    /**
+     * One question of a candidate's paper: candidate projection (options in drawn order), marks and, for papers with
+     * sections (add-on C), the section it belongs to with its candidate-visible title and instructions. Nothing else.
+     */
     @Schema(name = "CandidatePaperItem")
     public record CandidateItem(int position, UUID questionVersionId, String type, Map<String, Object> content, Map<String, Object> projection,
-                                BigDecimal marks, BigDecimal negativeMarks) {}
+                                BigDecimal marks, BigDecimal negativeMarks, Integer sectionNo, String sectionTitle, String sectionInstructions) {}
 
     private final JdbcClient jdbc;
     private final Authz authz;
@@ -113,7 +116,7 @@ public class PublishedAssessments {
     @Transactional(readOnly = true)
     public List<CandidateItem> candidatePaper(UUID paperId) {
         return papers.candidateItems(paperId).stream().map(i -> new CandidateItem(i.position(), i.questionVersionId(), i.type(), i.content(), i.projection(),
-                i.marks(), i.negativeMarks())).toList();
+                i.marks(), i.negativeMarks(), i.sectionNo(), i.sectionTitle(), i.sectionInstructions())).toList();
     }
 
     /** KI-83: an image of a question in this paper (clean scan only); empty for anything not in the paper. */
