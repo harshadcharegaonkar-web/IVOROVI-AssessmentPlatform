@@ -48,6 +48,26 @@ public class Authz {
         return false;
     }
 
+    /**
+     * Whether another (active) principal holds the permission for the unit, with the same rules as {@link #hasInOrgUnit}:
+     * tenant-wide, on the unit, or on an ancestor. Used to validate assignments such as an evaluator pool.
+     */
+    public boolean principalHasInOrgUnit(IvoroviPrincipal p, String permission, UUID orgUnitId) {
+        boolean tenantWide = p.grants().stream().anyMatch(g -> g.permission().equals(permission) && g.scopeType() == ScopeType.TENANT && g.scopeId().equals(p.tenantId()));
+        if (tenantWide) return true;
+        if (orgUnitId == null) return false;
+        Set<UUID> roots = p.grants().stream().filter(g -> g.permission().equals(permission) && g.scopeType() == ScopeType.ORG_UNIT).map(Grant::scopeId)
+                .collect(Collectors.toUnmodifiableSet());
+        if (roots.contains(orgUnitId)) return true;
+        Optional<String> target = scopes.pathOf(orgUnitId);
+        if (target.isEmpty()) return false;
+        for (UUID root : roots) {
+            Optional<String> rootPath = scopes.pathOf(root);
+            if (rootPath.isPresent() && isWithin(target.get(), rootPath.get())) return true;
+        }
+        return false;
+    }
+
     /** Permission granted at any scope (navigation, list endpoints that filter by scope). */
     public boolean hasAnywhere(String permission) {
         return CurrentUser.get().map(p -> p.grants().stream().anyMatch(g -> g.permission().equals(permission)))
