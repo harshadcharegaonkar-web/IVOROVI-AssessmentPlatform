@@ -263,4 +263,26 @@ class PrivilegedRoleAssignmentIT extends IntegrationTest {
         assertThatThrownBy(() -> bootstrap.bootstrap(new PrivilegedRoleBootstrap.Command(fresh.tenant, firstEmail, "EXAM_CONTROLLER", null,
                 "ops.jane", "", "x"))).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void admissionAndPlacementDecisionsArePrivilegedAndHeldOnlyByTheApproverRoles() throws Exception {
+        // the database and the application agree on the privileged set (demo programme S-7)
+        String[] db = ownerJdbc().sql("SELECT privileged_permissions()").query((rs, n) -> (String[]) rs.getArray(1).getArray()).single();
+        assertThat(db).containsExactlyInAnyOrderElementsOf(com.ivorovi.platform.security.Permission.PRIVILEGED);
+        assertThat(db).contains("admission.decide", "placement.decide");
+        // no other system role holds them
+        assertThat(ownerJdbc().sql("SELECT code FROM role WHERE system_role AND tenant_id IS NULL AND permissions && ARRAY['admission.decide', 'placement.decide']")
+                .query(String.class).list()).containsExactlyInAnyOrder("ADMISSION_APPROVER", "PLACEMENT_APPROVER");
+        // an administrator cannot assign them by their own authority: the assignment waits for an independent approval
+        for (String role : new String[] {"ADMISSION_APPROVER", "PLACEMENT_APPROVER"}) {
+            TestOrg.Account officer = org.account("ADMISSION_OFFICER", college);       // one pending privileged request per person
+            as(orgAdmin, post("/api/v1/users/" + officer.id() + "/role-assignments").content("{\"roleId\":\"" + roleId(role) + "\",\"orgUnitId\":\"" + college + "\"}"))
+                    .andExpect(status().isAccepted());
+            assertThat(ownerJdbc().sql("SELECT count(*) FROM role_assignment WHERE user_account_id = ? AND role_id = ?").params(officer.id(), roleId(role))
+                    .query(Long.class).single()).as(role + " not assigned before approval").isZero();
+        }
+        // the officer still holds the non-privileged admission permissions through the existing role
+        assertThat(ownerJdbc().sql("SELECT permissions FROM role WHERE code = 'ADMISSION_OFFICER' AND tenant_id IS NULL")
+                .query((rs, n) -> (String[]) rs.getArray(1).getArray()).single()).contains("admission.read", "admission.manage").doesNotContain("admission.decide");
+    }
 }

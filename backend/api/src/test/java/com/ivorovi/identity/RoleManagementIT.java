@@ -161,7 +161,8 @@ class RoleManagementIT extends IntegrationTest {
                     .andExpect(jsonPath("$[*].domain", Matchers.hasItems("USERS", "STAFF", "ROLES", "ADMISSIONS", "AI", "AUDIT")))
                     .andExpect(jsonPath("$[*].domain", Matchers.not(Matchers.hasItem("PLATFORM"))))
                     .andExpect(jsonPath("$[?(@.domain == 'USERS')].permissions[*].code", Matchers.contains("user.read", "user.manage")))
-                    .andExpect(jsonPath("$[?(@.domain == 'ADMISSIONS')].permissions[0].availability").value("PLANNED"))
+                    .andExpect(jsonPath("$[?(@.domain == 'ADMISSIONS')].permissions[0].availability").value("AVAILABLE"))   // demo programme S-7
+                    .andExpect(jsonPath("$[?(@.domain == 'AI')].permissions[0].availability").value("PLANNED"))
                     .andExpect(jsonPath("$[?(@.domain == 'AUDIT')].permissions[0].scope").value("ORGANIZATION"))
                     .andExpect(jsonPath("$[?(@.domain == 'USERS')].permissions[1].level").value("MANAGE"));
             for (Permission p : Permission.values()) {
@@ -178,7 +179,7 @@ class RoleManagementIT extends IntegrationTest {
         void unknownPlannedPlatformAndEmptyPermissionsAreRefused() throws Exception {
             createRole(admin, "Bad 1", null, "student.delete_everything").andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("unknown_permission"));
-            createRole(admin, "Bad 2", null, "admission.read").andExpect(status().isBadRequest())
+            createRole(admin, "Bad 2", null, "ai.use").andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("permission_not_grantable"));
             createRole(admin, "Bad 3", null, "platform.tenant.manage").andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.code").value("permission_not_grantable"));
@@ -565,7 +566,7 @@ class RoleManagementIT extends IntegrationTest {
     @Test
     void migrationKeepsSystemRolesActiveAndGivesUnitAdministratorsRoleManagement() {
         assertThat(ownerJdbc().sql("SELECT count(*) FROM role WHERE system_role AND status = 'ACTIVE' AND archived_at IS NULL").query(Long.class).single())
-                .isEqualTo(15);
+                .isEqualTo(17);                                                  // + ADMISSION_APPROVER, PLACEMENT_APPROVER (demo programme S-7)
         assertThat(ownerJdbc().sql("SELECT 'role.manage' = ANY(permissions) FROM role WHERE code = 'INSTITUTION_ADMIN' AND system_role")
                 .query(Boolean.class).single()).isTrue();
         assertThat(ownerJdbc().sql("SELECT count(*) FROM role_assignment WHERE tenant_id IN (?, ?)").params(TENANT_A, TENANT_B)

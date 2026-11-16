@@ -16,7 +16,8 @@ class PermissionCatalogConsistencyIT extends IntegrationTest {
     }
 
     @Test
-    void allFifteenSystemRolesExist() {
-        assertThat(ownerJdbc().sql("SELECT count(*) FROM role WHERE system_role").query(Long.class).single()).isEqualTo(15);
+    void allSeventeenSystemRolesExist() {
+        // 15 original roles + ADMISSION_APPROVER and PLACEMENT_APPROVER (demo programme S-7)
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM role WHERE system_role").query(Long.class).single()).isEqualTo(17);
     }
 }

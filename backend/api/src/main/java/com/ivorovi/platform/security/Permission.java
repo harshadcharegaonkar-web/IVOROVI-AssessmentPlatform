@@ -89,9 +89,11 @@ public enum Permission {
     STUDENT_ACCOUNT_MANAGE("student.account.manage", "Create student sign-in accounts", "Create a sign-in account for a student on demand (student role only)",
             Domain.STUDENTS, Level.WRITE, ScopeRule.UNIT, Availability.AVAILABLE),
     ADMISSION_READ("admission.read", "View admissions", "View admission cycles, applicants and screening results",
-            Domain.ADMISSIONS, Level.READ, ScopeRule.UNIT, Availability.PLANNED),
-    ADMISSION_MANAGE("admission.manage", "Manage admissions", "Configure admission cycles and decide on applicants",
-            Domain.ADMISSIONS, Level.MANAGE, ScopeRule.UNIT, Availability.PLANNED),
+            Domain.ADMISSIONS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    ADMISSION_MANAGE("admission.manage", "Manage admissions", "Configure admission cycles and offerings, screen applications and prepare merit lists and offers",
+            Domain.ADMISSIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    ADMISSION_DECIDE("admission.decide", "Approve merit lists and offers", "Independently approve the publication of merit lists and the issue of admission offers (privileged)",
+            Domain.ADMISSIONS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     ASSESSMENT_READ("assessment.read", "View assessments", "View assessments, their versions and previews (never answer keys)",
             Domain.ASSESSMENTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
     ASSESSMENT_AUTHOR("assessment.author", "Author assessments", "Create and edit assessment drafts of every purpose from approved questions, preview, submit",
@@ -149,9 +151,17 @@ public enum Permission {
     RESULT_PUBLISH("result.publish", "Approve and publish results", "Approve and publish results",
             Domain.RESULTS, Level.MANAGE, ScopeRule.UNIT, Availability.PLANNED),
     PLACEMENT_READ("placement.read", "View placement", "View placement drives and outcomes",
-            Domain.PLACEMENT, Level.READ, ScopeRule.UNIT, Availability.PLANNED),
+            Domain.PLACEMENT, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
     PLACEMENT_MANAGE("placement.manage", "Manage placement", "Manage placement drives, recruiters and shortlists",
-            Domain.PLACEMENT, Level.MANAGE, ScopeRule.UNIT, Availability.PLANNED),
+            Domain.PLACEMENT, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    PLACEMENT_DECIDE("placement.decide", "Approve shortlist release", "Independently approve the release of a drive's shortlist to the employer (privileged)",
+            Domain.PLACEMENT, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
+    PLACEMENT_EMPLOYER_READ("placement.employer.read", "View shortlists as an employer", "See the consenting shortlisted candidates of the drives an employer was given access to",
+            Domain.PLACEMENT, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    ANALYTICS_READ("analytics.read", "View learning analytics", "View outcome attainment, student, subject and cohort analysis and the at-risk list (released results only)",
+            Domain.RESULTS, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
+    ANALYTICS_MANAGE("analytics.manage", "Manage learning analytics", "Set outcome targets and at-risk rules, recompute attainment and follow up at-risk flags",
+            Domain.RESULTS, Level.MANAGE, ScopeRule.UNIT, Availability.AVAILABLE),
     AI_USE("ai.use", "Use AI assistance", "Use enabled AI capabilities (output always needs human approval)",
             Domain.AI, Level.WRITE, ScopeRule.UNIT, Availability.PLANNED),
     AI_APPROVE("ai.approve", "Approve AI-generated output", "Review and approve AI-generated questions or evaluations",
@@ -230,7 +240,8 @@ public enum Permission {
      * Privileged permissions (P2-08): never granted by an administrator's own authority. A role containing one is assigned
      * only through an approved four-eyes request whose approver holds them, or by the operator bootstrap.
      */
-    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish", "exam.results.approve", "exam.attempt.terminate", "exam.attempt.extend");
+    public static final java.util.Set<String> PRIVILEGED = java.util.Set.of("question.approve", "question.key.read", "assessment.publish", "exam.results.approve", "exam.attempt.terminate", "exam.attempt.extend",
+            "admission.decide", "placement.decide");
 
     public static Optional<Permission> fromKey(String key) {
         return Arrays.stream(values()).filter(p -> p.key.equals(key)).findFirst();
