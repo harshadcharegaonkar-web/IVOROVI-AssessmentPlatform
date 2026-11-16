@@ -8,32 +8,25 @@ import com.ivorovi.platform.audit.AuditLog;
 import com.ivorovi.platform.audit.AuditOutcome;
 import com.ivorovi.platform.config.DeploymentProperties;
 import com.ivorovi.platform.ids.Ids;
+import com.ivorovi.platform.documents.QuarantinedDocuments;
 import com.ivorovi.platform.scanning.MalwareScanner;
-import com.ivorovi.platform.storage.ObjectStorage;
 import com.ivorovi.platform.tenancy.TenantContext;
 import com.ivorovi.platform.web.ApiException;
 import com.ivorovi.students.internal.StudentService.OptionKind;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.io.ByteArrayInputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -41,7 +34,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * protection. Every upload lands in quarantine ({@code quarantine/…}) with scan state PENDING; only a CLEAN verdict from
  * the configured scanner promotes it to {@code documents/…}, and only CLEAN documents can be downloaded or verified.
  * Without a scanner, documents stay quarantined (development/test); in STAGING/PRODUCTION uploads are refused
- * (fail closed). Removed and infected files are purged from storage after the retention period.
+ * (fail closed). Removed and infected files are purged from storage after the retention period. The quarantine pipeline
+ * itself (fail-closed check, validation, quarantine, scan and promotion) is shared: {@link QuarantinedDocuments}.
  */
 @Service
 public class DocumentService {
@@ -57,34 +51,26 @@ public class DocumentService {
 
     public record Download(String fileName, String contentType, byte[] content) {}
 
-    static final long MAX_BYTES = 5L * 1024 * 1024;
+    static final long MAX_BYTES = QuarantinedDocuments.MAX_BYTES;
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
 
     private final JdbcClient jdbc;
     private final StudentAccess access;
     private final StudentOptions options;
-    private final ObjectStorage storage;
-    private final ObjectProvider<MalwareScanner> scanner;
-    private final DeploymentProperties deployment;
+    private final QuarantinedDocuments files;
     private final AuditLog audit;
     private final TransactionTemplate tx;
-    private final boolean scanOnUpload;
     private final int retentionDays;
     private final com.ivorovi.platform.audit.UploadRefusals refusals;
 
-    DocumentService(com.ivorovi.platform.audit.UploadRefusals refusals, JdbcClient jdbc, StudentAccess access, StudentOptions options, ObjectStorage storage, ObjectProvider<MalwareScanner> scanner,
-                    DeploymentProperties deployment, AuditLog audit, TransactionTemplate tx,
-                    @Value("${ivorovi.scanning.scan-on-upload:true}") boolean scanOnUpload,
-                    @Value("${ivorovi.retention.document-days:30}") int retentionDays) {
+    DocumentService(com.ivorovi.platform.audit.UploadRefusals refusals, JdbcClient jdbc, StudentAccess access, StudentOptions options, QuarantinedDocuments files,
+                    AuditLog audit, TransactionTemplate tx, @Value("${ivorovi.retention.document-days:30}") int retentionDays) {
         this.jdbc = jdbc;
         this.access = access;
         this.options = options;
-        this.storage = storage;
-        this.scanner = scanner;
-        this.deployment = deployment;
+        this.files = files;
         this.audit = audit;
         this.tx = tx;
-        this.scanOnUpload = scanOnUpload;
         this.retentionDays = retentionDays;
         this.refusals = refusals;
     }
@@ -112,28 +98,24 @@ public class DocumentService {
 
     /** Fail-closed policy: without a scanner, uploads are refused outside development and test. */
     public static boolean uploadsAllowed(DeploymentProperties.Environment env, boolean scannerPresent) {
-        return scannerPresent || env == DeploymentProperties.Environment.DEVELOPMENT || env == DeploymentProperties.Environment.TEST;
+        return QuarantinedDocuments.uploadsAllowed(env, scannerPresent);
     }
 
     @Transactional
     public UUID upload(UUID studentId, String category, String title, String originalName, byte[] content) {
         // every refusal is audited in its own transaction (this one rolls back) with institution and reason (KI-53)
         String[] detected = {null};
+        QuarantinedDocuments.Validated[] validated = {null};
         StudentAccess.StudentRef[] who = {null};
         try {
             StudentAccess.StudentRef s = access.readable(studentId);
             who[0] = s;
             access.require(StudentAccess.DOC_MANAGE, s);
             if (!s.active()) throw conflict("student_inactive", "This student profile is deactivated.");
-            if (!uploadsAllowed(deployment.environment(), scanner.getIfAvailable() != null)) {
-                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "document_scanning_unavailable",
-                        "Document uploads are disabled until the malware scanning service is available.");
-            }
+            files.requireUploadsAllowed();
             options.require(OptionKind.DOCUMENT_CATEGORY, category, "category");
-            if (content == null || content.length == 0) throw ApiException.badRequest("empty_file", "Choose a file.");
-            if (content.length > MAX_BYTES) throw new ApiException(HttpStatus.CONTENT_TOO_LARGE, "file_too_large", "Files can be at most 5 MB.");
-            detected[0] = sniff(content);
-            if (detected[0] == null) throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", "Upload a PDF, JPEG or PNG file.");
+            validated[0] = QuarantinedDocuments.validate(content, originalName, QuarantinedDocuments.ALL_TYPES);
+            detected[0] = validated[0].contentType();
             if ("PHOTOGRAPH".equals(category) && "application/pdf".equals(detected[0])) {
                 throw new ApiException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "unsupported_file_type", "A photograph must be a JPEG or PNG image.");
             }
@@ -145,28 +127,19 @@ public class DocumentService {
             throw e;
         }
         StudentAccess.StudentRef s = who[0];
-        String type = detected[0];
-        String name = safeName(originalName, type);
+        String type = validated[0].contentType();
+        String name = validated[0].fileName();
         String docTitle = StudentService.optional(title, 200);
         UUID id = Ids.newId();
-        String path = "quarantine/students/" + studentId + "/" + id;
-        storage.put(path, new ByteArrayInputStream(content), content.length, type);
+        String path = files.quarantine("students/" + studentId, id, content, type);
         jdbc.sql("""
                 INSERT INTO student_document (id, tenant_id, student_id, category, title, file_name, content_type, size_bytes, sha256, object_path, uploaded_by)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 .params(id, tenant(), studentId, category, docTitle == null ? options.label(OptionKind.DOCUMENT_CATEGORY, category) : docTitle, name, type,
-                        content.length, sha256(content), path, actor()).update();
+                        content.length, validated[0].sha256(), path, actor()).update();
         access.changed("student.document.uploaded", s, "Document uploaded (" + options.label(OptionKind.DOCUMENT_CATEGORY, category) + ", awaiting malware scan)",
                 Map.of("documentId", id.toString(), "category", category, "contentType", type, "sizeBytes", String.valueOf(content.length)));
-        if (scanOnUpload && scanner.getIfAvailable() != null) {
-            UUID tenant = tenant();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    Thread.ofVirtual().name("document-scan").start(() -> TenantContext.runInTenant(tenant, () -> scanOne(id)));
-                }
-            });
-        }
+        files.scanAfterCommit(() -> scanOne(id));
         return id;
     }
 
@@ -202,7 +175,7 @@ public class DocumentService {
             audit.recordDenied("student.document.download_denied", Map.of("documentId", documentId.toString(), "scanStatus", d.scan(), "status", d.status()));
             throw conflict("document_not_available", "This document is not available: it has not passed the malware scan (" + d.scan().toLowerCase() + ").");
         }
-        byte[] content = storage.get(d.path()).orElseThrow(() -> conflict("document_missing", "The file could not be found in storage."));
+        byte[] content = files.content(d.path()).orElseThrow(() -> conflict("document_missing", "The file could not be found in storage."));
         access.auditOnly("student.document.downloaded", s, Map.of("documentId", documentId.toString()));
         return new Download(d.name(), d.type(), content);
     }
@@ -238,11 +211,11 @@ public class DocumentService {
     /** Scans every pending document of every organization (scheduled; also triggered after uploads). */
     @Scheduled(fixedDelayString = "${ivorovi.scanning.poll-interval:PT30S}")
     public void scanPendingScheduled() {
-        if (scanner.getIfAvailable() != null) scanPending();
+        if (files.scannerAvailable()) scanPending();
     }
 
     public int scanPending() {
-        if (scanner.getIfAvailable() == null) return 0;
+        if (!files.scannerAvailable()) return 0;
         List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant WHERE status = 'ACTIVE'").query(UUID.class).list());
         int scanned = 0;
         for (UUID t : tenants) {
@@ -258,29 +231,21 @@ public class DocumentService {
 
     /** Scans one quarantined document in its own transaction (tenant context must be bound). */
     void scanOne(UUID documentId) {
-        MalwareScanner s = scanner.getIfAvailable();
-        if (s == null) return;
+        if (!files.scannerAvailable()) return;
         try {
             tx.executeWithoutResult(st -> {
                 record D(UUID student, String path, String type, String scan) {}
                 Optional<D> doc = jdbc.sql("SELECT student_id, object_path, content_type, scan_status FROM student_document WHERE id = ? FOR UPDATE SKIP LOCKED")
                         .param(documentId).query((rs, n) -> new D(rs.getObject(1, UUID.class), rs.getString(2), rs.getString(3), rs.getString(4))).optional();
                 if (doc.isEmpty() || !"PENDING".equals(doc.get().scan())) return;
-                byte[] content = storage.get(doc.get().path()).orElse(null);
-                MalwareScanner.Result r = content == null ? new MalwareScanner.Result(MalwareScanner.Verdict.ERROR, "file missing in quarantine") : s.scan(content);
-                String detail = r.detail() == null ? null : r.detail().length() > 300 ? r.detail().substring(0, 300) : r.detail();
-                if (r.verdict() == MalwareScanner.Verdict.CLEAN) {
-                    String promoted = "documents/students/" + doc.get().student() + "/" + documentId;
-                    storage.put(promoted, new ByteArrayInputStream(content), content.length, doc.get().type());
-                    jdbc.sql("UPDATE student_document SET scan_status = 'CLEAN', scan_detail = ?, scanned_at = now(), object_path = ? WHERE id = ?")
-                            .params(detail, promoted, documentId).update();
-                    storage.delete(doc.get().path());
-                } else {
-                    jdbc.sql("UPDATE student_document SET scan_status = ?, scan_detail = ?, scanned_at = now() WHERE id = ?")
-                            .params(r.verdict().name(), detail, documentId).update();
-                }
+                String promoted = "documents/students/" + doc.get().student() + "/" + documentId;
+                Optional<QuarantinedDocuments.Scanned> scanned = files.scan(doc.get().path(), promoted, doc.get().type());
+                if (scanned.isEmpty()) return;
+                QuarantinedDocuments.Scanned r = scanned.get();
+                jdbc.sql("UPDATE student_document SET scan_status = ?, scan_detail = ?, scanned_at = now(), object_path = ? WHERE id = ?")
+                        .params(r.verdict().name(), r.detail(), r.path(), documentId).update();
                 String studentNo = jdbc.sql("SELECT student_no FROM student WHERE id = ?").param(doc.get().student()).query(String.class).single();
-                Map<String, String> details = Map.of("documentId", documentId.toString(), "verdict", r.verdict().name(), "scanner", s.name(), "studentNo", studentNo);
+                Map<String, String> details = Map.of("documentId", documentId.toString(), "verdict", r.verdict().name(), "scanner", r.scanner(), "studentNo", studentNo);
                 audit.record("student.document.scanned", "student", doc.get().student().toString(),
                         r.verdict() == MalwareScanner.Verdict.INFECTED ? AuditOutcome.FAILURE : AuditOutcome.SUCCESS, details);
                 jdbc.sql("INSERT INTO student_event (id, tenant_id, student_id, event_type, summary) VALUES (?, ?, ?, 'student.document.scanned', ?)")
@@ -314,7 +279,7 @@ public class DocumentService {
                     LIMIT 200""").params(retentionDays, retentionDays).query((rs, n) -> new P(rs.getObject(1, UUID.class), rs.getString(2))).list();
             for (P p : due) {
                 try {
-                    storage.delete(p.path());
+                    files.delete(p.path());
                     jdbc.sql("UPDATE student_document SET purged_at = now() WHERE id = ?").param(p.id()).update();
                     audit.recordSuccess("student.document.purged", "student_document", p.id().toString(), Map.of("documentId", p.id().toString()));
                 } catch (RuntimeException e) {
@@ -328,28 +293,10 @@ public class DocumentService {
 
     /** Content type from the leading bytes (never trusted from the client). */
     static String sniff(byte[] b) {
-        if (b.length >= 5 && b[0] == '%' && b[1] == 'P' && b[2] == 'D' && b[3] == 'F' && b[4] == '-') return "application/pdf";
-        if (b.length >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) return "image/jpeg";
-        if (b.length >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G' && b[4] == 0x0D && b[5] == 0x0A && b[6] == 0x1A && b[7] == 0x0A) {
-            return "image/png";
-        }
-        return null;
+        return QuarantinedDocuments.sniff(b);
     }
 
     static String safeName(String original, String type) {
-        String ext = switch (type) { case "application/pdf" -> ".pdf"; case "image/png" -> ".png"; default -> ".jpg"; };
-        String base = original == null ? "document" : original.replaceAll("^.*[/\\\\]", "").replaceAll("\\.[A-Za-z0-9]{1,5}$", "");
-        base = base.replaceAll("[^A-Za-z0-9 ._-]", "_").trim();
-        if (base.isEmpty()) base = "document";
-        if (base.length() > 120) base = base.substring(0, 120);
-        return base + ext;
-    }
-
-    private static String sha256(byte[] content) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+        return QuarantinedDocuments.safeName(original, type);
     }
 }
