@@ -1,7 +1,7 @@
 # 14-day client demonstration programme — Days 1–2 initial assessment (2026-11-16)
 
 Prepared by Session A (technical lead) from the merged repository at `f4dbca1`: CI run 43803503040, all jobs green.
-**No implementation starts before you decide the items in §6.**
+**Decisions of 2026-11-16 (D-18 to D-20):** five agents approved and started; components approved with conditions; **AI provider not yet available** (the AI add-on cannot be accepted until a key is configured); code-execution host from DevOps by Day 3. Charter: `workstreams.md`.
 
 ## 1. Verdict
 
@@ -109,19 +109,37 @@ Notes on the estimates:
 
 **Total: ≈ 90 one-agent days** (≈ 80 with every reduced depth applied).
 
-## 4. Workstreams and owners (five agents)
+## 4. Workstreams and owners (approved, D-18)
 
-| Workstream | Owner | Scope | Load |
-|---|---|---|---|
-| Lead + WS2 Examination | **Session A** (this session) | Architecture, API contracts, merge approval, release decisions; D, E, F, G, H gaps | ≈ 13 + lead 5 = 18 |
-| WS1 Core + enterprise I | **Session 2** (built RB-3 key rotation) | A, B, C, I mandatory; add-on I (tenant console, branding, monitoring, backup, deployment) | ≈ 10 |
-| WS3 Advanced assessment | **Session 4 (new)** | Add-ons A (AI), B (proctoring), C (advanced assessment) | ≈ 19 |
-| WS3b Coding | **Session 2**, after WS1, or Session 6 if approved | Add-on D | ≈ 8 |
-| WS4 Institutional | **Session 5 (new)** | Add-ons E, F, G | ≈ 17.5 |
-| WS5 Enterprise and quality | **Session 3** (security reviewer) | Add-on H; demo dataset; demo environment; QA and security regression; demo script | ≈ 18 |
+| Session | Workstream | Modules | Load (one-agent days) | Confidence |
+|---|---|---|---|---|
+| **A** | Technical lead + Examination | Mandatory D, E (descriptive type only), F, G, H; lead work | 11.5 + lead 5 = 16.5 | High for D, F, H; medium for G (largest new workflow) |
+| **2** | Core, enterprise, coding | Mandatory A, B, C, I; add-on I; add-on D | 4.5 + 7 + 8 = 19.5 | High for A–C and I; medium for enterprise I; **low for coding until the host arrives (Day 3)** |
+| **3** | Integrations, demo data, QA, deployment | Add-on H; dataset; demo environment; QA and security regression; demo script | 5 + 13 = 18 | Medium (depends on the hosting environment by Day 9 and on every stream's data) |
+| **4** | AI, proctoring, advanced assessment | Add-ons A, B, C (C includes sections, moved from A) | 6 + 6 + 7 = 19 | Proctoring and advanced assessment: medium. **AI: cannot be accepted without a provider key** |
+| **5** | Admission, analytics, placement | Add-ons E, F, G | 7.5 + 5 + 5 = 17.5 | Medium |
 
-The technical lead approves every merge after a full diff review, the full backend suite and both browser suites, as on
-Day 7. Branches are per workstream; the API contracts are agreed in the OpenAPI document before the UI is built.
+Capacity per session for Days 3–10 is about 16–17 one-agent days at the observed rate, net of integration and review.
+**Sessions 2 and 4 are over capacity by 2–3 days each**, so the shortfall is visible on the critical path now.
+
+### Should a sixth agent take coding?
+
+**Recommended: yes, from Day 3.** Coding (add-on D, about 8 days) is the most independently assignable work in the
+programme:
+- the runner is a **separate service** behind an interface (ADR-0004);
+- the coding question type and the editor are a new module;
+- the only shared touch points are the question type registry, the exam app's answer component and the scoring hook, which A
+  defines as contracts on Day 2.
+
+Moving coding out of Session 2 brings Session 2 down to about 11.5 days. That frees Session 2 to absorb Session 4's
+overflow, for example the fill-in-the-blank, matching and ordering types. It also removes the single largest
+infrastructure-dependent risk from a stream that also carries enterprise work.
+
+Conditions:
+- the code-execution host is available by Day 3, otherwise the sixth agent has nothing it can accept;
+- the agent works only in the `coding` module and the runner service, through A's contracts.
+
+Cost: one more session's usage for about 8 working days.
 
 ## 5. Infrastructure and external services: what we need and by when
 
