@@ -30,7 +30,12 @@ Day 1 = 2026-11-16 … Day 14 = 2026-11-29.
    - Cross-module calls go through a public API agreed with A, in the owning module's top-level package.
 3. **Shared modules.** A change to a module you do not own is a small, separate commit on your branch, flagged in your report. A reviews it first.
 4. **Contracts first.** New REST endpoints are agreed in the OpenAPI document with A before the UI is built.
-5. **Migrations.** Version `V<yyyymmdd><s><nnn>`: the date is the day you write it; `s` is the stream digit (A=0, 2=1, 3=2, 4=3, 5=4); `nnn` is a sequence. Example: Session 4 on Day 3 writes `V202611183010`. Every new table holding organization data has `tenant_id` and the RLS policy. Append-only and immutability guards follow the existing patterns.
+5. **Migrations.** Version `V<yyyymmdd><s><nnn>`: `s` is the stream digit (A=0, 2=1, 3=2, 4=3, 5=4); `nnn` is a sequence.
+   - **Before asking A to merge, renumber your new migrations so that each is higher than every version on `main` at
+     that moment** (keep your stream digit). Flyway `outOfOrder` stays false.
+   - Never renumber a migration that is already on `main`.
+   - Every new table holding organization data has `tenant_id` and the RLS policy.
+   - Append-only and immutability guards follow the existing patterns.
 6. **Branches.** `ds/<session>-<topic>` (for example `ds/s4-proctoring`). Push at least twice a day. **Never push to `main`.** A merges.
 7. **Before you ask A to merge:**
    - the full backend suite is green on your branch, rebased on the current `main`;
