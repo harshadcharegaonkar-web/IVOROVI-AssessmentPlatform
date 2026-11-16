@@ -503,4 +503,95 @@ class AttemptIT extends QuestionTestSupport {
     UUID ownerPaper(UUID attemptId) {
         return published.paperForAttempt(version, "attempt:" + attemptId);
     }
+
+    // ================================================================================================ module API ExamResults (demo programme S-5)
+
+    @Autowired com.ivorovi.exams.ExamResults examResults;
+    @Autowired com.ivorovi.platform.security.PrincipalResolver principals;
+    @Autowired com.ivorovi.exams.internal.CandidateService candidateService;
+
+    <T> T staff(com.ivorovi.support.TestOrg.Account who, Supplier<T> work) {
+        return TenantContext.callInTenant(org.tenant, () -> {
+            var principal = principals.resolve(org.tenant, who.caller().subject()).orElseThrow();
+            SecurityContextHolder.getContext().setAuthentication(new com.ivorovi.platform.security.IvoroviAuthentication(principal, null));
+            try {
+                return work.get();
+            } finally {
+                SecurityContextHolder.clearContext();
+            }
+        });
+    }
+
+    void enrol(UUID candidate, String email, String subjectType, UUID subjectRef) {
+        String index = TenantContext.callInTenant(org.tenant, () -> candidateService.emailIndex(email));
+        ownerJdbc().sql("""
+                INSERT INTO exam_enrolment (id, tenant_id, schedule_id, email_enc, email_index, display_name, candidate_id, source, subject_type, subject_ref, created_by)
+                VALUES (?, ?, ?, ?, ?, 'Candidate', ?, ?, ?, ?, ?)""")
+                .params(UUID.randomUUID(), org.tenant, schedule, cipher.encrypt(email, "exam_enrolment.email", org.tenant), index, candidate,
+                        subjectRef == null ? "UPLOAD" : "MODULE", subjectType, subjectRef, UUID.randomUUID()).update();
+    }
+
+    @Test
+    void modulesReadOnlyReleasedResultsOfTheirOwnSubjectTypeWithoutContentOrPersonalData() throws Exception {
+        ownerJdbc().sql("""
+                INSERT INTO exam_schedule (id, tenant_id, org_unit_id, version_id, portal_id, session_id, title, opens_at, closes_at, duration_minutes, created_by)
+                VALUES (?, ?, ?, ?, ?, ?, 'Entrance test', ?, ?, 90, ?)""")
+                .params(schedule, org.tenant, college, version, portalId, session, Timestamp.from(Instant.now().minusSeconds(600)),
+                        Timestamp.from(Instant.now().plus(Duration.ofHours(3))), UUID.randomUUID()).update();
+        com.ivorovi.support.TestOrg.Account officer = org.account("ADMISSION_OFFICER", college);
+        com.ivorovi.support.TestOrg.Account placementOfficer = org.account("PLACEMENT_OFFICER", college);
+        UUID applicantRef = UUID.randomUUID(), studentRef = UUID.randomUUID();
+        String applicantSub = "cand-" + rnd(), studentSub = "cand-" + rnd();
+        String applicantEmail = applicantSub + "@c.test", studentEmail = studentSub + "@c.test";
+        UUID applicant = candidate(applicantSub, applicantEmail), student = candidate(studentSub, studentEmail);
+        enrol(applicant, applicantEmail, "APPLICANT", applicantRef);
+        enrol(student, studentEmail, null, null);
+        for (String[] c : new String[][] {{applicantSub, applicant.toString()}, {studentSub, student.toString()}}) {
+            UUID id = UUID.fromString(c[1]);
+            checkIn(id);
+            terms(id, Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, 0);
+            UUID attempt = as(c[0], () -> attempts.start(portalKey, schedule)).id();
+            as(c[0], () -> attempts.save(portalKey, attempt, 1, 1, Map.of("value", "A")));
+            as(c[0], () -> attempts.submit(portalKey, attempt, "k-" + rnd()));
+        }
+        scoring.scoreDue();
+
+        // provisional results do not exist for the modules
+        assertThat(staff(officer, () -> examResults.released(schedule, com.ivorovi.exams.ExamResults.SubjectType.APPLICANT))).isEmpty();
+        assertThat(staff(faculty, () -> examResults.releasedForEmails(schedule, com.ivorovi.exams.ExamResults.SubjectType.STUDENT, Map.of(studentRef, studentEmail))))
+                .isEmpty();
+
+        // R-1: review by one controller, approval by another
+        var reviewed = call(post("/api/v1/exam/results/" + schedule + "/reviews").content("{}"), controller, status().isOk());
+        String approval = reviewed.path("reviews").get(0).path("approvalId").asString();
+        call(post("/api/v1/approvals/" + approval + "/decision").content("{\"approve\":true,\"reason\":\"Agreed\"}"), controller2, status().isOk());
+
+        var forAdmissions = staff(officer, () -> examResults.released(schedule, com.ivorovi.exams.ExamResults.SubjectType.APPLICANT));
+        assertThat(forAdmissions).singleElement().satisfies(r -> {
+            assertThat(r.subjectRef()).isEqualTo(applicantRef);
+            assertThat(r.maxMarks()).isEqualByComparingTo("6");
+        });
+        var items = staff(officer, () -> examResults.releasedItems(schedule, com.ivorovi.exams.ExamResults.SubjectType.APPLICANT, List.of(forAdmissions.getFirst().attemptId())));
+        assertThat(items).hasSize(4).allSatisfy(i -> assertThat(i.questionVersionId()).isNotNull());
+        String json = MAPPER.writeValueAsString(List.of(forAdmissions, items));
+        assertThat(json).doesNotContain("@c.test").doesNotContain("answerKey").doesNotContain("stem").doesNotContain("Candidate");
+
+        // analytics matches students by e-mail, never an enrolment recorded for an applicant
+        var forAnalytics = staff(faculty, () -> examResults.releasedForEmails(schedule, com.ivorovi.exams.ExamResults.SubjectType.STUDENT,
+                Map.of(studentRef, studentEmail.toUpperCase(), UUID.randomUUID(), applicantEmail)));
+        assertThat(forAnalytics).singleElement().satisfies(r -> assertThat(r.subjectRef()).isEqualTo(studentRef));
+        assertThat(staff(faculty, () -> examResults.releasedSchedules(com.ivorovi.exams.ExamResults.SubjectType.STUDENT, null)))
+                .extracting(com.ivorovi.exams.ExamResults.ReleasedSchedule::scheduleId).contains(schedule);
+
+        // each module only for its own subject type; other institutions see nothing
+        assertThatThrownBy(() -> staff(officer, () -> examResults.released(schedule, com.ivorovi.exams.ExamResults.SubjectType.PLACEMENT_CANDIDATE)))
+                .satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        assertThatThrownBy(() -> staff(faculty, () -> examResults.released(schedule, com.ivorovi.exams.ExamResults.SubjectType.APPLICANT)))
+                .satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        assertThat(staff(placementOfficer, () -> examResults.released(schedule, com.ivorovi.exams.ExamResults.SubjectType.PLACEMENT_CANDIDATE))).isEmpty();
+        assertThatThrownBy(() -> staff(otherController, () -> examResults.released(schedule, com.ivorovi.exams.ExamResults.SubjectType.APPLICANT)))
+                .satisfies(t -> assertThat(code(t)).isEqualTo("not_found"));
+        assertThat(staff(otherController, () -> examResults.releasedSchedules(com.ivorovi.exams.ExamResults.SubjectType.STUDENT, null)))
+                .extracting(com.ivorovi.exams.ExamResults.ReleasedSchedule::scheduleId).doesNotContain(schedule);
+    }
 }
