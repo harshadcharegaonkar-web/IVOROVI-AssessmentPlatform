@@ -1,4 +1,4 @@
-export { createApiClient, unwrap, type ApiClientOptions, type IvoroviApi } from "./client";
+export { createApiClient, REAUTHENTICATION_CODES, unwrap, type ApiClientOptions, type IvoroviApi } from "./client";
 export { ApiError, type Problem } from "./errors";
 export type { components, paths } from "./generated/schema";
 
@@ -159,3 +159,5 @@ export type ExamResultRow = Schemas["ExamResultRow"];
 export type InvigilationMonitor = Schemas["InvigilationMonitor"];
 export type InvigilationCandidate = Schemas["InvigilationCandidate"];
 export type CandidateIncident = Schemas["CandidateIncident"];
+export type SecurityPolicyView = Schemas["SecurityPolicyView"];
+export type SecurityPolicyUpdateResult = Schemas["SecurityPolicyUpdateResult"];

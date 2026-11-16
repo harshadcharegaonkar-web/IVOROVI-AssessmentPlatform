@@ -58,6 +58,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenant/security-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Organization security policy for staff sessions: second factor, idle and session limits; the password policy is platform-wide and read-only (requires tenant.security.manage) */
+        get: operations["get_2"];
+        /** Change the security policy. Stronger rules apply at once (APPLIED); any weaker rule needs a second administrator's approval (PENDING_APPROVAL). Turning the second factor on requires the caller's own sign-in to have used one (requires tenant.security.manage) */
+        put: operations["update_2"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student-settings/numbering-rules/{orgUnitId}": {
         parameters: {
             query?: never;
@@ -136,7 +154,7 @@ export interface paths {
         };
         get: operations["detail"];
         /** Update a staff profile (optimistic version required) */
-        put: operations["update_2"];
+        put: operations["update_3"];
         post?: never;
         delete?: never;
         options?: never;
@@ -186,9 +204,9 @@ export interface paths {
             cookie?: never;
         };
         /** A question with its current and approved versions, reviews, policy and the actions open to the caller (no answer key) */
-        get: operations["get_2"];
+        get: operations["get_3"];
         /** Edit the open version (author only); editing a version in review returns it to draft and invalidates its reviews */
-        put: operations["update_3"];
+        put: operations["update_4"];
         post?: never;
         delete?: never;
         options?: never;
@@ -237,9 +255,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_3"];
+        get: operations["get_4"];
         /** Update a bank; a weaker approval policy needs a second administrator's approval before it applies */
-        put: operations["update_4"];
+        put: operations["update_5"];
         post?: never;
         delete?: never;
         options?: never;
@@ -290,9 +308,9 @@ export interface paths {
             cookie?: never;
         };
         /** Integration with adapter details, recent runs and 30-day run counts */
-        get: operations["get_4"];
+        get: operations["get_5"];
         /** Change name, description, configuration or secret (optimistic version check) */
-        put: operations["update_5"];
+        put: operations["update_6"];
         post?: never;
         /** Delete a disabled integration and its run history */
         delete: operations["delete_1"];
@@ -411,7 +429,7 @@ export interface paths {
         };
         get?: never;
         /** Replace the open version's definition (a version in review returns to draft) */
-        put: operations["update_6"];
+        put: operations["update_7"];
         post?: never;
         delete?: never;
         options?: never;
@@ -427,9 +445,9 @@ export interface paths {
             cookie?: never;
         };
         /** API client with its keys (id and last four characters only) and daily usage */
-        get: operations["get_5"];
+        get: operations["get_6"];
         /** Change name, description, IP allow-list or expiry (scopes are fixed) */
-        put: operations["update_7"];
+        put: operations["update_8"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2736,7 +2754,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit profile fields (email only before the first sign-in) */
-        patch: operations["update_8"];
+        patch: operations["update_9"];
         trace?: never;
     };
     "/api/v1/students/{studentId}/guardians/{guardianId}": {
@@ -2787,7 +2805,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged) */
-        patch: operations["update_9"];
+        patch: operations["update_10"];
         trace?: never;
     };
     "/api/v1/roles/{id}": {
@@ -2805,7 +2823,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit a custom role (system roles are protected); changes apply to every holder immediately */
-        patch: operations["update_10"];
+        patch: operations["update_11"];
         trace?: never;
     };
     "/api/v1/org-units/{id}": {
@@ -2816,7 +2834,7 @@ export interface paths {
             cookie?: never;
         };
         /** Unit details with ancestors (breadcrumb), child counts and dependents */
-        get: operations["get_6"];
+        get: operations["get_7"];
         put?: never;
         post?: never;
         /** Delete an unused unit (otherwise 409 org_unit_has_dependents: deactivate instead) */
@@ -2824,7 +2842,7 @@ export interface paths {
         options?: never;
         head?: never;
         /** Edit code, name, short name, attributes or branding (optimistic version) */
-        patch: operations["update_11"];
+        patch: operations["update_12"];
         trace?: never;
     };
     "/api/v1/academics/subjects/{id}": {
@@ -3222,7 +3240,7 @@ export interface paths {
             cookie?: never;
         };
         /** Identity with role assignments, API clients and current effective permissions */
-        get: operations["get_7"];
+        get: operations["get_8"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3877,7 +3895,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_8"];
+        get: operations["get_9"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4042,7 +4060,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["get_9"];
+        get: operations["get_10"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4225,7 +4243,7 @@ export interface paths {
             cookie?: never;
         };
         /** One request (requester or eligible approvers only) */
-        get: operations["get_10"];
+        get: operations["get_11"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4495,6 +4513,45 @@ export interface components {
             allowOverlappingAcademicYears?: boolean;
             /** Format: int64 */
             version?: number;
+        };
+        SecurityPolicyUpdateRequest: {
+            mfaRequired: boolean;
+            /** Format: int32 */
+            idleMinutes?: number;
+            /** Format: int32 */
+            absoluteHours?: number;
+            /** Format: int64 */
+            version: number;
+        };
+        SecurityPolicyChange: {
+            mfaRequired?: boolean;
+            /** Format: int32 */
+            idleMinutes?: number;
+            /** Format: int32 */
+            absoluteHours?: number;
+        };
+        SecurityPolicyUpdateResult: {
+            status?: string;
+            /** Format: uuid */
+            approvalRequestId?: string;
+            policy?: components["schemas"]["SecurityPolicyView"];
+        };
+        SecurityPolicyView: {
+            mfaRequired?: boolean;
+            /** Format: int32 */
+            idleMinutes?: number;
+            /** Format: int32 */
+            absoluteHours?: number;
+            /** Format: int64 */
+            version?: number;
+            /** Format: date-time */
+            updatedAt?: string;
+            passwordPolicy?: string;
+            passwordPolicyScope?: string;
+            /** Format: uuid */
+            pendingApprovalId?: string;
+            pendingChange?: components["schemas"]["SecurityPolicyChange"];
+            callerUsedSecondFactor?: boolean;
         };
         StudentNumberRuleRequest: {
             /** @enum {string} */
@@ -8871,6 +8928,50 @@ export interface operations {
             };
         };
     };
+    get_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SecurityPolicyView"];
+                };
+            };
+        };
+    };
+    update_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SecurityPolicyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SecurityPolicyUpdateResult"];
+                };
+            };
+        };
+    };
     saveRule: {
         parameters: {
             query?: never;
@@ -9017,7 +9118,7 @@ export interface operations {
             };
         };
     };
-    update_2: {
+    update_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9095,7 +9196,7 @@ export interface operations {
             };
         };
     };
-    get_2: {
+    get_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -9117,7 +9218,7 @@ export interface operations {
             };
         };
     };
-    update_3: {
+    update_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9194,7 +9295,7 @@ export interface operations {
             };
         };
     };
-    get_3: {
+    get_4: {
         parameters: {
             query?: never;
             header?: never;
@@ -9216,7 +9317,7 @@ export interface operations {
             };
         };
     };
-    update_4: {
+    update_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9312,7 +9413,7 @@ export interface operations {
             };
         };
     };
-    get_4: {
+    get_5: {
         parameters: {
             query?: never;
             header?: never;
@@ -9334,7 +9435,7 @@ export interface operations {
             };
         };
     };
-    update_5: {
+    update_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9583,7 +9684,7 @@ export interface operations {
             };
         };
     };
-    update_6: {
+    update_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -9609,7 +9710,7 @@ export interface operations {
             };
         };
     };
-    get_5: {
+    get_6: {
         parameters: {
             query?: never;
             header?: never;
@@ -9631,7 +9732,7 @@ export interface operations {
             };
         };
     };
-    update_7: {
+    update_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -13962,7 +14063,7 @@ export interface operations {
             };
         };
     };
-    update_8: {
+    update_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -14107,7 +14208,7 @@ export interface operations {
             };
         };
     };
-    update_9: {
+    update_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -14177,7 +14278,7 @@ export interface operations {
             };
         };
     };
-    update_10: {
+    update_11: {
         parameters: {
             query?: never;
             header?: never;
@@ -14203,7 +14304,7 @@ export interface operations {
             };
         };
     };
-    get_6: {
+    get_7: {
         parameters: {
             query?: never;
             header?: never;
@@ -14247,7 +14348,7 @@ export interface operations {
             };
         };
     };
-    update_11: {
+    update_12: {
         parameters: {
             query?: never;
             header?: never;
@@ -14942,7 +15043,7 @@ export interface operations {
             };
         };
     };
-    get_7: {
+    get_8: {
         parameters: {
             query?: never;
             header?: never;
@@ -15828,7 +15929,7 @@ export interface operations {
             };
         };
     };
-    get_8: {
+    get_9: {
         parameters: {
             query?: never;
             header?: never;
@@ -16046,7 +16147,7 @@ export interface operations {
             };
         };
     };
-    get_9: {
+    get_10: {
         parameters: {
             query?: never;
             header?: never;
@@ -16300,7 +16401,7 @@ export interface operations {
             };
         };
     };
-    get_10: {
+    get_11: {
         parameters: {
             query?: never;
             header?: never;

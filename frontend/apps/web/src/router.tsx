@@ -172,6 +172,7 @@ export const routes: RouteObject[] = [
         ] },
         { path: "settings/features", handle: { crumb: "Feature Settings" }, ...page(() => import("./routes/features/FeaturesPage"), (a) => a.hasAnywhere("feature.read")) },
         { path: "settings/system", handle: { crumb: "System Settings" }, ...page(() => import("./routes/organization/SystemSettingsPage"), (a) => a.has("tenant.settings.manage")) },
+        { path: "settings/security", handle: { crumb: "Security Policy" }, ...page(() => import("./routes/organization/SecurityPolicyPage"), (a) => a.has("tenant.security.manage")) },
         { path: "audit", handle: { crumb: "Audit Logs" }, ...page(() => import("./routes/AuditPage"), (a) => a.has("audit.read")) },
         { path: "dashboards", handle: { crumb: "Dashboards" }, children: [
           { path: "academic", handle: { crumb: "Academic" }, ...page(() => import("./routes/insights/AcademicDashboardPage"), (a) => a.hasAnywhere("academics.read")) },
