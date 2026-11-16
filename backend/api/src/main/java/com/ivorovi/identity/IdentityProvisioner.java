@@ -22,6 +22,18 @@ public interface IdentityProvisioner {
     /** Enables or disables sign-in; disabling also ends every active session of the user. */
     void setEnabled(String subject, boolean enabled);
 
+    /**
+     * Asks the provider to make the user enrol an authenticator app at the next sign-in (organization MFA policy). The
+     * provider then requires that second factor at every sign-in. Idempotent.
+     */
+    void requireAuthenticatorSetup(String subject);
+
+    /**
+     * The provider's password policy as a short human-readable description, for display only. It applies to every
+     * organization of the staff realm (it cannot differ per organization). Empty when the provider does not disclose it.
+     */
+    Optional<String> passwordPolicy();
+
     /** Thrown for invalid input the provider rejects (e.g. a password that violates its policy). */
     class RejectedException extends RuntimeException {
         public RejectedException(String message) { super(message); }
