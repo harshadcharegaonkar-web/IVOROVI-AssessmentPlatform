@@ -23,6 +23,8 @@ public enum Permission {
 
     TENANT_SETTINGS_MANAGE("tenant.settings.manage", "Change organization settings", "Change organization settings such as terminology and time zone",
             Domain.ORGANIZATION, Level.MANAGE, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
+    TENANT_SECURITY_MANAGE("tenant.security.manage", "Manage the security policy", "Set the organization's second-factor requirement and session limits (weakening needs a second administrator's approval)",
+            Domain.ORGANIZATION, Level.MANAGE, ScopeRule.ORGANIZATION, Availability.AVAILABLE),
     FEATURE_READ("feature.read", "View feature settings", "View which modules and AI capabilities are switched on",
             Domain.ORGANIZATION, Level.READ, ScopeRule.UNIT, Availability.AVAILABLE),
     FEATURE_MANAGE("feature.manage", "Change feature settings", "Switch modules and AI capabilities on or off within their limits",
