@@ -49,10 +49,13 @@ public class FakeIdentityProvisioner implements IdentityProvisioner {
         authenticatorSetupRequests.merge(subject, 1, Integer::sum);
     }
 
-    /** The development realm's policy (deploy/compose/keycloak/realm-ivorovi.json). */
+    /** Subjects with an enrolled authenticator app. */
+    public final java.util.Set<String> withAuthenticator = ConcurrentHashMap.newKeySet();
+
     @Override
-    public Optional<String> passwordPolicy() {
-        return Optional.of("length(12) and notUsername");
+    public boolean hasAuthenticator(String subject) {
+        check();
+        return withAuthenticator.contains(subject);
     }
 
     public void addExisting(String subject, String email, UUID tenantId) {

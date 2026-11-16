@@ -31,8 +31,8 @@ import tools.jackson.databind.json.JsonMapper;
  * The organization security policy for staff sessions (mandatory module I). Strengthening applies at once; any change
  * that weakens a rule (second factor off, a longer or removed limit) needs a second holder of
  * {@code tenant.security.manage} to approve it (ADR-0007), and is applied only then. Turning the second factor on
- * requires the administrator's own sign-in to have used one, so an organization cannot lock all its administrators
- * out through a provider that does not deliver the factor.
+ * requires the administrator to have one already, so an organization cannot lock all its administrators out through a
+ * provider that does not deliver the factor.
  */
 @Service
 public class SecurityPolicyService implements ApprovalHandler {
@@ -45,7 +45,7 @@ public class SecurityPolicyService implements ApprovalHandler {
 
     @Schema(name = "SecurityPolicyView")
     public record View(boolean mfaRequired, Integer idleMinutes, Integer absoluteHours, long version, Instant updatedAt,
-                       String passwordPolicy, String passwordPolicyScope, UUID pendingApprovalId, Change pendingChange, boolean callerUsedSecondFactor) {}
+                       String passwordPolicyScope, UUID pendingApprovalId, Change pendingChange, boolean callerHasSecondFactor) {}
 
     @Schema(name = "SecurityPolicyChange")
     public record Change(boolean mfaRequired, Integer idleMinutes, Integer absoluteHours) {}
@@ -67,6 +67,8 @@ public class SecurityPolicyService implements ApprovalHandler {
     private final IdentityProvisioner idp;
     private final JsonMapper json;
     private final Map<UUID, Cached> cache = new ConcurrentHashMap<>();
+    private final Map<String, Instant> enrolled = new ConcurrentHashMap<>();
+    private static final Duration ENROLLED_TTL = Duration.ofSeconds(60);
 
     SecurityPolicyService(JdbcClient jdbc, Authz authz, AuditLog audit, @Lazy ApprovalService approvals, IdentityProvisioner idp, JsonMapper json) {
         this.jdbc = jdbc;
@@ -111,14 +113,8 @@ public class SecurityPolicyService implements ApprovalHandler {
         Change pendingChange = pending.map(x -> new Change(Boolean.TRUE.equals(x.payload().get("mfaRequired")), intOrNull(x.payload().get("idleMinutes")),
                 intOrNull(x.payload().get("absoluteHours")))).orElse(null);
         SecurityPolicy p = r.map(Row::policy).orElse(SecurityPolicy.NONE);
-        String pw;
-        try {
-            pw = idp.passwordPolicy().orElse(null);
-        } catch (RuntimeException e) {
-            pw = null;
-        }
-        return new View(p.mfaRequired(), p.idleMinutes(), p.absoluteHours(), r.map(Row::version).orElse(0L), r.map(Row::updatedAt).orElse(null), pw,
-                "PLATFORM", pendingId, pendingChange, callerUsedSecondFactor());
+        return new View(p.mfaRequired(), p.idleMinutes(), p.absoluteHours(), r.map(Row::version).orElse(0L), r.map(Row::updatedAt).orElse(null),
+                "PLATFORM", pendingId, pendingChange, callerHasSecondFactor());
     }
 
     // ================================================================================================ updating
@@ -133,7 +129,7 @@ public class SecurityPolicyService implements ApprovalHandler {
         SecurityPolicy before = current.map(Row::policy).orElse(SecurityPolicy.NONE);
         SecurityPolicy after = new SecurityPolicy(target.mfaRequired(), target.idleMinutes(), target.absoluteHours());
         if (before.equals(after)) return new Result("UNCHANGED", null, view(current));
-        if (after.mfaRequired() && !before.mfaRequired() && !callerUsedSecondFactor()) {
+        if (after.mfaRequired() && !before.mfaRequired() && !callerHasSecondFactor()) {
             // prove the second factor works for this organization before requiring it of everyone
             requestEnrolment(me(), subject());
             throw ApiException.conflict("second_factor_needed_first",
@@ -251,9 +247,29 @@ public class SecurityPolicyService implements ApprovalHandler {
         return amr != null && amr.stream().anyMatch(SECOND_FACTORS::contains);
     }
 
-    private static boolean callerUsedSecondFactor() {
-        return auth().map(a -> a.getCredentials() == null ? null : a.getCredentials().getClaimAsStringList("amr")).map(SecurityPolicyService::usedSecondFactor)
+    private boolean callerHasSecondFactor() {
+        return auth().map(a -> hasSecondFactor(a.getPrincipal().subject(), a.getCredentials() == null ? List.of() : a.getCredentials().getClaimAsStringList("amr")))
                 .orElse(false);
+    }
+
+    /**
+     * True when the sign-in used a second factor: the token's {@code amr} names one, or the user has an authenticator
+     * enrolled (the staff realm then requires it at every sign-in; Keycloak's default flows leave {@code amr} empty).
+     * Positive answers are cached for 60 s; negative ones are not, so a user who just enrolled is never refused again.
+     * An identity provider that cannot answer counts as "no" (fail closed).
+     */
+    boolean hasSecondFactor(String subject, List<String> amr) {
+        if (usedSecondFactor(amr)) return true;
+        Instant ok = enrolled.get(subject);
+        if (ok != null && ok.plus(ENROLLED_TTL).isAfter(Instant.now())) return true;
+        boolean has;
+        try {
+            has = idp.hasAuthenticator(subject);
+        } catch (RuntimeException e) {
+            return false;
+        }
+        if (has) enrolled.put(subject, Instant.now());
+        return has;
     }
 
     private static UUID me() {

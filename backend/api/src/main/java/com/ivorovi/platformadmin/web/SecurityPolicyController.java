@@ -28,8 +28,8 @@ class SecurityPolicyController {
     }
 
     @GetMapping
-    @Operation(summary = "Organization security policy for staff sessions: second factor, idle and session limits; the password policy is platform-wide "
-            + "and read-only (requires tenant.security.manage)")
+    @Operation(summary = "Organization security policy for staff sessions: second factor, idle and session limits. The password policy is platform-wide "
+            + "(the shared staff realm) and not part of it (requires tenant.security.manage)")
     SecurityPolicyService.View get() {
         return service.view();
     }

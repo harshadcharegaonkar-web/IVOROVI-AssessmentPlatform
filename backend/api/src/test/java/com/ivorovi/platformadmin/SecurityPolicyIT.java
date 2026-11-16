@@ -113,7 +113,6 @@ class SecurityPolicyIT extends IntegrationTest {
         assertThat(initial.path("mfaRequired").asBoolean()).isFalse();
         assertThat(absent(initial.path("idleMinutes"))).isTrue();
         assertThat(initial.path("version").asLong()).isZero();
-        assertThat(initial.path("passwordPolicy").asString()).isEqualTo("length(12) and notUsername");
         assertThat(initial.path("passwordPolicyScope").asString()).isEqualTo("PLATFORM");
         // institution administrators and faculty cannot view or change it
         for (TestOrg.Account who : List.of(instAdmin, faculty)) {
@@ -177,12 +176,44 @@ class SecurityPolicyIT extends IntegrationTest {
         // another organization's staff are not affected
         call(get("/api/v1/me"), token(foreignFaculty, false, null, null)).andExpect(status().isOk());
 
+        // Keycloak's default flows leave amr empty: an enrolled authenticator (required at every sign-in) counts too
+        TestOrg.Account enrolled = org.account("FACULTY", null);
+        call(get("/api/v1/me"), token(enrolled, false, null, null)).andExpect(status().isForbidden());
+        idp.withAuthenticator.add(enrolled.caller().subject());
+        call(get("/api/v1/me"), token(enrolled, false, null, null)).andExpect(status().isOk());
+        assertThat(idp.authenticatorSetupRequests.get(enrolled.caller().subject())).isEqualTo(1);
+        // an identity provider that cannot answer is "no second factor" (fail closed)
+        TestOrg.Account unknown = org.account("FACULTY", null);
+        idp.withAuthenticator.add(unknown.caller().subject());
+        idp.unavailable = true;
+        try {
+            call(get("/api/v1/me"), token(unknown, false, null, null)).andExpect(status().isForbidden()).andExpect(jsonPath("$.code").value("mfa_required"));
+        } finally {
+            idp.unavailable = false;
+        }
+
         // turning it off is a weakening: two administrators, both signed in with the factor
         JsonNode pending = json(change(withFactor, false, null, null, 1).andExpect(status().isOk()));
         assertThat(pending.path("status").asString()).isEqualTo("PENDING_APPROVAL");
         call(get("/api/v1/me"), f).andExpect(status().isForbidden());
         approve(token(admin2, true, null, null), UUID.fromString(pending.path("approvalRequestId").asString())).andExpect(status().isOk());
         call(get("/api/v1/me"), f).andExpect(status().isOk());
+    }
+
+    @Test
+    void anAdministratorWithAnEnrolledAuthenticatorCanRequireIt() throws Exception {
+        idp.withAuthenticator.add(admin.caller().subject());
+        String a = token(admin, false, null, null);                                          // amr empty, as from Keycloak's default flows
+        assertThat(json(call(get(PATH), a).andExpect(status().isOk())).path("callerHasSecondFactor").asBoolean()).isTrue();
+        change(a, true, null, null, 0).andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPLIED"));
+        call(get(PATH), a).andExpect(status().isOk());
+        assertThat(idp.authenticatorSetupRequests).doesNotContainKey(admin.caller().subject());
+        call(get("/api/v1/me"), token(faculty, false, null, null)).andExpect(status().isForbidden());
+        // back to the baseline through a second administrator
+        idp.withAuthenticator.add(admin2.caller().subject());
+        JsonNode pending = json(change(a, false, null, null, 1).andExpect(status().isOk()));
+        approve(token(admin2, false, null, null), UUID.fromString(pending.path("approvalRequestId").asString())).andExpect(status().isOk());
+        call(get("/api/v1/me"), token(faculty, false, null, null)).andExpect(status().isOk());
     }
 
     @Test

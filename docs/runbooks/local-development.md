@@ -61,6 +61,7 @@ Open http://localhost:5173. Vite proxies `/api` to the API on port 8080.
 | arun.faculty@aurora.test | Aurora | Faculty (Aurora Institute of Technology) | read-only, institution-scoped |
 | asha.student@aurora.test | Aurora | Student | minimal navigation, denied admin pages |
 | bela.admin@borealis.test | Borealis | Organization Administrator | a second tenant for isolation checks |
+| bruno.admin@borealis.test | Borealis | Organization Administrator | the second administrator for four-eyes approvals (security-policy E2E) |
 | ghost.user@aurora.test | Aurora (IdP only) | no Ivorovi account | rejected by the API |
 
 Fixtures live in `backend/api/src/main/resources/db/devdata` (loaded **only** with the `dev` profile) and

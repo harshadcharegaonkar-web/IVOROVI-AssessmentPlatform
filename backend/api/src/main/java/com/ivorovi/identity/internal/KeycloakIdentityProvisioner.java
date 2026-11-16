@@ -20,8 +20,7 @@ import org.springframework.web.client.RestClientResponseException;
 /**
  * Keycloak admin REST API through the confidential client {@code ivorovi-provisioner} (client-credentials grant;
  * the service account holds only realm-management {@code manage-users}, {@code view-users} and
- * {@code query-users}, D-P1-04; optionally {@code view-realm}, only to display the realm's password policy read-only).
- * Passwords are passed through once and never logged or stored by Ivorovi.
+ * {@code query-users}, D-P1-04). Passwords are passed through once and never logged or stored by Ivorovi.
  */
 @Component
 class KeycloakIdentityProvisioner implements IdentityProvisioner {
@@ -98,18 +97,12 @@ class KeycloakIdentityProvisioner implements IdentityProvisioner {
                 .body(Map.of("requiredActions", actions)).retrieve().toBodilessEntity());
     }
 
-    /** Needs realm-management {@code view-realm} for the provisioner; without it the policy is simply not disclosed. */
     @Override
     @SuppressWarnings("unchecked")
-    public Optional<String> passwordPolicy() {
-        try {
-            Map<String, Object> realm = http.get().uri("/admin/realms/{realm}", cfg.realm()).headers(h -> h.setBearerAuth(accessToken()))
-                    .retrieve().body(Map.class);
-            Object p = realm == null ? null : realm.get("passwordPolicy");
-            return p == null || String.valueOf(p).isBlank() ? Optional.empty() : Optional.of(String.valueOf(p));
-        } catch (RestClientException e) {
-            return Optional.empty();
-        }
+    public boolean hasAuthenticator(String subject) {
+        List<Map<String, Object>> creds = call(() -> http.get().uri("/admin/realms/{realm}/users/{id}/credentials", cfg.realm(), subject)
+                .headers(h -> h.setBearerAuth(accessToken())).retrieve().body(List.class));
+        return creds != null && creds.stream().anyMatch(c -> "otp".equals(c.get("type")));
     }
 
     private <T> T call(java.util.function.Supplier<T> request) {

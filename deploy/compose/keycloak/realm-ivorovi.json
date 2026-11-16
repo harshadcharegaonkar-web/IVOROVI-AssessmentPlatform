@@ -263,6 +263,27 @@
       ]
     },
     {
+      "id": "0192b000-0000-7000-8000-0000000b0002",
+      "username": "bruno.admin@borealis.test",
+      "email": "bruno.admin@borealis.test",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Bruno",
+      "lastName": "Admin",
+      "attributes": {
+        "tenant_id": [
+          "0192b000-0000-7000-8000-00000000000b"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
       "id": "0192a000-0000-7000-8000-0000000a0009",
       "username": "ghost.user@aurora.test",
       "email": "ghost.user@aurora.test",
@@ -291,8 +312,7 @@
         "realm-management": [
           "manage-users",
           "view-users",
-          "query-users",
-          "view-realm"
+          "query-users"
         ]
       }
     },

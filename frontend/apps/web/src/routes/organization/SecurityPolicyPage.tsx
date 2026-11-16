@@ -67,14 +67,14 @@ function PolicyForm({ policy }: { policy: SecurityPolicyView }) {
   const pending = policy.pendingChange;
   return (
     <form noValidate className="space-y-6" onSubmit={(e) => { e.preventDefault(); setProblem(null); save.mutate(); }}>
-      {problem && <Alert tone="danger" data-testid="policy-problem">{problem}</Alert>}
+      {problem && <div data-testid="policy-problem"><Alert tone="danger">{problem}</Alert></div>}
       {policy.pendingApprovalId && pending && (
-        <Alert tone="warning" data-testid="policy-pending">
+        <div data-testid="policy-pending"><Alert tone="warning">
           A weaker policy is waiting for approval: second factor {pending.mfaRequired ? "required" : "optional"}, idle limit{" "}
           {pending.idleMinutes == null ? "none" : `${pending.idleMinutes} min`}, session limit {pending.absoluteHours == null ? "none" : `${pending.absoluteHours} h`}.{" "}
           <Link className="underline" to={`/approvals/${policy.pendingApprovalId}`}>View the request</Link>. The current policy stays in force until another
           administrator approves it.
-        </Alert>
+        </Alert></div>
       )}
       <Card>
         <CardHeader title="Second factor" description="Require an authenticator app at every staff sign-in." />
@@ -88,11 +88,11 @@ function PolicyForm({ policy }: { policy: SecurityPolicyView }) {
               </span>
             </label>
           </div>
-          {mfa && !policy.mfaRequired && !policy.callerUsedSecondFactor && (
-            <Alert tone="info" data-testid="mfa-self-first">
+          {mfa && !policy.mfaRequired && !policy.callerHasSecondFactor && (
+            <div data-testid="mfa-self-first"><Alert tone="info">
               Set up an authenticator app for your own account first. Saving will start that for you; sign in again, complete the set-up step, then turn
               this on. This prevents every administrator from being locked out.
-            </Alert>
+            </Alert></div>
           )}
         </CardBody>
       </Card>
@@ -113,7 +113,10 @@ function PolicyForm({ policy }: { policy: SecurityPolicyView }) {
       <Card>
         <CardHeader title="Password policy" description="Set for the whole platform by the platform operator; it is the same for every organization." />
         <CardBody>
-          <p className="font-mono text-sm text-fg" data-testid="password-policy">{policy.passwordPolicy ?? "Not disclosed by the identity provider."}</p>
+          <p className="text-sm text-fg" data-testid="password-policy">
+            Password rules are part of the sign-in service shared by all organizations on this platform, so they cannot differ per organization.
+            Contact your platform operator to review or change them.
+          </p>
         </CardBody>
       </Card>
       <p className="text-sm text-muted-strong">

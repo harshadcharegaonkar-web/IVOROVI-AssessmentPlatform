@@ -29,10 +29,11 @@ public interface IdentityProvisioner {
     void requireAuthenticatorSetup(String subject);
 
     /**
-     * The provider's password policy as a short human-readable description, for display only. It applies to every
-     * organization of the staff realm (it cannot differ per organization). Empty when the provider does not disclose it.
+     * True when the user has an authenticator app enrolled. The staff realm's sign-in flows then require that factor at
+     * every sign-in, so an enrolled user's sessions all used it. Throws {@link UnavailableException} when the provider
+     * cannot answer (callers fail closed).
      */
-    Optional<String> passwordPolicy();
+    boolean hasAuthenticator(String subject);
 
     /** Thrown for invalid input the provider rejects (e.g. a password that violates its policy). */
     class RejectedException extends RuntimeException {

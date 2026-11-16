@@ -19,8 +19,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Enforces the organization's staff session policy on every staff API call ({@link StaffSessionGuard}).
  * <ul>
- *   <li><b>Second factor:</b> the token's {@code amr} must name one; otherwise the user is asked (once) at the identity
- *       provider to enrol an authenticator and the call is refused.</li>
+ *   <li><b>Second factor:</b> the token's {@code amr} names one, or the user has an authenticator enrolled (which the
+ *       staff realm then requires at every sign-in); otherwise the user is asked (once) at the identity provider to enrol
+ *       one and the call is refused.</li>
  *   <li><b>Idle and absolute limits:</b> tracked per identity-provider session ({@code sid}). The absolute limit counts
  *       from {@code auth_time} when present, else from the first call seen. An ended session stays ended: the user signs
  *       in again (new session). Last-seen updates are throttled to one write per 30 s per session.</li>
@@ -50,7 +51,7 @@ class StaffSessionPolicyGuard implements StaffSessionGuard {
     @Override
     public Optional<Refusal> check(UUID tenantId, UUID userId, String subject, String sessionId, Instant authTime, List<String> amr) {
         SecurityPolicy p = policies.effective(tenantId);
-        if (p.mfaRequired() && !SecurityPolicyService.usedSecondFactor(amr)) {
+        if (p.mfaRequired() && !policies.hasSecondFactor(subject, amr)) {
             try {
                 tx.executeWithoutResult(s -> policies.requestEnrolment(userId, subject));
             } catch (RuntimeException e) {
