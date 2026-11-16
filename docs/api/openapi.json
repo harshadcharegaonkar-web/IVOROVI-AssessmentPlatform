@@ -14007,6 +14007,49 @@
           }
         }
       },
+      "AssessmentBlueprintRequest" : {
+        "type" : "object",
+        "description" : "Coverage every generated paper must have, for the whole paper (sectionNo null) or one section. SUBJECT, TOPIC and DIFFICULTY take targetId; QUESTION_TYPE takes targetCode.",
+        "properties" : {
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1
+          },
+          "dimension" : {
+            "type" : "string",
+            "pattern" : "SUBJECT|TOPIC|DIFFICULTY|QUESTION_TYPE"
+          },
+          "targetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetCode" : {
+            "type" : "string",
+            "maxLength" : 40,
+            "minLength" : 0
+          },
+          "minCount" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 500,
+            "minimum" : 0
+          },
+          "maxCount" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 500,
+            "minimum" : 0
+          },
+          "minMarks" : {
+            "type" : "number",
+            "maximum" : 100000,
+            "minimum" : 0
+          }
+        },
+        "required" : [ "dimension" ]
+      },
       "AssessmentDraftRequest" : {
         "type" : "object",
         "properties" : {
@@ -14062,6 +14105,22 @@
             "maxItems" : 50,
             "minItems" : 0
           },
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentSectionRequest"
+            },
+            "maxItems" : 20,
+            "minItems" : 0
+          },
+          "blueprint" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentBlueprintRequest"
+            },
+            "maxItems" : 50,
+            "minItems" : 0
+          },
           "version" : {
             "type" : "integer",
             "format" : "int64"
@@ -14085,6 +14144,12 @@
             "type" : "number",
             "maximum" : 1000,
             "minimum" : 0
+          },
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1
           }
         },
         "required" : [ "questionVersionId" ]
@@ -14133,9 +14198,38 @@
             "type" : "number",
             "maximum" : 1000,
             "minimum" : 0
+          },
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1
           }
         },
         "required" : [ "bankId", "marks" ]
+      },
+      "AssessmentSectionRequest" : {
+        "type" : "object",
+        "description" : "A section header (add-on C). Without sections the paper is one unnamed section.",
+        "properties" : {
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1
+          },
+          "title" : {
+            "type" : "string",
+            "maxLength" : 150,
+            "minLength" : 0
+          },
+          "instructions" : {
+            "type" : "string",
+            "maxLength" : 4000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "title" ]
       },
       "AssessmentActions" : {
         "type" : "object",
@@ -14157,6 +14251,47 @@
           },
           "blockedReason" : {
             "type" : "string"
+          }
+        }
+      },
+      "AssessmentBlueprintConstraint" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "ordinal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "dimension" : {
+            "type" : "string"
+          },
+          "targetId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "targetCode" : {
+            "type" : "string"
+          },
+          "targetLabel" : {
+            "type" : "string"
+          },
+          "minCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "maxCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "minMarks" : {
+            "type" : "number"
           }
         }
       },
@@ -14259,6 +14394,10 @@
           },
           "usable" : {
             "type" : "boolean"
+          },
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -14346,6 +14485,25 @@
           },
           "poolFrozen" : {
             "type" : "boolean"
+          },
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "AssessmentSection" : {
+        "type" : "object",
+        "properties" : {
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "instructions" : {
+            "type" : "string"
           }
         }
       },
@@ -14404,6 +14562,18 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/AssessmentRule"
+            }
+          },
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentSection"
+            }
+          },
+          "blueprint" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentBlueprintConstraint"
             }
           },
           "reviews" : {
@@ -17932,6 +18102,12 @@
             "items" : {
               "$ref" : "#/components/schemas/AssessmentPaperItem"
             }
+          },
+          "sections" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentSection"
+            }
           }
         }
       },
@@ -17971,6 +18147,10 @@
           },
           "source" : {
             "type" : "string"
+          },
+          "sectionNo" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
@@ -22273,6 +22453,32 @@
           }
         }
       },
+      "AssessmentBlueprintCoverage" : {
+        "type" : "object",
+        "properties" : {
+          "ordinal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "guaranteedMin" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "possibleMax" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "guaranteedMarks" : {
+            "type" : "number"
+          },
+          "met" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "AssessmentIssue" : {
         "type" : "object",
         "properties" : {
@@ -22311,6 +22517,12 @@
             "additionalProperties" : {
               "type" : "integer",
               "format" : "int32"
+            }
+          },
+          "blueprint" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/AssessmentBlueprintCoverage"
             }
           }
         }

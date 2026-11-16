@@ -5234,6 +5234,20 @@ export interface components {
             /** Format: int64 */
             version?: number;
         };
+        /** @description Coverage every generated paper must have, for the whole paper (sectionNo null) or one section. SUBJECT, TOPIC and DIFFICULTY take targetId; QUESTION_TYPE takes targetCode. */
+        AssessmentBlueprintRequest: {
+            /** Format: int32 */
+            sectionNo?: number;
+            dimension: string;
+            /** Format: uuid */
+            targetId?: string;
+            targetCode?: string;
+            /** Format: int32 */
+            minCount?: number;
+            /** Format: int32 */
+            maxCount?: number;
+            minMarks?: number;
+        };
         AssessmentDraftRequest: {
             title: string;
             description?: string;
@@ -5246,6 +5260,8 @@ export interface components {
             shuffleOptions?: boolean;
             items?: components["schemas"]["AssessmentItemRequest"][];
             rules?: components["schemas"]["AssessmentRuleRequest"][];
+            sections?: components["schemas"]["AssessmentSectionRequest"][];
+            blueprint?: components["schemas"]["AssessmentBlueprintRequest"][];
             /** Format: int64 */
             version: number;
         };
@@ -5254,6 +5270,8 @@ export interface components {
             questionVersionId: string;
             marks?: number;
             negativeMarks?: number;
+            /** Format: int32 */
+            sectionNo?: number;
         };
         AssessmentRuleRequest: {
             label?: string;
@@ -5270,6 +5288,15 @@ export interface components {
             count?: number;
             marks: number;
             negativeMarks?: number;
+            /** Format: int32 */
+            sectionNo?: number;
+        };
+        /** @description A section header (add-on C). Without sections the paper is one unnamed section. */
+        AssessmentSectionRequest: {
+            /** Format: int32 */
+            sectionNo?: number;
+            title: string;
+            instructions?: string;
         };
         AssessmentActions: {
             edit?: boolean;
@@ -5278,6 +5305,24 @@ export interface components {
             publish?: boolean;
             newVersion?: boolean;
             blockedReason?: string;
+        };
+        AssessmentBlueprintConstraint: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: int32 */
+            ordinal?: number;
+            /** Format: int32 */
+            sectionNo?: number;
+            dimension?: string;
+            /** Format: uuid */
+            targetId?: string;
+            targetCode?: string;
+            targetLabel?: string;
+            /** Format: int32 */
+            minCount?: number;
+            /** Format: int32 */
+            maxCount?: number;
+            minMarks?: number;
         };
         AssessmentDetail: {
             /** Format: uuid */
@@ -5316,6 +5361,8 @@ export interface components {
             negativeMarks?: number;
             questionState?: string;
             usable?: boolean;
+            /** Format: int32 */
+            sectionNo?: number;
         };
         AssessmentReview: {
             /** Format: uuid */
@@ -5353,6 +5400,14 @@ export interface components {
             /** Format: int32 */
             poolSize?: number;
             poolFrozen?: boolean;
+            /** Format: int32 */
+            sectionNo?: number;
+        };
+        AssessmentSection: {
+            /** Format: int32 */
+            sectionNo?: number;
+            title?: string;
+            instructions?: string;
         };
         AssessmentVersion: {
             /** Format: uuid */
@@ -5373,6 +5428,8 @@ export interface components {
             shuffleOptions?: boolean;
             items?: components["schemas"]["AssessmentItem"][];
             rules?: components["schemas"]["AssessmentRule"][];
+            sections?: components["schemas"]["AssessmentSection"][];
+            blueprint?: components["schemas"]["AssessmentBlueprintConstraint"][];
             reviews?: components["schemas"]["AssessmentReview"][];
             /** Format: uuid */
             authorId?: string;
@@ -6713,6 +6770,7 @@ export interface components {
             /** Format: date-time */
             createdAt?: string;
             items?: components["schemas"]["AssessmentPaperItem"][];
+            sections?: components["schemas"]["AssessmentSection"][];
         };
         AssessmentPaperItem: {
             /** Format: int32 */
@@ -6730,6 +6788,8 @@ export interface components {
             marks?: number;
             negativeMarks?: number;
             source?: string;
+            /** Format: int32 */
+            sectionNo?: number;
         };
         AssessmentPaperSeed: {
             /** Format: uuid */
@@ -8416,6 +8476,17 @@ export interface components {
             /** Format: date-time */
             updatedAt?: string;
         };
+        AssessmentBlueprintCoverage: {
+            /** Format: int32 */
+            ordinal?: number;
+            description?: string;
+            /** Format: int32 */
+            guaranteedMin?: number;
+            /** Format: int32 */
+            possibleMax?: number;
+            guaranteedMarks?: number;
+            met?: boolean;
+        };
         AssessmentIssue: {
             code?: string;
             message?: string;
@@ -8429,6 +8500,7 @@ export interface components {
             byDifficulty?: {
                 [key: string]: number;
             };
+            blueprint?: components["schemas"]["AssessmentBlueprintCoverage"][];
         };
         AssessmentTransition: {
             /** Format: int32 */

@@ -1,4 +1,4 @@
-import { unwrap, type AssessmentDetail, type AssessmentItem, type AssessmentPaperSummary, type AssessmentRule, type AssessmentTransition, type AssessmentVersion } from "@ivorovi/api-client";
+import { unwrap, type AssessmentBlueprintCoverage, type AssessmentDetail, type AssessmentItem, type AssessmentPaperSummary, type AssessmentRule, type AssessmentTransition, type AssessmentVersion } from "@ivorovi/api-client";
 import { Alert, Badge, Button, ButtonLink, Card, CardBody, CardHeader, DataTable, Field, Modal, PageHeader, TabPanel, Tabs, TextArea, type Column } from "@ivorovi/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -74,7 +74,8 @@ export function AssessmentPage() {
   );
 }
 
-function ValidationCard({ v }: { v: { errors?: { code?: string; message?: string }[]; warnings?: { code?: string; message?: string }[]; questionCount?: number; totalMarks?: number; byDifficulty?: Record<string, number> } }) {
+function ValidationCard({ v }: { v: { errors?: { code?: string; message?: string }[]; warnings?: { code?: string; message?: string }[]; questionCount?: number; totalMarks?: number;
+  byDifficulty?: Record<string, number>; blueprint?: AssessmentBlueprintCoverage[] } }) {
   const ok = (v.errors ?? []).length === 0;
   return (
     <Card>
@@ -87,13 +88,28 @@ function ValidationCard({ v }: { v: { errors?: { code?: string; message?: string
             {(v.warnings ?? []).map((e, i) => <li key={`w${i}`}><Alert tone="warning">{e.message}</Alert></li>)}
           </ul>
         </CardBody>)}
+      {(v.blueprint ?? []).length > 0 && (
+        <CardBody>
+          <h3 className="mb-2 text-sm font-medium">Blueprint coverage (proved for every possible paper)</h3>
+          <ul className="space-y-1 text-sm" aria-label="Blueprint coverage">
+            {(v.blueprint ?? []).map((c) => (
+              <li key={c.ordinal} className="flex flex-wrap items-center gap-2">
+                <Badge tone={c.met ? "success" : "danger"}>{c.met ? "Guaranteed" : "Not guaranteed"}</Badge>
+                <span>{c.description}</span>
+                <span className="text-xs text-muted">every paper: {c.guaranteedMin}–{c.possibleMax} questions, at least {marks(c.guaranteedMarks)} marks</span>
+              </li>))}
+          </ul>
+        </CardBody>)}
     </Card>
   );
 }
 
 export function Definition({ v }: { v: AssessmentVersion }) {
+  const sectioned = (v.sections ?? []).length > 0;
+  const sectionName = (no?: number) => { const x = (v.sections ?? []).find((s) => s.sectionNo === no); return x ? `${x.sectionNo}. ${x.title}` : "—"; };
   const items: Column<AssessmentItem>[] = [
     { key: "n", header: "#", cell: (i) => i.ordinal },
+    ...(sectioned ? [{ key: "s", header: "Section", cell: (i: AssessmentItem) => sectionName(i.sectionNo) }] : []),
     { key: "q", header: "Question", cell: (i) => <span className="flex flex-col"><span>{i.excerpt || "(question)"}</span>
       {!i.usable && <span className="text-xs text-warning-strong">{STATE_LABEL[i.questionState ?? ""] ?? i.questionState?.toLowerCase()} — no longer the approved version</span>}</span> },
     { key: "t", header: "Type", cell: (i) => TYPE_LABEL[i.type ?? ""] ?? i.type, hideOnMobile: true },
@@ -102,6 +118,7 @@ export function Definition({ v }: { v: AssessmentVersion }) {
   ];
   const rules: Column<AssessmentRule>[] = [
     { key: "l", header: "Rule", cell: (r) => r.label || `Random rule ${r.ordinal}` },
+    ...(sectioned ? [{ key: "s", header: "Section", cell: (r: AssessmentRule) => sectionName(r.sectionNo) }] : []),
     { key: "b", header: "Bank", cell: (r) => r.bankName, hideOnMobile: true },
     { key: "f", header: "Filters", cell: (r) => [r.questionType && (TYPE_LABEL[r.questionType] ?? r.questionType), r.difficultyId && "difficulty", r.subjectId && "subject", r.topicId && "topic"].filter(Boolean).join(", ") || "Any approved question", hideOnMobile: true },
     { key: "d", header: "Draw", cell: (r) => { const size = r.poolSize ?? -1; const n = r.count ?? 0; return <span>{n} of {size < 0 ? "?" : size}{r.poolFrozen && <Badge tone="neutral" className="ml-2">Frozen</Badge>}
@@ -124,6 +141,17 @@ export function Definition({ v }: { v: AssessmentVersion }) {
           {v.instructions && <p className="mt-4 whitespace-pre-line text-sm"><span className="font-medium">Instructions: </span>{v.instructions}</p>}
         </CardBody>
       </Card>
+      {sectioned && <Card>
+        <CardHeader title="Sections" description="Kept in this order on every paper; questions are shuffled only within their section." />
+        <CardBody><ol className="space-y-2 text-sm" aria-label="Sections">{(v.sections ?? []).map((x) => (
+          <li key={x.sectionNo}><span className="font-medium">{x.sectionNo}. {x.title}</span>{x.instructions && <span className="block whitespace-pre-line text-muted">{x.instructions}</span>}</li>))}</ol></CardBody>
+      </Card>}
+      {(v.blueprint ?? []).length > 0 && <Card>
+        <CardHeader title="Blueprint" description="Coverage every paper must have." />
+        <CardBody><ul className="space-y-1 text-sm" aria-label="Blueprint">{(v.blueprint ?? []).map((b) => (
+          <li key={b.id}>{b.sectionNo == null ? "Whole paper" : `Section ${b.sectionNo}`}: {b.dimension === "QUESTION_TYPE" ? (TYPE_LABEL[b.targetCode ?? ""] ?? b.targetCode) : b.targetLabel}
+            {" — "}{[b.minCount ? `at least ${b.minCount}` : null, b.maxCount != null ? `at most ${b.maxCount}` : null, b.minMarks != null ? `at least ${marks(b.minMarks)} marks` : null].filter(Boolean).join(", ")}</li>))}</ul></CardBody>
+      </Card>}
       <Card><DataTable caption="Fixed questions" columns={items} rows={v.items} rowKey={(i) => i.id!} empty={{ title: "No fixed questions", description: "Every candidate gets the fixed questions." }} /></Card>
       <Card><DataTable caption="Random rules" columns={rules} rows={v.rules} rowKey={(r) => r.id!} empty={{ title: "No random rules", description: "A rule draws questions from a pool, differently for each candidate." }} /></Card>
     </div>

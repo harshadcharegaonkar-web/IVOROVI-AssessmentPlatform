@@ -36,8 +36,13 @@ export function PaperPreviewPage() {
         {seed.isError && <Alert tone="danger">{errorInfo(seed.error).message}</Alert>}
         {p.instructions && <Card><CardBody><p className="whitespace-pre-line text-sm">{p.instructions}</p></CardBody></Card>}
         <ol className="space-y-4">
-          {(p.items ?? []).map((i) => (
+          {(p.items ?? []).map((i, n, all) => (
             <li key={`${i.position}-${i.questionVersionId}`}>
+              {i.sectionNo != null && i.sectionNo !== all[n - 1]?.sectionNo && (() => {
+                const sec = (p.sections ?? []).find((x) => x.sectionNo === i.sectionNo);
+                return <div className="mb-3 mt-2"><h2 className="text-lg font-semibold">Section {i.sectionNo}{sec ? `: ${sec.title}` : ""}</h2>
+                  {sec?.instructions && <p className="whitespace-pre-line text-sm text-muted">{sec.instructions}</p>}</div>;
+              })()}
               <Card>
                 <CardHeader title={`Question ${i.position}`} description={TYPE_LABEL[i.type ?? ""] ?? i.type}
                   actions={<span className="flex items-center gap-2"><Badge tone="neutral">{marks(i.marks)} marks</Badge>{(i.negativeMarks ?? 0) > 0 && <Badge tone="warning">−{marks(i.negativeMarks)}</Badge>}

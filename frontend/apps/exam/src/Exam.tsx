@@ -11,6 +11,19 @@ interface Option { id: string; content: ContentDoc }
 interface Item {
   position: number; questionVersionId: string; type: string; content: ContentDoc; marks: number; negativeMarks: number;
   projection: { options?: Option[]; maxSelections?: number; minSelections?: number; unit?: string; precision?: number; maxWords?: number } | null;
+  /** Papers with sections (add-on C): the section and its candidate-visible title and instructions. */
+  sectionNo?: number | null; sectionTitle?: string | null; sectionInstructions?: string | null;
+}
+
+/** Consecutive runs of questions of the same section (one run without a title for papers without sections). */
+function sectionGroups(items: Item[]): { sectionNo: number | null; title: string | null; items: Item[] }[] {
+  const groups: { sectionNo: number | null; title: string | null; items: Item[] }[] = [];
+  for (const i of items) {
+    const last = groups.at(-1);
+    if (last && last.sectionNo === (i.sectionNo ?? null)) last.items.push(i);
+    else groups.push({ sectionNo: i.sectionNo ?? null, title: i.sectionTitle ?? null, items: [i] });
+  }
+  return groups;
 }
 interface Answer { position: number; response: { value: unknown }; seq: number; savedAt: string }
 interface AttemptView {
@@ -316,19 +329,33 @@ export function AttemptPage({ portalKey, token, attemptId, leave }: { portalKey:
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {notice && <p role="status" className="text-sm font-medium text-success-text">{notice}</p>}
 
-      <nav aria-label="Questions" className="flex flex-wrap gap-2">
-        {attempt.items.map((i) => {
-          const v = values[i.position];
-          const has = v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
-          return (
-            <button key={i.position} type="button" onClick={() => setCurrent(i.position)} aria-current={i.position === current ? "step" : undefined}
-              aria-label={`Question ${i.position}${has ? ", answered" : ""}`}
-              className={`h-9 w-9 rounded-md border text-sm ${i.position === current ? "border-primary font-semibold" : "border-border"} ${has ? "bg-primary/10" : ""}`}>
-              {i.position}
-            </button>
-          );
-        })}
+      <nav aria-label="Questions" className="space-y-2">
+        {sectionGroups(attempt.items).map((g) => (
+          <div key={`${g.sectionNo ?? 0}-${g.items[0]!.position}`} role="group" aria-label={g.title ? `Section ${g.sectionNo}: ${g.title}` : undefined}>
+            {g.title && <p className="mb-1 text-xs font-medium text-muted-strong">Section {g.sectionNo}: {g.title}</p>}
+            <div className="flex flex-wrap gap-2">
+              {g.items.map((i) => {
+                const v = values[i.position];
+                const has = v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
+                return (
+                  <button key={i.position} type="button" onClick={() => setCurrent(i.position)} aria-current={i.position === current ? "step" : undefined}
+                    aria-label={`Question ${i.position}${has ? ", answered" : ""}`}
+                    className={`h-9 w-9 rounded-md border text-sm ${i.position === current ? "border-primary font-semibold" : "border-border"} ${has ? "bg-primary/10" : ""}`}>
+                    {i.position}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
+
+      {item.sectionTitle && (
+        <section className="rounded-lg border border-border bg-surface-muted p-4" aria-labelledby="h-section">
+          <h2 id="h-section" className="font-semibold">Section {item.sectionNo}: {item.sectionTitle}</h2>
+          {item.sectionInstructions && <p className="mt-1 whitespace-pre-line text-sm">{item.sectionInstructions}</p>}
+        </section>
+      )}
 
       <section className="rounded-lg border border-border bg-surface p-5" aria-labelledby="h-question">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
