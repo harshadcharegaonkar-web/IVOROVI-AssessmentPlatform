@@ -10,7 +10,7 @@ export interface ExamView {
 interface Option { id: string; content: ContentDoc }
 interface Item {
   position: number; questionVersionId: string; type: string; content: ContentDoc; marks: number; negativeMarks: number;
-  projection: { options?: Option[]; maxSelections?: number; minSelections?: number; unit?: string; precision?: number } | null;
+  projection: { options?: Option[]; maxSelections?: number; minSelections?: number; unit?: string; precision?: number; maxWords?: number } | null;
 }
 interface Answer { position: number; response: { value: unknown }; seq: number; savedAt: string }
 interface AttemptView {
@@ -390,6 +390,8 @@ function ResponseInput({ item, imageSrc, value, disabled, onChange }: { item: It
         <label key={String(b)} className="flex cursor-pointer gap-3 rounded-md border border-border p-3">
           <input type="radio" name={name} checked={value === b} onChange={() => onChange(b)} />{b ? "True" : "False"}
         </label>)), "True or false");
+    case "DESCRIPTIVE":
+      return <DescriptiveInput max={item.projection?.maxWords ?? 500} value={(value as string) ?? ""} disabled={disabled} onChange={onChange} />;
     case "NUMERIC":
       return (
         <label className="block text-sm">Your answer{item.projection?.unit ? ` (${item.projection.unit})` : ""}
@@ -403,6 +405,26 @@ function ResponseInput({ item, imageSrc, value, disabled, onChange }: { item: It
             className="mt-1 block w-full rounded-md border border-border px-3 py-2" />
         </label>);
   }
+}
+
+function wordCount(text: string): number {
+  const t = text.trim();
+  return t ? t.split(/\s+/).length : 0;
+}
+
+/** A written answer with a live word count; text beyond the limit is not accepted (the server enforces the same limit). */
+function DescriptiveInput({ max, value, disabled, onChange }: { max: number; value: string; disabled: boolean; onChange: (v: unknown) => void }) {
+  const [refused, setRefused] = useState(false);
+  const words = wordCount(value);
+  return (
+    <div>
+      <label className="block text-sm" htmlFor="descriptive-answer">Your answer</label>
+      <textarea id="descriptive-answer" disabled={disabled} value={value} rows={12} aria-describedby="descriptive-count"
+        onChange={(e) => { const next = e.target.value; if (wordCount(next) > max) { setRefused(true); return; } setRefused(false); onChange(next); }}
+        className="mt-1 block w-full rounded-md border border-border px-3 py-2 leading-relaxed" />
+      <p id="descriptive-count" className={`mt-1 text-sm ${refused ? "text-danger" : "text-muted"}`} aria-live="polite">
+        {words} / {max} words{refused ? " — the word limit is reached; shorten your answer to add more." : ""}</p>
+    </div>);
 }
 
 /** The candidate's result once the institution has reviewed, independently approved and published it. */

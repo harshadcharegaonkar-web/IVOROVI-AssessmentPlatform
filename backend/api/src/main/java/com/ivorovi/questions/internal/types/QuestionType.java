@@ -37,7 +37,31 @@ public interface QuestionType {
     /** Deterministic marking of one response (staff marking preview now; scoring service from 2.6). */
     Grade mark(Map<String, Object> body, Map<String, Object> key, Map<String, Object> marking, BigDecimal marks, BigDecimal negativeMarks, Object response);
 
+    /**
+     * How a response to this type gets its marks (contract C-1). AUTOMATIC: {@link #mark} at scoring. MANUAL: evaluators
+     * award the marks (manual evaluation); {@link #mark} is never called. EXTERNAL: an isolated executor reports them
+     * (coding); {@link #mark} is never called.
+     */
+    enum MarkingMode { AUTOMATIC, MANUAL, EXTERNAL }
+
+    default MarkingMode markingMode() {
+        return MarkingMode.AUTOMATIC;
+    }
+
+    /**
+     * Whether a candidate's saved answer value (never null: null clears an answer) has the shape this type accepts for
+     * the given body. Checked on every save during delivery; nothing else is stored.
+     */
+    boolean acceptsResponse(Map<String, Object> body, Object value);
+
+    /** Option ids of a choice body. */
+    static java.util.Set<String> optionIds(Map<String, Object> body) {
+        java.util.Set<String> ids = new java.util.HashSet<>();
+        if (body.get("options") instanceof List<?> l) for (Object o : l) if (o instanceof Map<?, ?> m) ids.add(String.valueOf(m.get("id")));
+        return ids;
+    }
+
     static List<QuestionType> all() {
-        return List.of(new ChoiceTypes.Single(), new ChoiceTypes.Multiple(), new TrueFalseType(), new ShortAnswerType(), new NumericType());
+        return List.of(new ChoiceTypes.Single(), new ChoiceTypes.Multiple(), new TrueFalseType(), new ShortAnswerType(), new NumericType(), new DescriptiveType());
     }
 }

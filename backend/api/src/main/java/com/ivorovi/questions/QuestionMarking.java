@@ -21,7 +21,12 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class QuestionMarking {
 
-    public enum Outcome { CORRECT, PARTIAL, INCORRECT, UNANSWERED, INVALID, NOT_MARKABLE }
+    /**
+     * AWAITING_EVALUATION and AWAITING_EXECUTION (contract C-1): the type is not marked automatically; the marks come
+     * later from evaluators (manual evaluation) or the isolated executor (coding), through the exams module's
+     * {@code ItemResults}. They are never final outcomes.
+     */
+    public enum Outcome { CORRECT, PARTIAL, INCORRECT, UNANSWERED, INVALID, NOT_MARKABLE, AWAITING_EVALUATION, AWAITING_EXECUTION }
 
     /** The result of marking one response. {@code detail} is a short non-revealing reason (e.g. "wrong option"). */
     public record Grade(Outcome outcome, BigDecimal awarded, String detail) {}
@@ -52,6 +57,14 @@ public class QuestionMarking {
             Optional<Version> v = versions.computeIfAbsent(versionId, id -> jdbc.sql("SELECT type_code, body::text, marking::text FROM question_version WHERE id = ?")
                     .param(id).query((rs, n) -> new Version(rs.getString(1), json.readValue(rs.getString(2), Map.class), json.readValue(rs.getString(3), Map.class)))
                     .optional());
+            if (v.isPresent()) {
+                QuestionType.MarkingMode mode = questions.type(v.get().type()).markingMode();
+                if (mode != QuestionType.MarkingMode.AUTOMATIC) {
+                    if (response == null || (response instanceof String s && s.isBlank())) return new Grade(Outcome.UNANSWERED, BigDecimal.ZERO, "no answer");
+                    return mode == QuestionType.MarkingMode.MANUAL ? new Grade(Outcome.AWAITING_EVALUATION, BigDecimal.ZERO, "marked by evaluators")
+                            : new Grade(Outcome.AWAITING_EXECUTION, BigDecimal.ZERO, "marked by execution");
+                }
+            }
             Optional<Map<String, Object>> key = answerKeys.computeIfAbsent(versionId, keys::readForMarking);
             if (v.isEmpty() || key.isEmpty()) return new Grade(Outcome.NOT_MARKABLE, BigDecimal.ZERO, "no answer key");
             QuestionType.Grade g;
@@ -61,6 +74,18 @@ public class QuestionMarking {
                 return new Grade(Outcome.INVALID, BigDecimal.ZERO, "response could not be marked");
             }
             return new Grade(Outcome.valueOf(g.outcome().name()), g.awarded(), g.detail());
+        }
+    }
+
+    /**
+     * Whether a candidate's answer value fits the question type and body (delivery validation, contract C-1): each type
+     * decides; an unknown type accepts nothing. {@code value} is never null (null clears an answer).
+     */
+    public boolean accepts(String typeCode, Map<String, Object> body, Object value) {
+        try {
+            return questions.type(typeCode).acceptsResponse(body, value);
+        } catch (RuntimeException e) {
+            return false;
         }
     }
 

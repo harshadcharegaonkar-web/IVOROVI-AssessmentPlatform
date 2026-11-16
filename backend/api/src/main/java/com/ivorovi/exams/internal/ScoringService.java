@@ -79,7 +79,10 @@ public class ScoringService {
         for (UUID t : tenants) {
             List<UUID> due = TenantContext.callInTenant(t, () -> tx.execute(s -> jdbc.sql("""
                     SELECT a.id FROM exam_attempt a WHERE a.status IN ('SUBMITTED', 'AUTO_SUBMITTED', 'TERMINATED')
-                      AND NOT EXISTS (SELECT 1 FROM exam_score s WHERE s.attempt_id = a.id) ORDER BY a.submitted_at LIMIT 200""").query(UUID.class).list()));
+                      AND NOT EXISTS (SELECT 1 FROM exam_score s WHERE s.attempt_id = a.id)
+                      AND NOT EXISTS (SELECT 1 FROM exam_attempt_deferred d WHERE d.attempt_id = a.id
+                                      AND (SELECT count(*) FROM exam_item_mark m WHERE m.attempt_id = a.id) < cardinality(d.evaluation_positions) + cardinality(d.execution_positions))
+                    ORDER BY a.submitted_at LIMIT 200""").query(UUID.class).list()));
             for (UUID id : due == null ? List.<UUID>of() : due) {
                 try {
                     if (TenantContext.callInTenant(t, () -> tx.execute(s -> score(id))) != null) total++;
@@ -104,6 +107,14 @@ public class ScoringService {
         jdbc.sql("SELECT position, response::text FROM exam_answer WHERE attempt_id = ?").param(attemptId)
                 .query((rs, n) -> { responses.put(rs.getInt(1), ((Map<String, Object>) json.readValue(rs.getString(2), Map.class)).get("value")); return null; }).list();
 
+        record Mark(BigDecimal awarded, String source) {}
+        Map<Integer, Mark> itemMarks = new HashMap<>();
+        jdbc.sql("SELECT position, awarded, source FROM exam_item_mark WHERE attempt_id = ?").param(attemptId)
+                .query((rs, n) -> itemMarks.put(rs.getInt(1), new Mark(rs.getBigDecimal(2), rs.getString(3)))).list();
+        List<Integer> toEvaluate = new java.util.ArrayList<>();
+        List<Integer> toExecute = new java.util.ArrayList<>();
+        boolean missing = false;
+
         QuestionMarking.Run run = marking.run();
         Map<QuestionMarking.Outcome, Integer> counts = new EnumMap<>(QuestionMarking.Outcome.class);
         BigDecimal awarded = BigDecimal.ZERO;
@@ -118,11 +129,26 @@ public class ScoringService {
             BigDecimal marks = new BigDecimal(String.valueOf(e.get("marks")));
             BigDecimal neg = new BigDecimal(String.valueOf(e.get("negativeMarks")));
             QuestionMarking.Grade g = run.mark(qv, responses.get(position), marks, neg);
+            String source = "AUTOMATIC";
+            if (g.outcome() == QuestionMarking.Outcome.AWAITING_EVALUATION || g.outcome() == QuestionMarking.Outcome.AWAITING_EXECUTION) {
+                (g.outcome() == QuestionMarking.Outcome.AWAITING_EVALUATION ? toEvaluate : toExecute).add(position);
+                Mark m = itemMarks.get(position);
+                if (m == null) { missing = true; continue; }
+                source = m.source();
+                QuestionMarking.Outcome o = m.awarded().compareTo(marks) >= 0 ? QuestionMarking.Outcome.CORRECT
+                        : m.awarded().signum() > 0 ? QuestionMarking.Outcome.PARTIAL : QuestionMarking.Outcome.INCORRECT;
+                g = new QuestionMarking.Grade(o, m.awarded(), source.toLowerCase());
+            }
             counts.merge(g.outcome(), 1, Integer::sum);
             awarded = awarded.add(g.awarded());
             max = max.add(marks);
             evidence.append('|').append(position).append(':').append(qv).append(':').append(g.outcome()).append(':').append(g.awarded().stripTrailingZeros().toPlainString());
-            rows.add(new Object[] {tenant, attemptId, position, qv, g.outcome().name(), g.awarded(), marks});
+            if (!"AUTOMATIC".equals(source)) evidence.append(':').append(source);
+            rows.add(new Object[] {tenant, attemptId, position, qv, g.outcome().name(), g.awarded(), marks, source});
+        }
+        if (missing) {
+            defer(attemptId, a.scheduleId(), toEvaluate, toExecute);
+            return null;
         }
         String hash = sha256(evidence.toString());
         Score sc = new Score(attemptId, awarded, max, counts.getOrDefault(QuestionMarking.Outcome.CORRECT, 0), counts.getOrDefault(QuestionMarking.Outcome.PARTIAL, 0),
@@ -133,7 +159,7 @@ public class ScoringService {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")
                 .params(attemptId, tenant, sc.awarded(), sc.maxMarks(), sc.correct(), sc.partial(), sc.incorrect(), sc.unanswered(), sc.notMarkable(), hash).update();
         for (Object[] r : rows) {
-            jdbc.sql("INSERT INTO exam_answer_score (tenant_id, attempt_id, position, question_version_id, outcome, awarded, marks) VALUES (?, ?, ?, ?, ?, ?, ?)")
+            jdbc.sql("INSERT INTO exam_answer_score (tenant_id, attempt_id, position, question_version_id, outcome, awarded, marks, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
                     .params(r).update();
         }
         Map<String, String> d = new LinkedHashMap<>();
@@ -145,6 +171,29 @@ public class ScoringService {
         audit.recordSuccess("exam.attempt.scored", "exam_attempt", attemptId.toString(), d);
         outbox.append("exam_attempt", attemptId.toString(), "exam.attempt.scored", Map.of("attemptId", attemptId.toString(), "scheduleId", a.scheduleId().toString()));
         return sc;
+    }
+
+    /**
+     * Contract C-1: records once which answers wait for evaluators or the executor, and announces it. The attempt is
+     * scored when the last of their marks is recorded (ItemResults).
+     */
+    private void defer(UUID attemptId, UUID scheduleId, List<Integer> evaluation, List<Integer> execution) {
+        int n = jdbc.sql("""
+                INSERT INTO exam_attempt_deferred (attempt_id, tenant_id, evaluation_positions, execution_positions)
+                VALUES (?, ?, CAST(? AS integer[]), CAST(? AS integer[])) ON CONFLICT (attempt_id) DO NOTHING""")
+                .params(attemptId, TenantContext.requireTenantId(), pgInts(evaluation), pgInts(execution)).update();
+        if (n == 0) return;
+        Map<String, String> d = new LinkedHashMap<>();
+        d.put("schedule", scheduleId.toString());
+        d.put("evaluation", String.valueOf(evaluation.size()));
+        d.put("execution", String.valueOf(execution.size()));
+        audit.recordSuccess("exam.attempt.deferred", "exam_attempt", attemptId.toString(), d);
+        outbox.append("exam_attempt", attemptId.toString(), "exam.attempt.awaiting_marks", Map.of("attemptId", attemptId.toString(), "scheduleId", scheduleId.toString(),
+                "evaluation", String.valueOf(evaluation.size()), "execution", String.valueOf(execution.size())));
+    }
+
+    private static String pgInts(List<Integer> values) {
+        return "{" + String.join(",", values.stream().map(String::valueOf).toList()) + "}";
     }
 
     private static String sha256(String s) {
