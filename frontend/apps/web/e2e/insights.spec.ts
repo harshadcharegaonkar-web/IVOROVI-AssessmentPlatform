@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { apiToken, signIn, USERS } from "./support";
+import { apiToken, signIn, USERS, layoutAccount } from "./support";
 
 async function seriousViolations(page: Page): Promise<string[]> {
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
@@ -76,7 +76,7 @@ test.describe("Increment 1.7: dashboards, reports, notifications", () => {
   });
 
   test("mobile dashboard and reports fit the screen @mobile", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin);
+    await signIn(page, layoutAccount());
     await expect(page.getByTestId("kpi-students")).toBeVisible();
     await noHorizontalScroll(page);
     await page.goto("/dashboards/academic");
@@ -85,7 +85,7 @@ test.describe("Increment 1.7: dashboards, reports, notifications", () => {
   });
 
   test("tablet integrations list fits @tablet", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin, "/integrations");
+    await signIn(page, layoutAccount(), "/integrations");
     await expect(page.getByRole("heading", { level: 1, name: "Integrations" })).toBeVisible();
     await noHorizontalScroll(page);
   });
@@ -94,7 +94,7 @@ test.describe("Increment 1.7: dashboards, reports, notifications", () => {
 test.describe("Increment 1.7: integrations, API clients, webhooks", () => {
   test("create a REST integration, test it and see the run history", async ({ page, request }) => {
     const name = `E2E SIS ${stamp()}`;
-    await signIn(page, USERS.orgAdmin, "/integrations");
+    await signIn(page, layoutAccount(), "/integrations");
     await page.getByRole("button", { name: "New integration" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Name", { exact: true }).fill(name);
@@ -108,14 +108,14 @@ test.describe("Increment 1.7: integrations, API clients, webhooks", () => {
     await expect(page.getByRole("table", { name: "Execution history" }).getByText("Succeeded")).toBeVisible();
     expect(await seriousViolations(page)).toEqual([]);
     // cleanup through the API (disabled integrations can be deleted)
-    const token = await apiToken(request, USERS.orgAdmin);
+    const token = await apiToken(request, layoutAccount());
     const id = page.url().split("/").pop()!;
     expect((await request.delete(`/api/v1/integrations/${id}`, { headers: { Authorization: `Bearer ${token}` } })).status()).toBe(204);
   });
 
   test("API client key is shown once, works read-only and can be revoked", async ({ page, request }) => {
     const name = `E2E client ${stamp()}`;
-    await signIn(page, USERS.orgAdmin, "/integrations/api-clients");
+    await signIn(page, layoutAccount(), "/integrations/api-clients");
     await page.getByRole("button", { name: "Register client" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Name", { exact: true }).fill(name);
@@ -139,7 +139,7 @@ test.describe("Increment 1.7: integrations, API clients, webhooks", () => {
 
   test("webhook endpoint: secret once, failed test delivery recorded, pause and delete", async ({ page }) => {
     const name = `E2E hook ${stamp()}`;
-    await signIn(page, USERS.orgAdmin, "/integrations/webhooks");
+    await signIn(page, layoutAccount(), "/integrations/webhooks");
     await page.getByRole("button", { name: "New endpoint" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel("Name", { exact: true }).fill(name);

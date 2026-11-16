@@ -18,11 +18,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record DeliveryProperties(String issuer, String jwkSetUri, String audience, List<String> allowedOrigins,
                                  int candidatePerMinute, int tenantPerMinute,
                                  int codeAttemptsPerCandidatePerMinute, int codeAttemptsPerIpPerMinute, int codeAttemptsPerCodePerMinute,
-                                 int publicPerIpPerMinute, int portalMissesPerIpPerMinute) {
+                                 int publicPerIpPerMinute, int portalMissesPerIpPerMinute, List<String> backchannelClients) {
 
     public DeliveryProperties {
         if (audience == null || audience.isBlank()) audience = "ivorovi-delivery";
         allowedOrigins = allowedOrigins == null ? List.of() : List.copyOf(allowedOrigins);
+        // KI-79: candidate-realm clients whose OIDC back-channel logout tokens are accepted (audience of the logout token)
+        backchannelClients = backchannelClients == null || backchannelClients.isEmpty() ? List.of("ivorovi-exam") : List.copyOf(backchannelClients);
         if (candidatePerMinute <= 0) candidatePerMinute = 240;
         if (tenantPerMinute <= 0) tenantPerMinute = 120_000;
         if (codeAttemptsPerCandidatePerMinute <= 0) codeAttemptsPerCandidatePerMinute = 10;

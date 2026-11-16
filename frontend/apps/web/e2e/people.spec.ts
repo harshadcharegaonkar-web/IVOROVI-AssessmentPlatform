@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { invitationLink, signIn, USERS } from "./support";
+import { invitationLink, signIn, USERS, layoutAccount } from "./support";
 
 const INES_ID = "0192a000-0000-7000-8000-0000000a1004";
 const ARUN_ID = "0192a000-0000-7000-8000-0000000a1002";
@@ -246,7 +246,7 @@ test.describe("Increment 1.2: users and staff", () => {
   for (const path of ["/people/users", "/people/staff", "/people/invitations", `/people/users/${INES_ID}`, `/people/users/${INES_ID}?tab=access`]) {
     for (const tag of ["@mobile", "@tablet"]) {
       test(`no horizontal scrolling on ${path} ${tag}`, async ({ page }) => {
-        await signIn(page, USERS.orgAdmin, path);
+        await signIn(page, layoutAccount(), path);
         await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
         await page.waitForLoadState("networkidle");
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

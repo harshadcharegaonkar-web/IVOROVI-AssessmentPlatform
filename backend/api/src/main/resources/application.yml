@@ -114,6 +114,8 @@ ivorovi:
     # one exam hall behind a campus NAT shares an address; per-candidate and per-code limits remain the tight ones
     code-attempts-per-ip-per-minute: ${IVOROVI_DELIVERY_CODE_ATTEMPTS_PER_IP:300}
     code-attempts-per-code-per-minute: 5
+    # KI-79: clients of the candidate realm whose back-channel logout notifications end sessions immediately
+    backchannel-clients: ${IVOROVI_DELIVERY_BACKCHANNEL_CLIENTS:ivorovi-exam}
   questions:
     # image storage per institution (closest quota row wins; this is the organization default when none is set)
     asset-quota-bytes: ${IVOROVI_QUESTION_ASSET_QUOTA_BYTES:2147483648}

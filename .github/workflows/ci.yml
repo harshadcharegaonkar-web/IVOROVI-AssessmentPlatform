@@ -157,6 +157,12 @@ jobs:
           path: |
             frontend/apps/web/playwright-report
             frontend/apps/exam/playwright-report
+      - name: Revocation timeline (KI-79), every run
+        if: always()
+        working-directory: deploy/compose
+        run: |
+          docker compose --profile app logs --no-color --timestamps api delivery keycloak 2>/dev/null \
+            | grep -E "Recovery guard|could not end|Back-channel logout|backchannel|UPDATE_PASSWORD|logout" | tail -n 200 || true
       - name: Container logs on failure
         if: failure()
         working-directory: deploy/compose

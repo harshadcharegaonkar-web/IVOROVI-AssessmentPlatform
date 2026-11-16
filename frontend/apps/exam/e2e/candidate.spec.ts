@@ -101,19 +101,17 @@ test.describe("candidate accounts, MFA, session codes and boundaries (C-1, C-4)"
     const newSecret = `${secret}-new`;
     await page.locator("#password-new").fill(newSecret);
     await page.locator("#password-confirm").fill(newSecret);
-    // "sign out other devices" is left as the candidate leaves it: the platform ends every session anyway (RecoveryGuard)
+    // KI-79 (Day 7): signing out the other devices is not optional; the candidate is told on the form
+    await expect(page.getByText("every other device signed in to this account will be signed out")).toBeVisible();
     await page.locator("input[type=submit], button[type=submit]").first().click();
     await expect(page.getByText(email)).toBeVisible();
     // the candidate is told by email that the password changed
     await mail(page.request, email, "pdate", t0);
-    // every session ends after a reset: the other device must sign in again
-    await expect(async () => {
-      await device2.reload();
-      await expect(device2.getByRole("button", { name: "Sign in" })).toBeVisible({ timeout: 2000 });
-      await device2.getByRole("button", { name: "Sign in" }).click();
-      await expect(device2.locator("#username")).toBeVisible({ timeout: 3000 });
-    }).toPass({ timeout: 45_000 });
-    // KI-79 (deterministic): the guard has now run (the other device was signed out); the device that performed the reset
+    // every other session ended with the reset itself (KI-79, Day 7): the other device must sign in again, at once
+    await device2.reload();
+    await device2.getByRole("button", { name: "Sign in" }).click();
+    await expect(device2.locator("#username")).toBeVisible();
+    // KI-79: the device that performed the reset
     // keeps its new session. Tokens live only in memory, so a reload shows "Sign in"; signing in again must go straight
     // through on the surviving sign-in-service session, without the login form (the other device got the form above)
     await page.reload();

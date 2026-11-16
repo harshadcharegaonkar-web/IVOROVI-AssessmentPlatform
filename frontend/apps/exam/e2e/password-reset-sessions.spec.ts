@@ -8,7 +8,9 @@ import { DELIVERY, examSetup, mail } from "./support";
  * - the session the reset flow signed in, and a session created after the reset, keep working;
  * - a second reset ends everything that existed before it, including the first reset's session;
  * - concurrent activity (one session refreshing and calling the API every second throughout) gets no server error.
- * The guard runs every 10 s, so every check polls for up to 45 s; nothing is retried on failure.
+ * Day 7: revocation is immediate (the reset always signs out the other devices, and the identity provider's back-channel
+ * logout reaches the delivery API inside the reset request), so the old sessions are checked once, right after the reset,
+ * without waiting; the guard (every 10 s) remains a backstop and must never end the newer sessions. Nothing is retried.
  */
 const ADMIN = "alice.admin@aurora.test";
 const KC = "http://localhost:8180/realms/ivorovi-candidates/protocol/openid-connect/token";
@@ -99,13 +101,13 @@ test("KI-79: a password reset ends every earlier session at once, keeps later on
   const secret2 = `${secret}-2`;
   await resetPassword(page, setup.key, email, secret2);
 
-  // every pre-reset session becomes unusable: Keycloak refuses the refresh, the delivery API refuses the unexpired token
-  await expect(async () => {
-    expect(await refresh(request, laptop)).toBe(400);
-    expect(await refresh(request, tablet)).toBe(400);
-    expect(await api(request, setup.key, laptop)).toBe(401);
-    expect(await api(request, setup.key, tablet)).toBe(401);
-  }).toPass({ timeout: 45_000, intervals: [2_000] });
+  // KI-79 (Day 7): every pre-reset session is unusable IMMEDIATELY after the reset completes, checked once, with no waiting:
+  // the reset signs out the other devices inside the reset request, and the identity provider notifies the delivery API
+  // (back-channel logout) before it answers. A token of an ended session accepted even once fails this test.
+  const resetDone = new Date().toISOString();
+  const immediately = [await refresh(request, laptop), await refresh(request, tablet), await api(request, setup.key, laptop), await api(request, setup.key, tablet)];
+  console.log(`KI-79 TIMELINE reset completed at ${resetDone}; checked at once: refresh laptop ${immediately[0]}, tablet ${immediately[1]}; API laptop ${immediately[2]}, tablet ${immediately[3]}`);
+  expect(immediately).toEqual([400, 400, 401, 401]);
   stop = true;
   await activity;
   expect(busyStatuses.every((s) => s < 500)).toBe(true);                     // concurrent activity: no server error
@@ -125,10 +127,7 @@ test("KI-79: a password reset ends every earlier session at once, keeps later on
 
   // reset 2: everything before it ends, including the phone created after reset 1
   await resetPassword(page, setup.key, email, `${secret}-3`);
-  await expect(async () => {
-    expect(await refresh(request, phone)).toBe(400);
-    expect(await api(request, setup.key, phone)).toBe(401);
-  }).toPass({ timeout: 45_000, intervals: [2_000] });
+  expect([await refresh(request, phone), await api(request, setup.key, phone)]).toEqual([400, 401]);   // at once, no waiting
   const after2 = await grant(request, email, `${secret}-3`);
   expect(await api(request, setup.key, after2)).toBe(200);
 });

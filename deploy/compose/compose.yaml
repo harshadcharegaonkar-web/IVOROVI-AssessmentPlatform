@@ -93,11 +93,15 @@ services:
       KC_HEALTH_ENABLED: "true"
       DEV_USER_PASSWORD: ${DEV_USER_PASSWORD:?}
       KEYCLOAK_PROVISIONER_SECRET: ${KEYCLOAK_PROVISIONER_SECRET:?}
+      # KI-79: the candidate realm notifies the delivery process of every ended session (OIDC back-channel logout).
+      # Host-run delivery (scripts/api-env.sh): set it to the Docker gateway, e.g. http://172.18.0.1:8090/...
+      CANDIDATE_BACKCHANNEL_LOGOUT_URL: ${CANDIDATE_BACKCHANNEL_LOGOUT_URL:-http://delivery:8080/api/v1/delivery/backchannel-logout}
       # candidate realm: security emails for password/authenticator changes (C-1 recovery notice), not for failed logins
       KC_SPI_EVENTS_LISTENER__EMAIL__EXCLUDE_EVENTS: LOGIN_ERROR
     volumes:
       - ./keycloak/realm-ivorovi.json:/opt/keycloak/data/import/realm-ivorovi.json:ro
       - ./keycloak/realm-ivorovi-candidates.json:/opt/keycloak/data/import/realm-ivorovi-candidates.json:ro
+      - ./keycloak/themes/ivorovi-candidate:/opt/keycloak/themes/ivorovi-candidate:ro
     ports: ["127.0.0.1:8180:8080"]
     depends_on:
       postgres: { condition: service_healthy }
@@ -179,6 +183,8 @@ services:
       IVOROVI_DELIVERY_OIDC_JWKS: http://keycloak:8080/realms/ivorovi-candidates/protocol/openid-connect/certs
       IVOROVI_EXAM_APP_ORIGINS: http://localhost:8082
       IVOROVI_EXAM_APP_BASE_URL: http://localhost:8082
+      # KI-79: back-channel logout accepted from these candidate clients (the dev CLI client exists only in development)
+      IVOROVI_DELIVERY_BACKCHANNEL_CLIENTS: ivorovi-exam,ivorovi-candidate-dev-cli
     ports: ["127.0.0.1:8090:8080"]
     depends_on:
       api: { condition: service_healthy }

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { deleteUnitsNamed, signIn, USERS } from "./support";
+import { deleteUnitsNamed, signIn, USERS, layoutAccount } from "./support";
 
 const AIT = "0192a000-0000-7000-8000-00000000a101";
 const ACC = "0192a000-0000-7000-8000-00000000a102";
@@ -222,7 +222,7 @@ test.describe("Increment 1.1: organization hierarchy", () => {
   });
 
   test("tablet: hierarchy tree and panel stack without overflow @tablet", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin, `/organization?unit=${AIT}`);
+    await signIn(page, layoutAccount(), `/organization?unit=${AIT}`);
     await expect(page.getByRole("tree", { name: "Organization hierarchy" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Open" })).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -232,7 +232,7 @@ test.describe("Increment 1.1: organization hierarchy", () => {
   for (const path of ["/organization", "/organization/colleges", "/organization/departments", `/organization/units/${AIT}`, "/settings/system"]) {
     for (const tag of ["@mobile", "@tablet"]) {
       test(`no horizontal scrolling on ${path} ${tag}`, async ({ page }) => {
-        await signIn(page, USERS.orgAdmin, path);
+        await signIn(page, layoutAccount(), path);
         await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
         await page.waitForLoadState("networkidle");
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { apiToken, selectOptionContaining, signIn, USERS } from "./support";
+import { apiToken, selectOptionContaining, signIn, USERS, layoutAccount } from "./support";
 
 const AIT = "0192a000-0000-7000-8000-00000000a101";
 const CSE = "0192a000-0000-7000-8000-00000000a121";
@@ -198,11 +198,11 @@ test.describe("Increment 1.5: student lifecycle", () => {
   for (const tag of ["@tablet", "@mobile"]) {
     test(`student screens fit without horizontal scrolling ${tag}`, async ({ page, request }) => {
       const id = stamp();
-      const token = await apiToken(request, USERS.orgAdmin);
+      const token = await apiToken(request, layoutAccount());
       const r = await request.post("/api/v1/students", { headers: { Authorization: `Bearer ${token}`, "Idempotency-Key": `e2e-r-${id}` },
         data: { institutionId: AIT, studentNo: `E2E-${id}`, firstName: "Responsive", lastName: `Check ${id}` } });
       const sid = ((await r.json()) as { student: { id: string } }).student.id;
-      await signIn(page, USERS.orgAdmin, "/students");
+      await signIn(page, layoutAccount(), "/students");
       await expect(page.getByTestId("kpi-total")).toBeVisible();
       await noHorizontalScroll(page);
       // KI-88 diagnostics (no retry, no timeout change): on a failure, print each request of the page load with its timing

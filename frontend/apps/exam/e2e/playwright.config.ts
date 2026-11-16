@@ -13,6 +13,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
+  // Day 7: a test that fails and then passes on the retry fails the run; the retry only gathers a trace, it never hides a failure
+  failOnFlakyTests: !!process.env.CI,
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   use: { baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5174", trace: "retain-on-failure", screenshot: "only-on-failure" },
   projects: [

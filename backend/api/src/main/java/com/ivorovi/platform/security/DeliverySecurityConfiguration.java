@@ -53,6 +53,8 @@ public class DeliverySecurityConfiguration {
             .cors(c -> c.configurationSource(cors(props)))
             .authorizeHttpRequests(a -> a
                 .requestMatchers(HttpMethod.GET, "/api/v1/delivery/time", "/api/v1/delivery/portals/*").permitAll()
+                // KI-79: the identity provider's back-channel logout (authenticated by the signed logout token itself)
+                .requestMatchers(HttpMethod.POST, "/api/v1/delivery/backchannel-logout").permitAll()
                 .anyRequest().hasAuthority(CandidateAuthentication.AUTHORITY))
             .oauth2ResourceServer(o -> o
                 .authenticationEntryPoint(entryPoint)
@@ -77,6 +79,14 @@ public class DeliverySecurityConfiguration {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/v1/delivery/**", c);
         return source;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    CandidateLogoutTokenDecoder candidateLogoutTokenDecoder(DeliveryProperties props) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(props.jwkSetUri()).validateType(false).build();
+        decoder.setJwtValidator(CandidateLogoutTokenDecoder.validator(props));
+        return new CandidateLogoutTokenDecoder(decoder);
     }
 
     @Bean

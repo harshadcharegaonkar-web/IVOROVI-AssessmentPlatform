@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Locator, type Page } from "@playwright/test";
 
 export const USERS = {
   orgAdmin: "alice.admin@aurora.test",
@@ -7,6 +7,18 @@ export const USERS = {
   otherTenantAdmin: "bela.admin@borealis.test",
   noAccount: "ghost.user@aurora.test",
 } as const;
+
+/**
+ * KI-88 (approved 2026-11-16): the tablet and mobile layout projects each sign in with their own seeded account (dev
+ * fixture V202611190020, role LAYOUT_REVIEWER_TEST: only the permissions those screens need), so the suite's traffic per
+ * account stays within what one person generates. Rate limits are unchanged. Other projects use the administrator.
+ */
+export function layoutAccount(): string {
+  const project = test.info().project.name;
+  if (project === "tablet") return "layout.tablet@aurora.test";
+  if (project === "mobile") return "layout.mobile@aurora.test";
+  return USERS.orgAdmin;
+}
 
 export function password(): string {
   const p = process.env.DEV_USER_PASSWORD;

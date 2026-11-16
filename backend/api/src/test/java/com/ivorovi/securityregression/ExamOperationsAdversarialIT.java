@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.ivorovi.platform.tenancy.TenantContext;
@@ -164,7 +165,7 @@ class ExamOperationsAdversarialIT extends DeliveryJourneySupport {
      * QA-D6-1: the database does not tie a termination to its four-eyes approval. As the application role, a pending request
      * can be set to APPROVED by any id other than the requester (no approval, attempt still running), and an attempt can be set
      * to TERMINATED with no approved request. The result path has this guard (a release needs a PUBLISHED review);
-     * termination did not (QA-D6-1, found 2026-11-15; fixed by V202611180020). Both tests below assert the secure behaviour.
+     * termination did not (QA-D6-1, found 2026-11-15; fixed by V202611180020, KI-93). Both tests below assert the secure behaviour.
      */
     @Test
     void theApplicationRoleCannotMarkATerminationApprovedWithoutAnApproval() throws Exception {
@@ -219,36 +220,151 @@ class ExamOperationsAdversarialIT extends DeliveryJourneySupport {
         assertThat(ownerJdbc().sql("SELECT count(*) FROM exam_attempt_extension WHERE attempt_id = ?").param(attempt).query(Long.class).single()).isEqualTo(2);
     }
 
+    /** A grant row as the application role, consistent with the attempt as it is now (the R-2 insert guard checks that). */
+    private int grantRow(UUID attempt, int minutes, UUID grantedBy, UUID approvedBy, UUID approvalId) {
+        return asApp(() -> app.sql("""
+                INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, approved_by, approval_id,
+                                                    previous_deadline, new_deadline)
+                SELECT ?, tenant_id, id, schedule_id, candidate_id, ?, 'QA', ?, ?, ?, deadline_at, deadline_at + make_interval(mins => ?) FROM exam_attempt WHERE id = ?""")
+                .params(UUID.randomUUID(), minutes, grantedBy, approvedBy, approvalId, minutes, attempt).update());
+    }
+
+    private int moveDeadline(UUID attempt, int minutes) {
+        return asApp(() -> app.sql("UPDATE exam_attempt SET deadline_at = deadline_at + make_interval(mins => ?), extended_minutes = extended_minutes + ? WHERE id = ?")
+                .params(minutes, minutes, attempt).update());
+    }
+
     @Test
     void theApplicationRoleCannotMoveADeadlineWithoutARecordOrRewriteExtensions() throws Exception {
         UUID attempt = startAttempt(asha, codes.get(0));
         UUID other = startAttempt(bilal, codes.get(1));
         // no record: refused
-        assertThatThrownBy(() -> asApp(() -> app.sql("UPDATE exam_attempt SET deadline_at = deadline_at + interval '30 minutes', extended_minutes = 30 WHERE id = ?")
-                .param(attempt).update())).hasMessageContaining("only forward");
+        assertThatThrownBy(() -> moveDeadline(attempt, 30)).hasMessageContaining("only forward");
         // a record for another attempt does not count for this one
-        asApp(() -> app.sql("INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, previous_deadline, new_deadline) "
-                + "SELECT ?, tenant_id, id, schedule_id, candidate_id, 30, 'QA', ?, deadline_at, deadline_at + make_interval(mins => 30) FROM exam_attempt WHERE id = ?")
-                .params(UUID.randomUUID(), controller.id(), other).update());
-        assertThatThrownBy(() -> asApp(() -> app.sql("UPDATE exam_attempt SET deadline_at = deadline_at + interval '30 minutes', extended_minutes = 30 WHERE id = ?")
-                .param(attempt).update())).hasMessageContaining("only forward");
-        // out-of-range records are refused by CHECKs; existing records cannot be changed or removed
+        grantRow(other, 30, controller.id(), null, null);
+        assertThatThrownBy(() -> moveDeadline(attempt, 30)).hasMessageContaining("only forward");
+        // a record that misdescribes the attempt (other candidate, wrong previous expiry, inconsistent new expiry) is refused
+        assertThatThrownBy(() -> asApp(() -> app.sql("""
+                INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, previous_deadline, new_deadline)
+                SELECT ?, a.tenant_id, a.id, a.schedule_id, b.candidate_id, 5, 'QA', ?, a.deadline_at, a.deadline_at + interval '5 minutes'
+                FROM exam_attempt a, exam_attempt b WHERE a.id = ? AND b.id = ?""").params(UUID.randomUUID(), controller.id(), attempt, other).update()))
+                .hasMessageContaining("running attempt");
+        assertThatThrownBy(() -> asApp(() -> app.sql("""
+                INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, previous_deadline, new_deadline)
+                SELECT ?, tenant_id, id, schedule_id, candidate_id, 5, 'QA', ?, deadline_at - interval '1 minute', deadline_at + interval '4 minutes'
+                FROM exam_attempt WHERE id = ?""").params(UUID.randomUUID(), controller.id(), attempt).update())).hasMessageContaining("running attempt");
+        assertThatThrownBy(() -> asApp(() -> app.sql("""
+                INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, previous_deadline, new_deadline)
+                SELECT ?, tenant_id, id, schedule_id, candidate_id, 5, 'QA', ?, deadline_at, deadline_at + interval '50 minutes'
+                FROM exam_attempt WHERE id = ?""").params(UUID.randomUUID(), controller.id(), attempt).update())).isInstanceOf(org.springframework.dao.DataAccessException.class);
+        // out-of-range records are refused by CHECKs; existing records cannot be changed, removed or truncated
         for (int minutes : new int[] {0, -10, 61}) {
-            assertThatThrownBy(() -> asApp(() -> app.sql("INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, previous_deadline, new_deadline) "
-                + "SELECT ?, tenant_id, id, schedule_id, candidate_id, " + minutes + ", 'QA', ?, deadline_at, deadline_at + make_interval(mins => " + minutes + ") FROM exam_attempt WHERE id = ?")
-                    .params(UUID.randomUUID(), controller.id(), attempt).update())).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThatThrownBy(() -> grantRow(attempt, minutes, controller.id(), null, null)).as("minutes %s", minutes)
+                    .isInstanceOf(org.springframework.dao.DataAccessException.class);
         }
         assertThatThrownBy(() -> asApp(() -> app.sql("UPDATE exam_attempt_extension SET minutes = 60 WHERE attempt_id = ?").param(other).update()))
                 .rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> asApp(() -> app.sql("DELETE FROM exam_attempt_extension WHERE attempt_id = ?").param(other).update()))
                 .rootCause().hasMessageContaining("permission denied");
-        // after submission no grant can be recorded (R-2 guard) and the deadline never moves
+        assertThatThrownBy(() -> asApp(() -> app.sql("TRUNCATE exam_attempt_extension").update())).rootCause().hasMessageContaining("permission denied");
+        // after submission neither a record nor a deadline move is accepted
         delivery(post(portal("/attempts/" + attempt + "/submit")).content("{}"), asha, 200);
-        assertThatThrownBy(() -> asApp(() -> app.sql("INSERT INTO exam_attempt_extension (id, tenant_id, attempt_id, schedule_id, candidate_id, minutes, reason, granted_by, previous_deadline, new_deadline) "
-                + "SELECT ?, tenant_id, id, schedule_id, candidate_id, 10, 'QA', ?, deadline_at, deadline_at + make_interval(mins => 10) FROM exam_attempt WHERE id = ?")
-                .params(UUID.randomUUID(), controller.id(), attempt).update())).hasMessageContaining("running attempt");
-        assertThatThrownBy(() -> asApp(() -> app.sql("UPDATE exam_attempt SET deadline_at = deadline_at + interval '10 minutes', extended_minutes = 10 WHERE id = ?")
-                .param(attempt).update())).hasMessageContaining("only forward");
+        assertThatThrownBy(() -> grantRow(attempt, 10, controller.id(), null, null)).hasMessageContaining("running attempt");
+        assertThatThrownBy(() -> moveDeadline(attempt, 10)).hasMessageContaining("only forward");
+    }
+
+    // ================================================================================================ extra time, decision R-2
+
+    @Test
+    void onlyDesignatedHoldersGrantExtraTimeAdministratorsAndFacultyDoNot() throws Exception {
+        TestOrg.Account proctor = org.account("EXAM_PROCTOR", college);
+        UUID attempt = startAttempt(asha, codes.get(0));
+        String enrolment = enrolment(controller, "Asha");
+        for (TestOrg.Account who : List.of(admin, instAdmin, faculty, designer)) {
+            perform(post(base() + "/candidates/" + enrolment + "/extensions").content("{\"minutes\":5,\"reason\":\"QA\"}"), who)
+                    .andExpect(r -> assertThat(r.getResponse().getStatus()).as("granter %s", who.id()).isIn(403, 404));
+        }
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM exam_attempt_extension WHERE attempt_id = ?").param(attempt).query(Long.class).single()).isZero();
+        // the invigilator holds the right (R-2) and the record carries previous and new expiry
+        JsonNode ext = call(post(base() + "/candidates/" + enrolment + "/extensions").content("{\"minutes\":5,\"reason\":\"Desk change\"}"), proctor, status().isOk());
+        assertThat(ext.path("status").asString()).isEqualTo("APPLIED");
+        assertThat(java.time.Duration.between(java.time.Instant.parse(ext.path("previousDeadline").asString()), java.time.Instant.parse(ext.path("deadlineAt").asString())))
+                .isEqualTo(java.time.Duration.ofMinutes(5));
+        // the reason is never in the audit record
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM audit_event WHERE tenant_id = ? AND details::text ILIKE '%Desk change%'").param(org.tenant)
+                .query(Long.class).single()).isZero();
+    }
+
+    private void requireSecondPerson() throws Exception {
+        call(put(base() + "/extra-time-policy").content("{\"secondPerson\":true}"),
+                controller, status().isOk());
+    }
+
+    @Test
+    void aSecondPersonGrantIsDecidedOnceOnlyByAnotherHolderInTheSameInstitution() throws Exception {
+        TestOrg.Account proctor = org.account("EXAM_PROCTOR", college);
+        UUID attempt = startAttempt(asha, codes.get(0));
+        String enrolment = enrolment(controller, "Asha");
+        requireSecondPerson();
+        String approval = call(post(base() + "/candidates/" + enrolment + "/extensions").content("{\"minutes\":20,\"reason\":\"Power cut\"}"), proctor,
+                status().isOk()).path("approvalId").asString();
+        TestOrg other = new TestOrg(ownerJdbc(), mvc, "ext-other");
+        for (TestOrg.Account who : List.of(proctor, otherController, instAdmin, admin, faculty, other.account("EXAM_CONTROLLER", null))) {
+            decide(who, approval, true).andExpect(r -> assertThat(r.getResponse().getStatus()).as("decider %s", who.id()).isIn(403, 404, 409));
+        }
+        assertThat(ownerJdbc().sql("SELECT extended_minutes FROM exam_attempt WHERE id = ?").param(attempt).query(Integer.class).single()).isZero();
+        // eight concurrent approvals by two other holders: applied exactly once
+        List<Integer> seen = together(8, i -> decide(i % 2 == 0 ? controller : controller2, approval, true).andReturn().getResponse().getStatus());
+        assertThat(seen.stream().filter(c -> c == 200).count()).isEqualTo(1);
+        assertThat(seen).allMatch(c -> c == 200 || c == 409);
+        assertThat(ownerJdbc().sql("SELECT extended_minutes FROM exam_attempt WHERE id = ?").param(attempt).query(Integer.class).single()).isEqualTo(20);
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM exam_attempt_extension WHERE attempt_id = ?").param(attempt).query(Long.class).single()).isEqualTo(1);
+    }
+
+    @Test
+    void aSecondPersonGrantApprovedAfterSubmissionOrBeyondTheWindowChangesNothing() throws Exception {
+        TestOrg.Account proctor = org.account("EXAM_PROCTOR", college);
+        UUID ashas = startAttempt(asha, codes.get(0));
+        UUID bilals = startAttempt(bilal, codes.get(1));
+        requireSecondPerson();
+        String afterSubmit = call(post(base() + "/candidates/" + enrolment(controller, "Asha") + "/extensions").content("{\"minutes\":10,\"reason\":\"QA\"}"),
+                proctor, status().isOk()).path("approvalId").asString();
+        delivery(post(portal("/attempts/" + ashas + "/submit")).content("{}"), asha, 200);
+        decide(controller, afterSubmit, true).andExpect(r -> assertThat(r.getResponse().getStatus()).isIn(409, 422));
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM exam_attempt_extension WHERE attempt_id = ?").param(ashas).query(Long.class).single()).isZero();
+        // the window is checked again on approval: a pending 60-minute grant whose recorded window no longer has room
+        // (payload rewritten by a database-level attacker) is refused, nothing changes
+        String late = call(post(base() + "/candidates/" + enrolment(controller, "Bilal") + "/extensions").content("{\"minutes\":60,\"reason\":\"QA\"}"),
+                proctor, status().isOk()).path("approvalId").asString();
+        ownerJdbc().sql("UPDATE approval_request SET payload = jsonb_set(payload, '{windowCloses}', to_jsonb(?::text)) WHERE id = ?::uuid")
+                .params(java.time.Instant.now().plus(java.time.Duration.ofMinutes(50)).toString(), late).update();
+        decide(controller, late, true).andExpect(r -> assertThat(r.getResponse().getStatus()).isIn(409, 422));
+        assertThat(ownerJdbc().sql("SELECT extended_minutes FROM exam_attempt WHERE id = ?").param(bilals).query(Integer.class).single()).isZero();
+    }
+
+    @Test
+    void theApplicationRoleCannotRelaxTheSecondPersonRuleOrGrantWithoutOrWithASelfApproval() throws Exception {
+        UUID attempt = startAttempt(asha, codes.get(0));
+        requireSecondPerson();
+        assertThatThrownBy(() -> asApp(() -> app.sql("UPDATE exam_schedule SET extra_time_second_person = false WHERE id = ?").param(schedule).update()))
+                .hasMessageContaining("cannot be relaxed");
+        assertThatThrownBy(() -> grantRow(attempt, 10, controller.id(), null, null)).hasMessageContaining("second person");
+        assertThatThrownBy(() -> grantRow(attempt, 10, controller.id(), controller.id(), UUID.randomUUID())).isInstanceOf(org.springframework.dao.DataAccessException.class);
+        assertThatThrownBy(() -> grantRow(attempt, 10, controller.id(), null, UUID.randomUUID())).isInstanceOf(org.springframework.dao.DataAccessException.class);
+        assertThat(ownerJdbc().sql("SELECT extended_minutes FROM exam_attempt WHERE id = ?").param(attempt).query(Integer.class).single()).isZero();
+    }
+
+    /**
+     * QA-D6-2 (same class as QA-D6-1): on an examination that requires a second person, the database accepts a grant whose
+     * approved_by is any id other than the granter and whose approval_id is any id; it does not check that the approval exists,
+     * is APPROVED, concerns this attempt and was decided by approved_by. With such a row the deadline moved (found 2026-11-15; fixed by V202611180020, KI-93).
+     */
+    @Test
+    void theApplicationRoleCannotGrantSecondPersonExtraTimeWithAForgedApproval() throws Exception {
+        UUID attempt = startAttempt(asha, codes.get(0));
+        requireSecondPerson();
+        assertThatThrownBy(() -> grantRow(attempt, 30, controller.id(), controller2.id(), UUID.randomUUID()))
+                .as("a second-person grant with an approval that does not exist").isInstanceOf(org.springframework.dao.DataAccessException.class);
     }
 
     // ================================================================================================ helpers

@@ -15,4 +15,6 @@ export IVOROVI_S3_SECRET_KEY="$S3_SECRET_KEY"
 export IVOROVI_IDP_PROVISIONER_SECRET="$KEYCLOAK_PROVISIONER_SECRET"
 export IVOROVI_DATA_KEY="$DATA_ENCRYPTION_KEY"
 export IVOROVI_CANDIDATE_IDP_SECRET="$KEYCLOAK_PROVISIONER_SECRET"
+# KI-79: back-channel logout from the dev CLI client too (development only)
+export IVOROVI_DELIVERY_BACKCHANNEL_CLIENTS=ivorovi-exam,ivorovi-candidate-dev-cli
 unset _root

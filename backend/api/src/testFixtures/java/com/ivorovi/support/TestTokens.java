@@ -64,6 +64,25 @@ public final class TestTokens {
         return sign(CANDIDATE, subject, tid, customizer);
     }
 
+    /**
+     * KI-79: an OIDC back-channel logout token as the candidate realm sends it (type "logout+jwt", audience a candidate
+     * client, the back-channel logout event, a session id). {@code trusted} false signs it with a key nobody trusts.
+     */
+    public static String candidateLogout(String subject, String sid, String typ, boolean trusted, Consumer<JwtClaimsSet.Builder> customizer) {
+        KeyPair keys = trusted ? CANDIDATE : UNTRUSTED;
+        RSAKey jwk = new RSAKey.Builder((RSAPublicKey) keys.getPublic()).privateKey((RSAPrivateKey) keys.getPrivate()).keyID(UUID.randomUUID().toString()).build();
+        var encoder = new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(jwk)));
+        Instant now = Instant.now();
+        JwtClaimsSet.Builder claims = JwtClaimsSet.builder().issuer(CANDIDATE_ISSUER).subject(subject).audience(List.of("ivorovi-exam"))
+                .issuedAt(now).expiresAt(now.plusSeconds(120)).id(UUID.randomUUID().toString())
+                .claim("events", java.util.Map.of("http://schemas.openid.net/event/backchannel-logout", java.util.Map.of()));
+        if (sid != null) claims.claim("sid", sid);
+        customizer.accept(claims);
+        JwsHeader.Builder header = JwsHeader.with(SignatureAlgorithm.RS256);
+        if (typ != null) header.type(typ);
+        return encoder.encode(JwtEncoderParameters.from(header.build(), claims.build())).getTokenValue();
+    }
+
     public static String forCaller(Fixture.Caller caller) {
         return token(caller.subject(), caller.tenantId().toString(), b -> {});
     }

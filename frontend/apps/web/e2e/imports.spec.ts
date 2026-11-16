@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { apiToken, signIn, USERS } from "./support";
+import { apiToken, signIn, USERS, layoutAccount } from "./support";
 
 const AIT = "0192a000-0000-7000-8000-00000000a101";
 const CSE = "0192a000-0000-7000-8000-00000000a121";
@@ -162,13 +162,13 @@ test.describe("Increment 1.6: student bulk import", () => {
     test(`import screens fit without horizontal scrolling ${tag}`, async ({ page, request }) => {
       test.setTimeout(120_000);
       const id = stamp();
-      const token = await apiToken(request, USERS.orgAdmin);
+      const token = await apiToken(request, layoutAccount());
       const up = await request.post("/api/v1/student-imports", { headers: { Authorization: `Bearer ${token}` }, multipart: {
         file: { name: `responsive-${id}.csv`, mimeType: "text/csv", buffer: Buffer.from(`Student ID,First name,Last name,Personal email\nRSP-${id},Mina,Joshi,bad-email\nRSP-${id}-2,Ravi,Joshi,\n`) },
         institutionId: AIT } });
       expect(up.status(), await up.text()).toBe(201);
       const job = (await up.json()) as { id: string };
-      await signIn(page, USERS.orgAdmin, "/students/imports");
+      await signIn(page, layoutAccount(), "/students/imports");
       await expect(page.getByTestId("kpi-running")).toBeVisible();
       await noHorizontalScroll(page);
       for (const path of ["/students/imports/new", "/students/imports/history", "/students/imports/templates", `/students/imports/${job.id}/mapping`]) {

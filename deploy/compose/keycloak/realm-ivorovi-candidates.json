@@ -1,6 +1,6 @@
 {
   "realm": "ivorovi-candidates",
-  "displayName": "Ivorovi \u2014 candidates",
+  "displayName": "Ivorovi — candidates",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": true,
@@ -98,7 +98,10 @@
       ],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:5174/*##http://localhost:8082/*##http://localhost:4174/*"
+        "post.logout.redirect.uris": "http://localhost:5174/*##http://localhost:8082/*##http://localhost:4174/*",
+        "backchannel.logout.url": "${CANDIDATE_BACKCHANNEL_LOGOUT_URL}",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true"
       },
       "protocolMappers": [
         {
@@ -158,7 +161,12 @@
             "introspection.token.claim": "true"
           }
         }
-      ]
+      ],
+      "attributes": {
+        "backchannel.logout.url": "${CANDIDATE_BACKCHANNEL_LOGOUT_URL}",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true"
+      }
     },
     {
       "clientId": "ivorovi-candidate-provisioner",
@@ -903,5 +911,6 @@
     "jboss-logging",
     "email"
   ],
-  "eventsExpiration": 2592000
+  "eventsExpiration": 2592000,
+  "loginTheme": "ivorovi-candidate"
 }

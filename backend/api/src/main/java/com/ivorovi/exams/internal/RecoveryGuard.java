@@ -40,8 +40,11 @@ public class RecoveryGuard {
     private volatile Instant watermark = Instant.now().minus(Duration.ofMinutes(10));
     private final Map<String, Instant> handled = new java.util.concurrent.ConcurrentHashMap<>();
 
+    private final CandidateSessions sessions;
+
     RecoveryGuard(CandidateMfa idp, JobLeases leases, JdbcClient jdbc, TransactionTemplate tx, AuditLog audit, ProcessProperties process,
-                  @Value("${ivorovi.exams.recovery-guard-enabled:true}") boolean enabled) {
+                  CandidateSessions sessions, @Value("${ivorovi.exams.recovery-guard-enabled:true}") boolean enabled) {
+        this.sessions = sessions;
         this.idp = idp;
         this.leases = leases;
         this.jdbc = jdbc;
@@ -90,11 +93,18 @@ public class RecoveryGuard {
             }
             handled.put(key, r.at());
             n++;
-            List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant WHERE status IN ('ACTIVE', 'TRIAL')").query(UUID.class).list());
+            sessions.recordReset(r.subject(), r.at(), r.resetSessionId());          // per identity, every organization (QA-D6-4)
+            // QA-D6-4: every organization, whatever its status (a suspended one reactivated later must not accept old tokens)
+            List<UUID> tenants = TenantContext.callAsPlatform(() -> jdbc.sql("SELECT id FROM tenant").query(UUID.class).list());
             for (UUID t : tenants) {
+                // QA-D6-3: the kept session follows the newest reset only; a retried older reset never re-admits a session
+                // that a newer reset ended (the revocation time only moves forward, and so does the kept session with it)
                 TenantContext.runInTenant(t, () -> tx.executeWithoutResult(s -> jdbc.sql("""
-                        UPDATE candidate_account SET sessions_revoked_before = greatest(coalesce(sessions_revoked_before, ?), ?), kept_session_id = ?
-                        WHERE subject = ? RETURNING id""").params(java.sql.Timestamp.from(r.at()), java.sql.Timestamp.from(r.at()), r.resetSessionId(), r.subject())
+                        UPDATE candidate_account SET kept_session_id = CASE WHEN sessions_revoked_before IS NULL OR ? >= sessions_revoked_before
+                                                                           THEN ? ELSE kept_session_id END,
+                                                     sessions_revoked_before = greatest(coalesce(sessions_revoked_before, ?), ?)
+                        WHERE subject = ? RETURNING id""").params(java.sql.Timestamp.from(r.at()), r.resetSessionId(), java.sql.Timestamp.from(r.at()),
+                        java.sql.Timestamp.from(r.at()), r.subject())
                         .query(UUID.class).optional().ifPresent(id -> audit.record("exam.candidate.recovered", "candidate_account", id.toString(), AuditOutcome.SUCCESS,
                                 Map.of("at", r.at().toString(), "sessionsEnded", "enforced",
                                         "candidateChoseSignOut", String.valueOf(r.otherSessionsSignedOut()))))));

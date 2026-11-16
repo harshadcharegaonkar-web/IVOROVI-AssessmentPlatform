@@ -71,9 +71,11 @@ public class CandidateService {
     private final TransactionTemplate tx;
     private final CheckInLimits limits;
     private final DeliveryTelemetry telemetry;
+    private final CandidateSessions sessions;
 
     CandidateService(JdbcClient jdbc, AuditLog audit, FieldCipher cipher, CandidateMfa mfa, TenantDirectory tenants, ExamAdminService admin,
-                     JsonMapper json, TransactionTemplate tx, CheckInLimits limits, DeliveryTelemetry telemetry) {
+                     JsonMapper json, TransactionTemplate tx, CheckInLimits limits, DeliveryTelemetry telemetry, CandidateSessions sessions) {
+        this.sessions = sessions;
         this.jdbc = jdbc;
         this.audit = audit;
         this.cipher = cipher;
@@ -141,7 +143,7 @@ public class CandidateService {
         UUID tenant = TenantContext.requireTenantId();
         Optional<Me0> existing = jdbc.sql("SELECT id, status FROM candidate_account WHERE subject = ?").param(c.subject())
                 .query((rs, n) -> new Me0(rs.getObject(1, UUID.class), rs.getString(2))).optional();
-        if (existing.isPresent()) requireSessionNotEnded(c);
+        requireSessionNotEnded(c);                       // before linking or enrolling anywhere (QA-D6-4)
         UUID id;
         if (existing.isEmpty()) {
             if (!p.selfRegistration()) {
@@ -202,15 +204,13 @@ public class CandidateService {
     /** The linked, active candidate who satisfies the portal's MFA policy. */
     UUID requireCandidate(Portal p) {
         CandidateAuthentication c = candidate();
-        record Acc(UUID id, String status, java.sql.Timestamp revokedBefore, String keptSession) {}
-        Acc me = jdbc.sql("SELECT id, status, sessions_revoked_before, kept_session_id FROM candidate_account WHERE subject = ?").param(c.subject())
-                .query((rs, n) -> new Acc(rs.getObject(1, UUID.class), rs.getString(2), rs.getTimestamp(3), rs.getString(4))).optional()
+        record Acc(UUID id, String status) {}
+        Acc me = jdbc.sql("SELECT id, status FROM candidate_account WHERE subject = ?").param(c.subject())
+                .query((rs, n) -> new Acc(rs.getObject(1, UUID.class), rs.getString(2))).optional()
                 .orElseThrow(() -> ApiException.conflict("not_enrolled", "Open the exam portal first to link your account."));
         c.link(me.id());
+        requireSessionNotEnded(c);                                                          // KI-79, per identity (QA-D6-4)
         if (!"ACTIVE".equals(me.status())) throw suspended();
-        if (me.revokedBefore() != null && revoked(c.token().getIssuedAt(), c.token().getClaimAsString("sid"), me.revokedBefore().toInstant(), me.keptSession())) {
-            throw sessionEnded();
-        }
         if ("REQUIRED".equals(p.mfaPolicy()) && !mfaStatus(p, c).satisfied()) {
             throw new Denial("exam.candidate.mfa_required", Map.of("portal", p.key()),
                     new ApiException(HttpStatus.FORBIDDEN, "mfa_required", "This institution requires an authenticator app. Set it up, then sign in again."));
@@ -219,15 +219,17 @@ public class CandidateService {
     }
 
     private static ApiException sessionEnded() {
-        return new ApiException(HttpStatus.UNAUTHORIZED, "session_ended", "Your sign-in ended because your password was reset. Sign in again.");
+        return new ApiException(HttpStatus.UNAUTHORIZED, "session_ended", "Your sign-in has ended. Sign in again.");
     }
 
+    /**
+     * KI-79: refused when the identity provider reported the token's session as ended (back-channel logout, immediate) or a
+     * password reset of this identity ended it (the guard's backstop record). Both are per identity, valid in every
+     * organization, including one the candidate has not joined yet (QA-D6-4).
+     */
     private void requireSessionNotEnded(CandidateAuthentication c) {
-        record R(java.sql.Timestamp revokedBefore, String kept) {}
-        jdbc.sql("SELECT sessions_revoked_before, kept_session_id FROM candidate_account WHERE subject = ? AND sessions_revoked_before IS NOT NULL").param(c.subject())
-                .query((rs, n) -> new R(rs.getTimestamp(1), rs.getString(2))).optional()
-                .filter(r -> revoked(c.token().getIssuedAt(), c.token().getClaimAsString("sid"), r.revokedBefore().toInstant(), r.kept()))
-                .ifPresent(r -> { throw sessionEnded(); });
+        String sid = c.token().getClaimAsString("sid");
+        if (sessions.ended(sid) || sessions.revokedByReset(c.subject(), c.token().getIssuedAt(), sid)) throw sessionEnded();
     }
 
     /**
@@ -273,6 +275,7 @@ public class CandidateService {
             return result;
         } catch (Denial d) {
             if (d.failedAttempt) limits.failed(c, attempt, d.details.getOrDefault("reason", "invalid"));
+            else limits.release(c, attempt);
             Map<String, String> details = new LinkedHashMap<>(d.details);
             if (attempt.delayedMs() > 0) details.put("delayedMs", String.valueOf(attempt.delayedMs()));
             audit.recordDenied(d.action, details);

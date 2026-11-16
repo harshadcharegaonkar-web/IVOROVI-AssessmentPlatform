@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { apiToken, selectOptionContaining, signIn, USERS } from "./support";
+import { apiToken, selectOptionContaining, signIn, USERS, layoutAccount } from "./support";
 
 const AIT = "0192a000-0000-7000-8000-00000000a101";
 const CSE = "0192a000-0000-7000-8000-00000000a121";
@@ -238,7 +238,7 @@ test.describe("Increment 1.4: academic structure", () => {
 
   for (const tag of ["@tablet", "@mobile"]) {
     test(`academic screens fit without horizontal scrolling ${tag}`, async ({ page }) => {
-      await signIn(page, USERS.orgAdmin, "/academics");
+      await signIn(page, layoutAccount(), "/academics");
       await expect(page.getByTestId("kpi-programs")).toBeVisible();
       await noHorizontalScroll(page);
       for (const path of ["/academics/programs", "/academics/courses", "/academics/subjects", "/academics/calendar", "/academics/terms",

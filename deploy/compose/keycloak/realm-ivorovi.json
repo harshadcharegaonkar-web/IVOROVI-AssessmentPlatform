@@ -293,6 +293,48 @@
           "temporary": false
         }
       ]
+    },
+    {
+      "id": "0192a000-0000-7000-8000-0000000a00f1",
+      "username": "layout.tablet@aurora.test",
+      "email": "layout.tablet@aurora.test",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Layout",
+      "lastName": "Tablet",
+      "attributes": {
+        "tenant_id": [
+          "0192a000-0000-7000-8000-00000000000a"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "0192a000-0000-7000-8000-0000000a00f2",
+      "username": "layout.mobile@aurora.test",
+      "email": "layout.mobile@aurora.test",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Layout",
+      "lastName": "Mobile",
+      "attributes": {
+        "tenant_id": [
+          "0192a000-0000-7000-8000-00000000000a"
+        ]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${DEV_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
     }
   ]
 }

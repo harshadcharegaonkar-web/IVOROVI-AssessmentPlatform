@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { signIn, USERS } from "./support";
+import { signIn, USERS, layoutAccount } from "./support";
 
 test.describe("Application shell and Phase 0 workflows", () => {
   test("org admin signs in through Keycloak and sees their tenant workspace", async ({ page }) => {
@@ -105,7 +105,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
   });
 
   test("mobile navigation drawer @mobile", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin);
+    await signIn(page, layoutAccount());
     await page.getByRole("button", { name: "Open navigation" }).click();
     await page.locator("#mobile-nav").getByRole("link", { name: "Organization Hierarchy" }).click();
     await expect(page.getByRole("heading", { name: "Organization hierarchy", level: 1 })).toBeVisible();
@@ -113,7 +113,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
   });
 
   test("sidebar collapses to an icon rail and remembers the preference", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin);
+    await signIn(page, layoutAccount());
     const sidebar = page.getByTestId("sidebar");
     await page.getByRole("button", { name: "Collapse sidebar" }).click();
     await expect(sidebar).toHaveCSS("width", "72px");
@@ -125,7 +125,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
   });
 
   test("breadcrumbs, global search and account menu", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin, "/settings/features");
+    await signIn(page, layoutAccount(), "/settings/features");
     const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
     await expect(crumbs.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await expect(crumbs.getByText("Feature Settings")).toHaveAttribute("aria-current", "page");
@@ -144,7 +144,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
   });
 
   test("notification centre lists the caller's notifications", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin);
+    await signIn(page, layoutAccount());
     await page.getByRole("button", { name: /^Notifications/ }).click();
     const panel = page.getByRole("dialog", { name: "Notifications" });
     await expect(panel.getByText("Notifications", { exact: true })).toBeVisible();
@@ -152,7 +152,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
   });
 
   test("tablet layout uses a navy top bar and icon rail @tablet", async ({ page }) => {
-    await signIn(page, USERS.orgAdmin);
+    await signIn(page, layoutAccount());
     await expect(page.getByTestId("sidebar")).toHaveCSS("width", "72px");
     await expect(page.locator("header")).toHaveCSS("background-color", "rgb(23, 36, 58)");
     await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Audit Logs" })).toBeVisible();
@@ -160,7 +160,7 @@ test.describe("Application shell and Phase 0 workflows", () => {
 
   for (const path of ["/", "/settings/features", "/audit", "/me"]) {
     test(`no horizontal scrolling on ${path} @mobile`, async ({ page }) => {
-      await signIn(page, USERS.orgAdmin, path);
+      await signIn(page, layoutAccount(), path);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
       await page.waitForLoadState("networkidle");
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

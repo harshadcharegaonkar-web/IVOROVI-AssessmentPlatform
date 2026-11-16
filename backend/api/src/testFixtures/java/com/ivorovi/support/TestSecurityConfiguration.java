@@ -47,6 +47,14 @@ public class TestSecurityConfiguration {
         return new com.ivorovi.platform.security.CandidateTokenDecoder(decoder);
     }
 
+    /** KI-79: back-channel logout tokens, production validators, trusting only the test candidate-realm key. */
+    @Bean
+    com.ivorovi.platform.security.CandidateLogoutTokenDecoder candidateLogoutTokenDecoder(com.ivorovi.platform.config.DeliveryProperties props) {
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(TestTokens.candidatePublicKey()).validateType(false).build();
+        decoder.setJwtValidator(com.ivorovi.platform.security.CandidateLogoutTokenDecoder.validator(props));
+        return new com.ivorovi.platform.security.CandidateLogoutTokenDecoder(decoder);
+    }
+
     /** Same validator chain as production; trusts only the test signing key. */
     @Bean
     JwtDecoder jwtDecoder(SecurityProperties props) {

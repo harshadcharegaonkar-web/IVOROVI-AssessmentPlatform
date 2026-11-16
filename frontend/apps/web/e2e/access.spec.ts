@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { archiveRolesNamed, signIn, USERS } from "./support";
+import { archiveRolesNamed, signIn, USERS, layoutAccount } from "./support";
 
 const ORG_ADMIN_ROLE = "01920000-0000-7000-8000-000000000002";
 const INSTITUTION_ADMIN_ROLE = "01920000-0000-7000-8000-000000000003";
@@ -190,7 +190,7 @@ test.describe("Increment 1.3: custom roles and permissions", () => {
     `/access/roles/compare?ids=${ORG_ADMIN_ROLE},${INSTITUTION_ADMIN_ROLE}`]) {
     for (const tag of ["@mobile", "@tablet"]) {
       test(`no horizontal scrolling on ${path} ${tag}`, async ({ page }) => {
-        await signIn(page, USERS.orgAdmin, path);
+        await signIn(page, layoutAccount(), path);
         await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
         await page.waitForLoadState("networkidle");
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

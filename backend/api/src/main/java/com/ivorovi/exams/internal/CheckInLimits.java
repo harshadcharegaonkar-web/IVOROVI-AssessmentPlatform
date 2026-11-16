@@ -39,7 +39,13 @@ class CheckInLimits {
      * The outcome of the checks before an attempt: the keyed hash of the presented code (null if malformed), the device
      * key, the address, how long the attempt was delayed, and a refusal to throw instead of attempting (or null).
      */
-    record Attempt(String codeHash, String deviceKey, String ip, long delayedMs, Function<CandidateService.Portal, CandidateService.Denial> refusal) {}
+    /** {@code reserved}: this attempt was already counted as a failure before evaluation (QA-D6-5); a success clears it. */
+    record Attempt(String codeHash, String deviceKey, String ip, long delayedMs, Function<CandidateService.Portal, CandidateService.Denial> refusal,
+                   boolean reserved) {
+        Attempt(String codeHash, String deviceKey, String ip, long delayedMs, Function<CandidateService.Portal, CandidateService.Denial> refusal) {
+            this(codeHash, deviceKey, ip, delayedMs, refusal, false);
+        }
+    }
 
     private static final Logger log = LoggerFactory.getLogger(CheckInLimits.class);
     private static final Duration DAY = Duration.ofDays(1);
@@ -85,7 +91,7 @@ class CheckInLimits {
             long minutes = Math.max(1, (Duration.between(Instant.now(), blocked.get()).toSeconds() + 59) / 60);
             return refuse(codeHash, device, ip, p -> CandidateService.cooldown(p, minutes));
         }
-        if (!rateLimits.enabled()) return new Attempt(codeHash, device, ip, 0, null);
+        if (!rateLimits.enabled()) return reserved(c, new Attempt(codeHash, device, ip, 0, null));
         String t = c.tenant().toString();
         // L1: the candidate's own budget (all attempts per minute, failed attempts per day)
         if (!limiter.acquire("code-candidate:" + t + ":" + c.candidate(), delivery.codeAttemptsPerCandidatePerMinute(), true).allowed()) {
@@ -122,7 +128,23 @@ class CheckInLimits {
                 sleep(delay);
             }
         }
-        return new Attempt(codeHash, device, ip, delay, null);
+        return reserved(c, new Attempt(codeHash, device, ip, delay, null));
+    }
+
+    /**
+     * QA-D6-5 (Day 7): the attempt is counted as a failure BEFORE the code is evaluated, by one atomic upsert that locks the
+     * account's row; an attempt beyond the threshold starts the cooldown and is refused without being evaluated. So at most
+     * {@code durableFailures} guesses per window are ever checked against the codes, however many arrive at once and whether
+     * or not Valkey is available. A success removes the record (legitimate recovery); an attempt that ends neither in success
+     * nor as a failed guess gives its reservation back ({@link #release}).
+     */
+    private Attempt reserved(CandidateService.Caller c, Attempt a) {
+        Optional<Instant> refusedUntil = reserve(c);
+        if (refusedUntil.isPresent()) {
+            long minutes = Math.max(1, (Duration.between(Instant.now(), refusedUntil.get()).toSeconds() + 59) / 60);
+            return refuse(a.codeHash(), a.deviceKey(), a.ip(), p -> CandidateService.cooldown(p, minutes));
+        }
+        return new Attempt(a.codeHash(), a.deviceKey(), a.ip(), a.delayedMs(), null, true);
     }
 
     // ================================================================================================ after a failed attempt
@@ -136,16 +158,16 @@ class CheckInLimits {
     }
 
     /**
-     * Counts one failed attempt atomically (the upsert locks the account's row, so concurrent guesses are counted one by one)
-     * and starts a cooldown once the window holds {@code durableFailures}. A new window starts after the window length or
-     * after a cooldown ended; the cooldown escalation resets after a quiet day. Returns the cooldown end if one started now.
+     * Counts one attempt atomically (the upsert locks the account's row, so concurrent attempts are counted one by one) and,
+     * when the attempt would exceed {@code durableFailures} in the window, starts the cooldown instead. Returns the end of
+     * the cooldown if the attempt must be refused (one already running, or started now); empty when it may be evaluated.
+     * A new window starts after the window length or after a cooldown ended; the escalation resets after a quiet day.
      */
-    Optional<Instant> durableFailure(CandidateService.Caller c) {
+    Optional<Instant> reserve(CandidateService.Caller c) {
         long window = props.durableWindow().toSeconds();
         return tx.execute(s -> {
-            record Row(int failures, int cooldowns, boolean blocked) {}
-            // a failure while a cooldown is already running (a guess that was in flight when it started) neither counts nor
-            // starts another cooldown: exactly one cooldown per threshold crossing, also under concurrent guessing
+            record Row(int failures, int cooldowns, boolean blocked, java.sql.Timestamp until) {}
+            // while a cooldown runs nothing is counted: exactly one cooldown per threshold crossing, also under concurrency
             Row r = jdbc.sql("""
                     INSERT INTO check_in_guard AS g (tenant_id, candidate_id, failures, window_started_at, cooldowns, last_failure_at)
                     VALUES (?, ?, 1, now(), 0, now())
@@ -156,9 +178,10 @@ class CheckInLimits {
                         cooldowns = CASE WHEN g.last_failure_at < now() - interval '1 day' THEN 0 ELSE g.cooldowns END,
                         blocked_until = CASE WHEN g.blocked_until <= now() THEN NULL ELSE g.blocked_until END,
                         last_failure_at = now()
-                    RETURNING failures, cooldowns, coalesce(blocked_until > now(), false)""").params(c.tenant(), c.candidate(), window, window)
-                    .query((rs, n) -> new Row(rs.getInt(1), rs.getInt(2), rs.getBoolean(3))).single();
-            if (r.blocked() || r.failures() < props.durableFailures()) return Optional.<Instant>empty();
+                    RETURNING failures, cooldowns, coalesce(blocked_until > now(), false), blocked_until""").params(c.tenant(), c.candidate(), window, window)
+                    .query((rs, n) -> new Row(rs.getInt(1), rs.getInt(2), rs.getBoolean(3), rs.getTimestamp(4))).single();
+            if (r.blocked()) return Optional.of(r.until().toInstant());
+            if (r.failures() <= props.durableFailures()) return Optional.<Instant>empty();
             long base = props.durableCooldown().toSeconds();
             long seconds = Math.min(props.durableMaxCooldown().toSeconds(), base << Math.min(r.cooldowns(), 20));
             Instant until = jdbc.sql("""
@@ -166,11 +189,18 @@ class CheckInLimits {
                     WHERE tenant_id = ? AND candidate_id = ? RETURNING blocked_until""").params(seconds, c.tenant(), c.candidate())
                     .query(java.sql.Timestamp.class).single().toInstant();
             audit.record("exam.check_in.cooldown_started", "candidate_account", c.candidate().toString(), AuditOutcome.FAILURE,
-                    Map.of("failures", String.valueOf(r.failures()), "cooldownSeconds", String.valueOf(seconds), "cooldownsInARow", String.valueOf(r.cooldowns() + 1),
+                    Map.of("failures", String.valueOf(r.failures() - 1), "cooldownSeconds", String.valueOf(seconds), "cooldownsInARow", String.valueOf(r.cooldowns() + 1),
                             "portal", c.portal().key()));
             meters.counter("ivorovi.checkin.cooldown_started").increment();
             return Optional.of(until);
         });
+    }
+
+    /** Gives a reservation back when the attempt was neither a success nor a failed guess (e.g. the session is not open). */
+    void release(CandidateService.Caller c, Attempt a) {
+        if (!a.reserved()) return;
+        jdbc.sql("UPDATE check_in_guard SET failures = greatest(failures - 1, 0) WHERE tenant_id = ? AND candidate_id = ? AND blocked_until IS NULL")
+                .params(c.tenant(), c.candidate()).update();
     }
 
     /** A successful check-in ends the account's failure history (legitimate recovery). */
@@ -180,8 +210,7 @@ class CheckInLimits {
 
     /** Charges the failure layers, locks a code whose daily budget is spent and raises the L4 alarm. */
     void failed(CandidateService.Caller c, Attempt a, String reason) {
-        record(c, reason);
-        durableFailure(c);
+        record(c, reason);                                      // the durable count was taken before evaluation (reserve)
         if (!rateLimits.enabled()) return;
         String t = c.tenant().toString();
         limiter.acquire("code-candidate-day:" + t + ":" + c.candidate(), props.failedPerCandidatePerDay(), DAY, true);
