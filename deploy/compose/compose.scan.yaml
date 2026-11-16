@@ -1,0 +1,42 @@
+# Malware scanning overlay (D-19; ADR-0006): ClamAV for the administrative API's upload quarantine.
+#   docker compose -f compose.yaml -f compose.scan.yaml up -d                  infrastructure + clamd (native API: IVOROVI_SCANNING_CLAMD_HOST=localhost)
+#   docker compose -f compose.yaml -f compose.scan.yaml --profile app up -d    full stack; the api container scans with clamd
+# Without this overlay no scanner exists: uploads stay quarantined (development, test) or are refused (staging, production).
+# Failed, unavailable or infected scans are never treated as clean (ClamAvScanner reports ERROR or INFECTED).
+#
+# Image pinned by digest (docs/demo-programme/sbom.md). It ships its signature database, so it starts without network;
+# freshclam updates it where database.clamav.net is reachable (the demo host). clamd needs about 1.2 GB of memory and
+# 1–2 minutes to load the signatures.
+#
+# Settings (keep identical to ClamAvRealScannerIT.SETTINGS): encrypted archives and documents, which clamd cannot look
+# inside, are reported as found (Heuristics.Encrypted.*) instead of OK; limits as below. Known gap QA-DP-1: an archive
+# entry larger than MaxFileSize is scanned only up to MaxFileSize and answered OK.
+services:
+  clamav:
+    image: clamav/clamav:1.4@sha256:4cc4350d3fded380caf1799e76c0d1c93f3fa40af99c0cb2862ec0c9b117718a
+    restart: unless-stopped
+    environment:
+      CLAMAV_NO_MILTERD: "true"
+      CLAMD_CONF_AlertEncrypted: "yes"
+      CLAMD_CONF_AlertEncryptedArchive: "yes"
+      CLAMD_CONF_AlertEncryptedDoc: "yes"
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_AlertBrokenExecutables: "yes"
+      CLAMD_CONF_AlertOLE2Macros: "yes"
+      CLAMD_CONF_StreamMaxLength: "25M"
+      CLAMD_CONF_MaxFileSize: "20M"
+      CLAMD_CONF_MaxScanSize: "100M"
+    ports: ["127.0.0.1:3310:3310"]
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+
+  api:
+    environment:
+      IVOROVI_SCANNING_CLAMD_HOST: clamav
+      IVOROVI_SCANNING_CLAMD_PORT: "3310"
+    depends_on:
+      clamav: { condition: service_healthy }
