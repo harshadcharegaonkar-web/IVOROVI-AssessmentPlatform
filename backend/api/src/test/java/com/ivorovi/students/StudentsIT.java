@@ -544,6 +544,7 @@ class StudentsIT extends IntegrationTest {
 
     @Autowired com.ivorovi.students.StudentAdmissions studentAdmissions;
     @Autowired com.ivorovi.students.StudentDirectory directory;
+    @Autowired com.ivorovi.academics.AcademicCatalogue catalogue;
     @Autowired com.ivorovi.platform.security.PrincipalResolver principals;
 
     private <T> T asUser(Fixture.Caller who, Callable<T> work) {
@@ -618,6 +619,22 @@ class StudentsIT extends IntegrationTest {
             // the failed conversion left nothing behind
             assertThat(ownerJdbc().sql("SELECT count(*) FROM admission_record WHERE tenant_id = ? AND source_application_id = ?").params(tenant, third)
                     .query(Long.class).single()).isZero();
+        }
+
+        @Test
+        void academicCatalogueReadsThroughTheAcademicsScope() {
+            var course = asUser(headCse, () -> catalogue.course(courseCse));
+            assertThat(course.programId()).isEqualTo(btech);
+            assertThat(course.departmentId()).isEqualTo(cse);
+            assertThat(asUser(headCse, () -> catalogue.batch(batchCseA)).capacity()).isEqualTo(2);
+            assertThat(asUser(headCse, () -> catalogue.batchesOfCourse(courseCse))).extracting(com.ivorovi.academics.AcademicCatalogue.Batch::id)
+                    .containsExactlyInAnyOrder(batchCseA, batchCseB);
+            assertThat(asUser(admin, () -> catalogue.year(y1)).code()).isEqualTo("Y1");
+            assertThat(asUser(admin, () -> catalogue.program(btech)).ownerOrgUnitId()).isEqualTo(collegeA);
+            // another college's administrator sees nothing of college A
+            assertThatThrownBy(() -> asUser(collegeAdminB, () -> catalogue.course(courseCse)))
+                    .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+            assertThat(asUser(collegeAdminB, () -> catalogue.batchesOfCourse(courseCse))).isEmpty();
         }
 
         @Test
