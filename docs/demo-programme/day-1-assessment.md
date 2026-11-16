@@ -38,7 +38,7 @@ production readiness. RB-1 to RB-6 and P-1 to P-7 stay open.
 ## 2. What exists today (verified in the repository)
 
 Already in place:
-- 15 backend modules, about 37,500 lines of Java, 39 migrations;
+- 15 backend modules, about 37,500 lines of Java, 37 schema migrations;
 - staff app and exam app;
 - 530 backend tests, 143 browser E2E tests in CI.
 
