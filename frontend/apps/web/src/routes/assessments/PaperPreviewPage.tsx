@@ -41,7 +41,7 @@ export function PaperPreviewPage() {
               {i.sectionNo != null && i.sectionNo !== all[n - 1]?.sectionNo && (() => {
                 const sec = (p.sections ?? []).find((x) => x.sectionNo === i.sectionNo);
                 return <div className="mb-3 mt-2"><h2 className="text-lg font-semibold">Section {i.sectionNo}{sec ? `: ${sec.title}` : ""}</h2>
-                  {sec?.instructions && <p className="whitespace-pre-line text-sm text-muted">{sec.instructions}</p>}</div>;
+                  {sec?.instructions && <p className="whitespace-pre-line text-sm text-muted-strong">{sec.instructions}</p>}</div>;
               })()}
               <Card>
                 <CardHeader title={`Question ${i.position}`} description={TYPE_LABEL[i.type ?? ""] ?? i.type}

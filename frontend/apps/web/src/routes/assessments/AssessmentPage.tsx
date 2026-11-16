@@ -144,7 +144,7 @@ export function Definition({ v }: { v: AssessmentVersion }) {
       {sectioned && <Card>
         <CardHeader title="Sections" description="Kept in this order on every paper; questions are shuffled only within their section." />
         <CardBody><ol className="space-y-2 text-sm" aria-label="Sections">{(v.sections ?? []).map((x) => (
-          <li key={x.sectionNo}><span className="font-medium">{x.sectionNo}. {x.title}</span>{x.instructions && <span className="block whitespace-pre-line text-muted">{x.instructions}</span>}</li>))}</ol></CardBody>
+          <li key={x.sectionNo}><span className="font-medium">{x.sectionNo}. {x.title}</span>{x.instructions && <span className="block whitespace-pre-line text-muted-strong">{x.instructions}</span>}</li>))}</ol></CardBody>
       </Card>}
       {(v.blueprint ?? []).length > 0 && <Card>
         <CardHeader title="Blueprint" description="Coverage every paper must have." />
