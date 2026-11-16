@@ -14,8 +14,9 @@ import java.util.List;
 public final class EncryptedColumns {
 
     /**
-     * @param guarded the table refuses updates through an immutability trigger, so re-encryption needs the
-     *                owner-side path (not available yet; such columns are reported, never silently skipped)
+     * @param guarded the table refuses updates through an immutability trigger: not rewritten (immutable record; the
+     *                rotation mechanism is a design under the product owner's review, KI-49); reported as pending,
+     *                never silently skipped
      */
     public record Column(String table, String column, String idColumn, String field, boolean guarded) {
         public String name() {
