@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -323,6 +324,82 @@ public class ScheduleService {
                     "created", String.valueOf(created), "alreadyEnrolled", String.valueOf(already), "rejected", String.valueOf(errors.size())));
         }
         return new UploadResult(apply, rows, valid.size(), created, already, errors);
+    }
+
+    /** One person to enrol on behalf of another module (admissions, placement), with an opaque subject reference. */
+    public record SubjectEnrollee(String email, String displayName, String subjectType, UUID subjectRef) {}
+
+    public record SubjectEnrolResult(int created, int linkedExisting, int alreadyEnrolled, List<String> rejected) {}
+
+    public record SubjectEnrolment(UUID enrolmentId, String subjectType, UUID subjectRef, String status, boolean linked, String invitationStatus) {}
+
+    static final Set<String> SUBJECT_TYPES = Set.of("STUDENT", "APPLICANT", "PLACEMENT_CANDIDATE");
+
+    /**
+     * Enrolment through the module API (demo programme S-4). Same permission and schedule checks as an upload; the
+     * subject reference is recorded once and never changed. An existing enrolment of the same e-mail without a subject
+     * (an earlier upload) is linked to the subject; one with a different subject is rejected. Rejections name the
+     * subject reference only, never the e-mail address.
+     */
+    @Transactional
+    public SubjectEnrolResult enrolSubjects(UUID scheduleId, List<SubjectEnrollee> people) {
+        Row r = manageable(scheduleId);
+        if (people == null || people.isEmpty()) return new SubjectEnrolResult(0, 0, 0, List.of());
+        if (people.size() > MAX_ROWS) throw ApiException.badRequest("too_many_rows", "At most " + MAX_ROWS + " candidates at a time.");
+        UUID tenant = TenantContext.requireTenantId();
+        int created = 0, linked = 0, already = 0;
+        List<String> rejected = new ArrayList<>();
+        for (SubjectEnrollee p : people) {
+            String email = p.email() == null ? "" : p.email().strip().toLowerCase(Locale.ROOT);
+            if (p.subjectRef() == null || p.subjectType() == null || !SUBJECT_TYPES.contains(p.subjectType())) {
+                throw ApiException.badRequest("invalid_subject", "Every enrolment needs a subject type and reference.");
+            }
+            String ref = p.subjectType() + ":" + p.subjectRef();
+            if (!EMAIL.matcher(email).matches()) { rejected.add(ref + " invalid_email"); continue; }
+            String name = p.displayName() == null || p.displayName().isBlank() ? null : p.displayName().strip();
+            if (name != null && name.length() > 200) name = name.substring(0, 200);
+            String index = sessions.emailIndex(email);
+            record Existing(UUID id, String type, UUID ref) {}
+            Optional<Existing> existing = jdbc.sql("SELECT id, subject_type, subject_ref FROM exam_enrolment WHERE schedule_id = ? AND email_index = ? FOR UPDATE")
+                    .params(scheduleId, index).query((rs, n) -> new Existing(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, UUID.class))).optional();
+            Optional<UUID> sameSubject = jdbc.sql("SELECT id FROM exam_enrolment WHERE schedule_id = ? AND subject_type = ? AND subject_ref = ?")
+                    .params(scheduleId, p.subjectType(), p.subjectRef()).query(UUID.class).optional();
+            if (existing.isPresent()) {
+                Existing e = existing.get();
+                if (e.ref() == null && sameSubject.isEmpty()) {
+                    jdbc.sql("UPDATE exam_enrolment SET subject_type = ?, subject_ref = ?, version = version + 1 WHERE id = ?")
+                            .params(p.subjectType(), p.subjectRef(), e.id()).update();
+                    linked++;
+                } else if (p.subjectType().equals(e.type()) && p.subjectRef().equals(e.ref())) {
+                    already++;
+                } else {
+                    rejected.add(ref + " email_enrolled_for_another_subject");
+                }
+                continue;
+            }
+            if (sameSubject.isPresent()) { rejected.add(ref + " subject_enrolled_with_another_email"); continue; }
+            UUID candidate = sessions.candidateByEmail(r.portalId(), email).orElse(null);
+            jdbc.sql("""
+                    INSERT INTO exam_enrolment (id, tenant_id, schedule_id, email_enc, email_index, display_name, candidate_id, source, subject_type, subject_ref, created_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'MODULE', ?, ?, ?)""")
+                    .params(Ids.newId(), tenant, scheduleId, cipher.encrypt(email, EMAIL_FIELD, tenant), index, name, candidate, p.subjectType(), p.subjectRef(), me())
+                    .update();
+            created++;
+        }
+        audit.recordSuccess("exam.enrolment.module_enrolled", "exam_schedule", scheduleId.toString(), Map.of("created", String.valueOf(created),
+                "linked", String.valueOf(linked), "alreadyEnrolled", String.valueOf(already), "rejected", String.valueOf(rejected.size())));
+        return new SubjectEnrolResult(created, linked, already, rejected);
+    }
+
+    /** Enrolments of a schedule that carry a subject reference (no e-mail addresses). */
+    @Transactional(readOnly = true)
+    public List<SubjectEnrolment> subjectEnrolments(UUID scheduleId) {
+        row(scheduleId, false);
+        return jdbc.sql("""
+                SELECT id, subject_type, subject_ref, status, candidate_id IS NOT NULL, invitation_status FROM exam_enrolment
+                WHERE schedule_id = ? AND subject_ref IS NOT NULL ORDER BY created_at, id""").param(scheduleId)
+                .query((rs, n) -> new SubjectEnrolment(rs.getObject(1, UUID.class), rs.getString(2), rs.getObject(3, UUID.class), rs.getString(4), rs.getBoolean(5),
+                        rs.getString(6))).list();
     }
 
     @Transactional

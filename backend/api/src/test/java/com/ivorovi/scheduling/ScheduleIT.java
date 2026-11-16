@@ -22,6 +22,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.beans.factory.annotation.Autowired;
 import tools.jackson.databind.JsonNode;
@@ -231,5 +232,80 @@ class ScheduleIT extends QuestionTestSupport {
                 controller).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("images_not_deliverable"));
         // the text-only assessment of this class is still schedulable
         create();
+    }
+
+    // ================================================================================================ module API (demo programme S-4)
+
+    @Autowired com.ivorovi.scheduling.ExamScheduling examScheduling;
+    @Autowired com.ivorovi.platform.security.PrincipalResolver principals;
+
+    <T> T asUser(com.ivorovi.support.TestOrg.Account who, java.util.function.Supplier<T> work) {
+        return TenantContext.callInTenant(org.tenant, () -> {
+            var principal = principals.resolve(org.tenant, who.caller().subject()).orElseThrow();
+            SecurityContextHolder.getContext()
+                    .setAuthentication(new com.ivorovi.platform.security.IvoroviAuthentication(principal, null));
+            try {
+                return work.get();
+            } finally {
+                SecurityContextHolder.clearContext();
+            }
+        });
+    }
+
+    static com.ivorovi.scheduling.ExamScheduling.Enrollee applicant(String email, UUID ref) {
+        return new com.ivorovi.scheduling.ExamScheduling.Enrollee(email, "Applicant", com.ivorovi.scheduling.ExamScheduling.SubjectType.APPLICANT, ref);
+    }
+
+    @Test
+    void moduleApiEnrolsSubjectsOnTheExistingEngineAndNeverChangesThem() throws Exception {
+        var s = asUser(controller, () -> examScheduling.create(new com.ivorovi.scheduling.ExamScheduling.NewSchedule(version, portalId, college, "Entrance test",
+                Instant.now().minusSeconds(60), Instant.now().plus(Duration.ofHours(3)), null, null)));
+        assertThat(s.durationMinutes()).isEqualTo(45);
+        // the schedule is an ordinary schedule: same table, same session, visible on the scheduling screens
+        assertThat(call(get("/api/v1/exam/schedules/" + s.id()), controller, status().isOk()).path("title").asString()).isEqualTo("Entrance test");
+
+        UUID a1 = UUID.randomUUID(), a2 = UUID.randomUUID();
+        UUID linkedCandidate = candidate("asha.applicant@cand.test");
+        var r = asUser(controller, () -> examScheduling.enrol(s.id(), List.of(applicant("Asha.Applicant@cand.test", a1), applicant("ravi.applicant@cand.test", a2),
+                applicant("not-an-email", UUID.randomUUID()))));
+        assertThat(r.created()).isEqualTo(2);
+        assertThat(r.rejected()).hasSize(1).allSatisfy(x -> assertThat(x).endsWith("invalid_email").doesNotContain("@"));
+        // repeat is idempotent; the same e-mail for another subject, or the same subject under another e-mail, is refused
+        var again = asUser(controller, () -> examScheduling.enrol(s.id(), List.of(applicant("asha.applicant@cand.test", a1),
+                applicant("asha.applicant@cand.test", UUID.randomUUID()), applicant("other@cand.test", a2))));
+        assertThat(again.alreadyEnrolled()).isEqualTo(1);
+        assertThat(again.created()).isZero();
+        assertThat(again.rejected()).hasSize(2);
+        var enrolments = asUser(controller, () -> examScheduling.enrolments(s.id()));
+        assertThat(enrolments).extracting(com.ivorovi.scheduling.ExamScheduling.Enrolment::subjectRef).containsExactlyInAnyOrder(a1, a2);
+        assertThat(enrolments).filteredOn(e -> e.subjectRef().equals(a1)).singleElement().satisfies(e -> assertThat(e.linked()).isTrue());
+        assertThat(ownerJdbc().sql("SELECT candidate_id FROM exam_enrolment WHERE schedule_id = ? AND subject_ref = ?").params(s.id(), a1).query(UUID.class).single())
+                .isEqualTo(linkedCandidate);
+        // the database keeps the subject: never changed, never set without a type, MODULE rows always carry one
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_enrolment SET subject_ref = ? WHERE schedule_id = ? AND subject_ref = ?")
+                .params(UUID.randomUUID(), s.id(), a1).update()).hasMessageContaining("never changes");
+        assertThatThrownBy(() -> ownerJdbc().sql("UPDATE exam_enrolment SET subject_type = NULL WHERE schedule_id = ? AND subject_ref = ?")
+                .params(s.id(), a1).update()).isInstanceOf(Exception.class);
+        // audit carries counts only
+        assertThat(ownerJdbc().sql("SELECT details::text FROM audit_event WHERE tenant_id = ? AND action = 'exam.enrolment.module_enrolled' ORDER BY occurred_at DESC LIMIT 1")
+                .param(org.tenant).query(String.class).single()).doesNotContain("@").doesNotContain(a1.toString());
+    }
+
+    @Test
+    void moduleApiKeepsSchedulingPermissionsAndCsvNeverSetsSubjects() throws Exception {
+        assertThatThrownBy(() -> asUser(faculty, () -> examScheduling.create(new com.ivorovi.scheduling.ExamScheduling.NewSchedule(version, portalId, college, "X",
+                Instant.now(), Instant.now().plus(Duration.ofHours(3)), null, null)))).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        UUID id = create();
+        assertThatThrownBy(() -> asUser(otherController, () -> examScheduling.enrol(id, List.of(applicant("x@cand.test", UUID.randomUUID())))))
+                .isInstanceOf(com.ivorovi.platform.web.ApiException.class);
+        call(post("/api/v1/exam/schedules/" + id + "/enrolments/upload").content(JSON.writeValueAsString(java.util.Map.of("csv",
+                "email,name\nupload@cand.test,Up\n", "apply", true))), controller, status().isOk()); // the upload format has no subject columns
+        assertThat(ownerJdbc().sql("SELECT count(*) FROM exam_enrolment WHERE schedule_id = ? AND subject_ref IS NOT NULL").param(id).query(Long.class).single()).isZero();
+        // an uploaded person can later be linked to a subject once, through the API
+        UUID ref = UUID.randomUUID();
+        assertThat(asUser(controller, () -> examScheduling.enrol(id, List.of(applicant("upload@cand.test", ref)))).linkedExisting()).isEqualTo(1);
+        assertThat(asUser(controller, () -> examScheduling.cancel(id, "Test over")).status()).isEqualTo("CANCELLED");
+        assertThatThrownBy(() -> asUser(controller, () -> examScheduling.enrol(id, List.of(applicant("late@cand.test", UUID.randomUUID())))))
+                .isInstanceOf(com.ivorovi.platform.web.ApiException.class);
     }
 }
