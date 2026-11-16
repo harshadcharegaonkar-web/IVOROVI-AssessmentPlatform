@@ -14,11 +14,15 @@ demonstration figures.
 ## Commands
 
 ```bash
-scripts/demo-data.sh rebuild   # reset + seed + verify
+scripts/demo-data.sh steps     # list the dataset steps (one per stream) in run order
+scripts/demo-data.sh rebuild   # reset + seed + live + verify
 scripts/demo-data.sh reset     # remove every Meridian record (keeps the Keycloak sign-ins)
 scripts/demo-data.sh seed      # create the organization, sign-ins and data
 scripts/demo-data.sh verify    # compare dashboard figures with the expected values
 ```
+
+Since the demo programme (D-18) the dataset is built by steps, one per stream (`scripts/demo/steps/`); the contract for
+adding a step, the reset tiers and the backup are in `docs/demo-programme/demo-data.md`. The data below is step 10.
 
 Requirements: the local stack is running (`docker compose up -d`, API on `localhost:8080`, Keycloak on `localhost:8180`).
 The script refuses to run against a non-local API, and `reset` only deletes rows of the `meridian-demo` organization.
