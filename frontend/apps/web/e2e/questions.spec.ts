@@ -90,10 +90,10 @@ test.describe.serial("question bank lifecycle", () => {
     await page.getByLabel("Statement").fill(`Explain Newton's third law ${RUN}.`);
     await page.getByLabel("Word limit").fill("200");
     await page.getByLabel("Model answer (optional)").fill(`Every action has an equal and opposite reaction ${RUN}.`);
-    await page.getByRole("button", { name: "Criterion" }).click();
+    await page.getByRole("button", { name: "Add criterion" }).click();
     await page.getByLabel("Criterion 1", { exact: true }).fill("Statement of the law");
     await page.getByLabel("Criterion 1 weight").fill("60");
-    await page.getByRole("button", { name: "Criterion" }).click();
+    await page.getByRole("button", { name: "Add criterion" }).click();
     await page.getByLabel("Criterion 2", { exact: true }).fill("Example");
     await page.getByLabel("Criterion 2 weight").fill("30");
     await expect(page.getByTestId("rubric-total")).toHaveText("Weights: 90 / 100");
@@ -148,7 +148,9 @@ test.describe.serial("question bank lifecycle", () => {
     await page.getByLabel("Statement").fill(`Kinematics ${RUN} (revised): which expression gives the speed after $t$ seconds?`);
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page.getByText("Approved version 1 (unchanged)")).toBeVisible();
-    await expect(page.getByText(/a body falls for/)).toBeVisible();
+    // the saved draft is shown first; until it has loaded, a stale copy of version 2 can still carry the old text
+    await expect(page.getByText(/\(revised\): which expression/)).toBeVisible();
+    await expect(page.getByText(/a body falls for/)).toHaveCount(1);                   // only the approved version keeps it
   });
 
   test("9 · answer keys only for permitted staff", async ({ page, request }) => {

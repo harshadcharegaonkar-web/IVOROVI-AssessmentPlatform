@@ -211,7 +211,7 @@ function Editor({ bankId, questionId, version, answerKey, explanation: initialEx
                     </div>))}
                   <div className="flex items-center gap-3">
                     {rubric.length < 12 && <Button variant="secondary" size="sm" onClick={() => setRubric([...rubric, { title: "", description: "", weight: rubric.length ? "" : "100" }])}>
-                      <Plus aria-hidden className="h-4 w-4" /> Criterion</Button>}
+                      <Plus aria-hidden className="h-4 w-4" /> Add criterion</Button>}
                     {rubric.length > 0 && <span className={`text-sm ${rubricTotal === 100 ? "text-muted" : "text-danger"}`} data-testid="rubric-total">Weights: {rubricTotal} / 100</span>}
                   </div>
                 </fieldset>
