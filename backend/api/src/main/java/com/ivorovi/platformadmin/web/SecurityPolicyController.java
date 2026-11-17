@@ -30,14 +30,14 @@ class SecurityPolicyController {
     @GetMapping
     @Operation(summary = "Organization security policy for staff sessions: second factor, idle and session limits. The password policy is platform-wide "
             + "(the shared staff realm) and not part of it (requires tenant.security.manage)")
-    SecurityPolicyService.View get() {
+    SecurityPolicyService.View getSecurityPolicy() {
         return service.view();
     }
 
     @PutMapping
     @Operation(summary = "Change the security policy. Stronger rules apply at once (APPLIED); any weaker rule needs a second administrator's approval "
             + "(PENDING_APPROVAL). Turning the second factor on requires the caller's own sign-in to have used one (requires tenant.security.manage)")
-    SecurityPolicyService.Result update(@Valid @RequestBody UpdateRequest r) {
+    SecurityPolicyService.Result updateSecurityPolicy(@Valid @RequestBody UpdateRequest r) {
         return service.update(new SecurityPolicyService.Update(r.mfaRequired(), r.idleMinutes(), r.absoluteHours(), r.version()));
     }
 }
