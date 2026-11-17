@@ -1,12 +1,15 @@
 package com.ivorovi.questions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.ivorovi.platform.security.IvoroviAuthentication;
+import com.ivorovi.platform.security.PrincipalResolver;
 import com.ivorovi.platform.tenancy.TenantContext;
 import com.ivorovi.support.TestOrg;
 import java.util.List;
@@ -15,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -113,6 +118,22 @@ class QuestionIsolationIT extends QuestionTestSupport {
         assertThat(call(get("/api/v1/question-banks/" + bank + "/questions?subtopicId=" + sub), faculty, status().isOk()).path("total").asLong()).isEqualTo(1);
         assertThat(call(get("/api/v1/question-banks/" + bank + "/questions?difficultyId=" + hard), faculty, status().isOk()).path("total").asLong()).isEqualTo(1);
         assertThat(call(get("/api/v1/question-banks/" + bank + "/questions?outcomeId=" + outcome), faculty, status().isOk()).path("total").asLong()).isEqualTo(1);
+        // demo programme S-6: analytics reads outcomes and the tags of a version, never content or keys
+        UUID versionId = ownerJdbc().sql("SELECT current_version_id FROM question WHERE id = ?").param(q).query(UUID.class).single();
+        TestOrg.Account management = org.account("MANAGEMENT", null), campusAdmin = org.account("CAMPUS_ADMIN", college);
+        var tags = asStaff(management, () -> outcomeCatalogue.tags(List.of(versionId))).get(versionId);
+        assertThat(tags.outcomeIds()).containsExactly(outcome);
+        assertThat(tags.questionSubjectId()).isEqualTo(sid);
+        assertThat(tags.topicId()).isEqualTo(topic);
+        assertThat(tags.difficultyId()).isEqualTo(hard);
+        assertThat(asStaff(faculty, () -> outcomeCatalogue.outcomes())).anySatisfy(o -> {
+            assertThat(o.id()).isEqualTo(outcome);
+            assertThat(o.code()).isEqualTo("LO1");
+            assertThat(o.bloomLevel()).isEqualTo("APPLY");
+        });
+        assertThat(com.ivorovi.questions.OutcomeCatalogue.Tags.class.getRecordComponents()).extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("content", "body", "answerKey", "marking", "explanation");
+        assertThatThrownBy(() -> asStaff(campusAdmin, () -> outcomeCatalogue.outcomes())).isInstanceOf(AccessDeniedException.class);
         assertThat(call(get("/api/v1/question-banks/" + bank + "/questions?tag=KINEMATICS"), faculty, status().isOk()).path("total").asLong()).isEqualTo(1);
         assertThat(call(get("/api/v1/question-banks/" + bank + "/questions?attributeKey=syllabus_ref&attributeValue=PHY-2.3"), faculty, status().isOk())
                 .path("total").asLong()).isEqualTo(1);
@@ -134,5 +155,20 @@ class QuestionIsolationIT extends QuestionTestSupport {
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("invalid_marks"));
         perform(post("/api/v1/question-banks/" + bank + "/questions").content(mcq("Zero", "A").replace("\"marks\":2", "\"marks\":0")), faculty)
                 .andExpect(status().isBadRequest());
+    }
+
+    @Autowired com.ivorovi.questions.OutcomeCatalogue outcomeCatalogue;
+    @Autowired PrincipalResolver principals;
+
+    <T> T asStaff(TestOrg.Account who, java.util.function.Supplier<T> work) {
+        return TenantContext.callInTenant(org.tenant, () -> {
+            var principal = principals.resolve(org.tenant, who.caller().subject()).orElseThrow();
+            SecurityContextHolder.getContext().setAuthentication(new IvoroviAuthentication(principal, null));
+            try {
+                return work.get();
+            } finally {
+                SecurityContextHolder.clearContext();
+            }
+        });
     }
 }
