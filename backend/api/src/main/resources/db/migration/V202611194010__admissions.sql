@@ -73,6 +73,7 @@ CREATE TABLE applicant (
     id               uuid PRIMARY KEY,
     tenant_id        uuid          NOT NULL REFERENCES tenant (id),
     candidate_id     uuid          NOT NULL,
+    email_enc        text          NOT NULL,                  -- the candidate's verified address (entrance-test enrolment)
     email_index      char(64)      NOT NULL,
     first_name       varchar(100)  NOT NULL,
     middle_name      varchar(100),
