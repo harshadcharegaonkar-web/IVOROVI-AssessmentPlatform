@@ -7,6 +7,7 @@ import com.ivorovi.platform.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -69,7 +70,7 @@ class WebhookController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create an endpoint (HTTPS, SSRF-checked); returns the signing secret once")
-    WebhookService.Created create(@RequestBody Request r) {
+    WebhookService.Created create(@Valid @RequestBody Request r) {
         return service.create(new WebhookService.Command(r.name(), r.url(), r.eventTypes(), r.includeIdentifiers(), null));
     }
 
@@ -81,13 +82,13 @@ class WebhookController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Change name, URL, event types or identifier opt-in")
-    WebhookService.View update(@PathVariable UUID id, @RequestBody Request r) {
+    WebhookService.View update(@PathVariable UUID id, @Valid @RequestBody Request r) {
         return service.update(id, new WebhookService.Command(r.name(), r.url(), r.eventTypes(), r.includeIdentifiers(), r.version()));
     }
 
     @PutMapping("/{id}/status")
     @Operation(summary = "Pause or resume (resume also re-enables an automatically disabled endpoint)")
-    WebhookService.View status(@PathVariable UUID id, @RequestBody StatusRequest r) {
+    WebhookService.View status(@PathVariable UUID id, @Valid @RequestBody StatusRequest r) {
         return service.setStatus(id, r.status());
     }
 

@@ -6,6 +6,7 @@ import com.ivorovi.platform.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -63,7 +64,7 @@ class IntegrationController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create an integration (disabled until enabled); configuration validated by the adapter, targets SSRF-checked")
-    IntegrationService.View create(@RequestBody Request r) {
+    IntegrationService.View create(@Valid @RequestBody Request r) {
         return service.create(new IntegrationService.Command(r.kind(), r.adapter(), r.name(), r.description(), r.config(), r.secret(), null));
     }
 
@@ -75,13 +76,13 @@ class IntegrationController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Change name, description, configuration or secret (optimistic version check)")
-    IntegrationService.View update(@PathVariable UUID id, @RequestBody Request r) {
+    IntegrationService.View update(@PathVariable UUID id, @Valid @RequestBody Request r) {
         return service.update(id, new IntegrationService.Command(null, null, r.name(), r.description(), r.config(), r.secret(), r.version()));
     }
 
     @PutMapping("/{id}/enabled")
     @Operation(summary = "Enable or disable an integration")
-    IntegrationService.View enabled(@PathVariable UUID id, @RequestBody EnabledRequest r) {
+    IntegrationService.View enabled(@PathVariable UUID id, @Valid @RequestBody EnabledRequest r) {
         return service.setEnabled(id, r.enabled());
     }
 

@@ -4,6 +4,7 @@ import com.ivorovi.integrations.internal.ServiceIdentityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
@@ -61,7 +62,7 @@ class ServiceIdentityController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create a service identity; its envelope waits for approval by a second integration manager")
-    ServiceIdentityService.View create(@RequestBody Request r) {
+    ServiceIdentityService.View create(@Valid @RequestBody Request r) {
         return service.create(new ServiceIdentityService.Command(r.name(), r.purpose(), r.orgUnitId(), r.businessCustodianId(), r.technicalCustodianId(),
                 r.envelope(), null));
     }
@@ -74,32 +75,32 @@ class ServiceIdentityController {
 
     @PutMapping("/{id}/envelope")
     @Operation(summary = "Narrow the envelope (immediate) or propose a wider one (needs independent approval)")
-    ServiceIdentityService.View envelope(@PathVariable UUID id, @RequestBody EnvelopeRequest r) {
+    ServiceIdentityService.View envelope(@PathVariable UUID id, @Valid @RequestBody EnvelopeRequest r) {
         return service.changeEnvelope(id, r.envelope(), r.version());
     }
 
     @PostMapping("/{id}/envelope/approve")
     @Operation(summary = "Approve the proposed envelope (not by its proposer; approver must hold the permissions)")
-    ServiceIdentityService.View approve(@PathVariable UUID id, @RequestBody VersionRequest r) {
+    ServiceIdentityService.View approve(@PathVariable UUID id, @Valid @RequestBody VersionRequest r) {
         return service.approveEnvelope(id, r.version());
     }
 
     @PostMapping("/{id}/envelope/reject")
     @Operation(summary = "Reject the proposed envelope")
-    ServiceIdentityService.View reject(@PathVariable UUID id, @RequestBody ReasonRequest r) {
+    ServiceIdentityService.View reject(@PathVariable UUID id, @Valid @RequestBody ReasonRequest r) {
         return service.rejectEnvelope(id, r.reason());
     }
 
     @PutMapping("/{id}/custodians")
     @Operation(summary = "Name the business and technical custodians (active users)")
-    ServiceIdentityService.View custodians(@PathVariable UUID id, @RequestBody CustodiansRequest r) {
+    ServiceIdentityService.View custodians(@PathVariable UUID id, @Valid @RequestBody CustodiansRequest r) {
         return service.changeCustodians(id, r.businessCustodianId(), r.technicalCustodianId(), r.version());
     }
 
     @PostMapping("/{id}/roles")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Assign a role (must fit the envelope; ceiling rule applies)")
-    ServiceIdentityService.RoleAssignment assignRole(@PathVariable UUID id, @RequestBody RoleRequest r) {
+    ServiceIdentityService.RoleAssignment assignRole(@PathVariable UUID id, @Valid @RequestBody RoleRequest r) {
         return service.assignRole(id, r.roleId(), r.orgUnitId());
     }
 
@@ -112,7 +113,7 @@ class ServiceIdentityController {
 
     @PostMapping("/{id}/suspend")
     @Operation(summary = "Suspend (its keys stop working)")
-    ServiceIdentityService.View suspend(@PathVariable UUID id, @RequestBody ReasonRequest r) {
+    ServiceIdentityService.View suspend(@PathVariable UUID id, @Valid @RequestBody ReasonRequest r) {
         return service.suspend(id, r.reason());
     }
 
@@ -124,7 +125,7 @@ class ServiceIdentityController {
 
     @PostMapping("/{id}/disable")
     @Operation(summary = "Disable permanently; revokes its role assignments and API clients")
-    ServiceIdentityService.View disable(@PathVariable UUID id, @RequestBody ReasonRequest r) {
+    ServiceIdentityService.View disable(@PathVariable UUID id, @Valid @RequestBody ReasonRequest r) {
         return service.disable(id, r.reason());
     }
 }

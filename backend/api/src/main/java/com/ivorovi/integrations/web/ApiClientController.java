@@ -4,6 +4,7 @@ import com.ivorovi.integrations.internal.ApiClientService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
@@ -73,7 +74,7 @@ class ApiClientController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Register an API client; returns the key once")
-    ApiClientService.Issued create(@RequestBody Request r) {
+    ApiClientService.Issued create(@Valid @RequestBody Request r) {
         return service.create(new ApiClientService.Command(r.name(), r.description(), r.scopes(), r.orgUnitId(), r.allowedIps(), r.expiresAt(), null,
                 r.serviceIdentityId()));
     }
@@ -86,13 +87,13 @@ class ApiClientController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Change name, description, IP allow-list or expiry (scopes are fixed)")
-    ApiClientService.View update(@PathVariable UUID id, @RequestBody Request r) {
+    ApiClientService.View update(@PathVariable UUID id, @Valid @RequestBody Request r) {
         return service.update(id, new ApiClientService.Command(r.name(), r.description(), null, null, r.allowedIps(), r.expiresAt(), r.version()));
     }
 
     @PostMapping("/{id}/rotate")
     @Operation(summary = "Issue a new key; existing keys stay valid for the grace period (0-168 hours); returns the new key once")
-    ApiClientService.Issued rotate(@PathVariable UUID id, @RequestBody RotateRequest r) {
+    ApiClientService.Issued rotate(@PathVariable UUID id, @Valid @RequestBody RotateRequest r) {
         return service.rotate(id, r.graceHours());
     }
 
@@ -105,19 +106,19 @@ class ApiClientController {
 
     @PutMapping("/{id}/owner")
     @Operation(summary = "Reassign a delegated client to another active user who holds every scope now (resumes it if it was suspended because its owner left)")
-    ApiClientService.View reassign(@PathVariable UUID id, @RequestBody OwnerRequest r) {
+    ApiClientService.View reassign(@PathVariable UUID id, @Valid @RequestBody OwnerRequest r) {
         return service.reassign(id, r.userId(), r.version());
     }
 
     @PutMapping("/{id}/scopes")
     @Operation(summary = "Remove scopes (widening needs a new client)")
-    ApiClientService.View scopes(@PathVariable UUID id, @RequestBody ScopesRequest r) {
+    ApiClientService.View scopes(@PathVariable UUID id, @Valid @RequestBody ScopesRequest r) {
         return service.narrowScopes(id, r.scopes(), r.version());
     }
 
     @PostMapping("/{id}/suspend")
     @Operation(summary = "Suspend a client (keys stop working until resumed)")
-    ApiClientService.View suspend(@PathVariable UUID id, @RequestBody SuspendRequest r) {
+    ApiClientService.View suspend(@PathVariable UUID id, @Valid @RequestBody SuspendRequest r) {
         return service.suspend(id, r.reason());
     }
 
@@ -129,7 +130,7 @@ class ApiClientController {
 
     @PostMapping("/{id}/revoke")
     @Operation(summary = "Revoke the client and all its keys (permanent)")
-    ApiClientService.View revoke(@PathVariable UUID id, @RequestBody RevokeRequest r) {
+    ApiClientService.View revoke(@PathVariable UUID id, @Valid @RequestBody RevokeRequest r) {
         return service.revoke(id, r.reason());
     }
 }
