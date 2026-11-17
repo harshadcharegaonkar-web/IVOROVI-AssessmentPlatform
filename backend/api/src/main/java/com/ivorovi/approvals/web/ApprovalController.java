@@ -4,6 +4,7 @@ import com.ivorovi.approvals.ApprovalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -48,7 +49,7 @@ class ApprovalController {
 
     @PostMapping("/{id}/decision")
     @Operation(summary = "Approve or reject (not by the requester; approver must hold the required permission now)")
-    ApprovalService.Request decide(@PathVariable UUID id, @RequestBody Decision d) {
+    ApprovalService.Request decide(@PathVariable UUID id, @Valid @RequestBody Decision d) {
         return approvals.decide(id, d.approve(), d.reason(), d.version());
     }
 
