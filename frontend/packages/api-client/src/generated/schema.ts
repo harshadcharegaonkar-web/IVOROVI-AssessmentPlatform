@@ -402,6 +402,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluation/schedules/{scheduleId}/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluation setup of a scheduled examination: mode, moderation tolerance, evaluators, and who may evaluate */
+        get: operations["setup"];
+        /** Set single or double marking, the moderation tolerance and the evaluator pool */
+        put: operations["saveSetup"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assessments/{id}/draft": {
         parameters: {
             query?: never;
@@ -2107,6 +2125,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluation/tasks/{taskId}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit my marks for a task (per rubric criterion, or one mark without a rubric); final */
+        post: operations["submit_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/schedules/{scheduleId}/allocate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create anonymous scripts for submitted answers awaiting evaluation and allocate them to evaluators */
+        post: operations["allocate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/moderation/{itemId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set the final mark of an answer in moderation, with a reason (never by one of its evaluators) */
+        post: operations["moderate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assessments": {
         parameters: {
             query?: never;
@@ -2151,7 +2220,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submit_1"];
+        post: operations["submit_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4001,6 +4070,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/evaluation/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My evaluation tasks (anonymous scripts) */
+        get: operations["tasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/tasks/{taskId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One of my tasks: question, rubric, model answer (audited) and the answer to evaluate */
+        get: operations["task"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/schedules/{scheduleId}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Evaluation progress: scripts, answers open, in moderation and final; tasks per evaluator */
+        get: operations["progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/evaluation/schedules/{scheduleId}/moderation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Answers whose two evaluations differ by more than the tolerance */
+        get: operations["moderation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-events": {
         parameters: {
             query?: never;
@@ -5233,6 +5370,26 @@ export interface components {
             createdAt?: string;
             /** Format: int64 */
             version?: number;
+        };
+        EvaluationSetupRequest: {
+            mode: string;
+            tolerancePercent?: number;
+            evaluatorIds: string[];
+        };
+        EvaluationSetup: {
+            /** Format: uuid */
+            scheduleId?: string;
+            mode?: string;
+            tolerancePercent?: number;
+            evaluators?: components["schemas"]["EvaluatorOption"][];
+            eligible?: components["schemas"]["EvaluatorOption"][];
+            locked?: boolean;
+            configured?: boolean;
+        };
+        EvaluatorOption: {
+            /** Format: uuid */
+            userId?: string;
+            displayName?: string;
         };
         AssessmentDraftRequest: {
             title: string;
@@ -6672,6 +6829,74 @@ export interface components {
             lastSeenAt?: string;
         };
         CandidateMfaResetRequest: {
+            reason: string;
+        };
+        EvaluationSubmission: {
+            criteria?: {
+                [key: string]: number;
+            };
+            holistic?: number;
+            comment?: string;
+        };
+        Criterion: {
+            id?: string;
+            title?: string;
+            description?: string;
+            /** Format: int32 */
+            weight?: number;
+        };
+        EvaluationCriterionMark: {
+            criterionId?: string;
+            title?: string;
+            max?: number;
+            awarded?: number;
+        };
+        EvaluationTaskDetail: {
+            /** Format: uuid */
+            taskId?: string;
+            scriptCode?: string;
+            /** Format: int32 */
+            itemNo?: number;
+            status?: string;
+            marks?: number;
+            statement?: {
+                [key: string]: unknown;
+            };
+            /** Format: int32 */
+            maxWords?: number;
+            rubric?: components["schemas"]["Criterion"][];
+            modelAnswer?: string;
+            responseText?: string;
+            criterionMarks?: components["schemas"]["EvaluationCriterionMark"][];
+            total?: number;
+            comment?: string;
+        };
+        EvaluationProgress: {
+            /** Format: uuid */
+            scheduleId?: string;
+            /** Format: int32 */
+            scripts?: number;
+            /** Format: int32 */
+            itemsOpen?: number;
+            /** Format: int32 */
+            itemsInModeration?: number;
+            /** Format: int32 */
+            itemsFinal?: number;
+            /** Format: int32 */
+            awaitingScripts?: number;
+            evaluators?: components["schemas"]["EvaluatorLoad"][];
+        };
+        EvaluatorLoad: {
+            /** Format: uuid */
+            evaluatorId?: string;
+            displayName?: string;
+            /** Format: int32 */
+            assigned?: number;
+            /** Format: int32 */
+            submitted?: number;
+        };
+        ModerationRequest: {
+            awarded: number;
             reason: string;
         };
         AssessmentCreateRequest: {
@@ -8355,6 +8580,36 @@ export interface components {
             name?: string;
             url?: string;
         };
+        EvaluationTaskSummary: {
+            /** Format: uuid */
+            taskId?: string;
+            scriptCode?: string;
+            /** Format: int32 */
+            itemNo?: number;
+            marks?: number;
+            status?: string;
+            /** Format: date-time */
+            assignedAt?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+        };
+        ModerationItem: {
+            /** Format: uuid */
+            itemId?: string;
+            scriptCode?: string;
+            /** Format: int32 */
+            itemNo?: number;
+            marks?: number;
+            tolerance?: number;
+            marksGiven?: components["schemas"]["ModerationMark"][];
+            mayModerate?: boolean;
+        };
+        ModerationMark: {
+            label?: string;
+            total?: number;
+            criterionMarks?: components["schemas"]["EvaluationCriterionMark"][];
+            comment?: string;
+        };
         AuditEvent: {
             /** Format: uuid */
             id?: string;
@@ -9582,6 +9837,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ExamPortal"];
+                };
+            };
+        };
+    };
+    setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationSetup"];
+                };
+            };
+        };
+    };
+    saveSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationSetup"];
                 };
             };
         };
@@ -12764,6 +13067,78 @@ export interface operations {
             };
         };
     };
+    submit_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluationSubmission"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationTaskDetail"];
+                };
+            };
+        };
+    };
+    allocate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationProgress"];
+                };
+            };
+        };
+    };
+    moderate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                itemId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModerationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     list_12: {
         parameters: {
             query?: {
@@ -12834,7 +13209,7 @@ export interface operations {
             };
         };
     };
-    submit_1: {
+    submit_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -15997,6 +16372,94 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CandidateAccount"][];
+                };
+            };
+        };
+    };
+    tasks: {
+        parameters: {
+            query?: {
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationTaskSummary"][];
+                };
+            };
+        };
+    };
+    task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                taskId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationTaskDetail"];
+                };
+            };
+        };
+    };
+    progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EvaluationProgress"];
+                };
+            };
+        };
+    };
+    moderation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scheduleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ModerationItem"][];
                 };
             };
         };

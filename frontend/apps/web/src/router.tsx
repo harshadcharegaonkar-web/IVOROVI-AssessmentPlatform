@@ -183,6 +183,10 @@ export const routes: RouteObject[] = [
           { path: ":key", handle: { crumb: "Report" }, ...page(() => import("./routes/reports/ReportPage"), REPORTS) },
         ] },
         { path: "notifications", handle: { crumb: "Notifications" }, ...page(() => import("./routes/NotificationsPage")) },
+        { path: "evaluation", handle: { crumb: "My evaluations" }, children: [
+          { index: true, ...page(() => import("./routes/evaluation/EvaluationTasksPage"), (a) => a.hasAnywhere("evaluation.write")) },
+          { path: "tasks/:id", handle: { crumb: "Evaluate" }, ...page(() => import("./routes/evaluation/EvaluationTaskPage"), (a) => a.hasAnywhere("evaluation.write")) },
+        ] },
         { path: "approvals", handle: { crumb: "Approvals" }, children: [
           { index: true, ...page(() => import("./routes/approvals/ApprovalsPage")) },
           { path: ":id", handle: { crumb: "Details" }, ...page(() => import("./routes/approvals/ApprovalDetailPage")) },
