@@ -329,6 +329,33 @@ public class AttemptService {
         return a;
     }
 
+    /** Facts about an attempt for other modules (exams.CandidateAttempts). */
+    public record Owned(UUID attemptId, UUID scheduleId, UUID orgUnitId, String status, Instant deadlineAt, UUID enrolmentId) {}
+
+    /**
+     * The calling candidate's attempt on this portal, resolved exactly as every delivery call ({@link #mine}) inside the same
+     * guarded transaction (candidate link, ended sessions, suspension, MFA policy). Empty when the attempt does not exist for
+     * this candidate, belongs to another portal, or is invisible (another organization, RLS). Other refusals still throw.
+     */
+    public Optional<Owned> owned(String portalKey, UUID attemptId) {
+        return candidates.runGuarded(() -> {
+            Attempt a;
+            try {
+                a = mine(portalKey, attemptId);
+            } catch (ApiException e) {
+                if (e.status() == org.springframework.http.HttpStatus.NOT_FOUND) return Optional.<Owned>empty();
+                throw e;
+            }
+            UUID portal = candidates.portal(portalKey).id();
+            return jdbc.sql("""
+                    SELECT s.org_unit_id, e.id FROM readiness_session r, exam_schedule s, exam_enrolment e
+                    WHERE r.id = ? AND r.portal_id = ? AND s.id = ? AND e.schedule_id = s.id AND e.candidate_id = ?""")
+                    .params(a.sessionId(), portal, a.scheduleId(), a.candidateId())
+                    .query((rs, n) -> new Owned(a.id(), a.scheduleId(), rs.getObject(1, UUID.class), a.status(), a.deadlineAt(), rs.getObject(2, UUID.class)))
+                    .optional();
+        });
+    }
+
     private Optional<Attempt> attemptFor(UUID scheduleId, UUID candidate) {
         return jdbc.sql(SELECT + " WHERE schedule_id = ? AND candidate_id = ?").params(scheduleId, candidate).query((rs, n) -> row(rs)).optional();
     }
