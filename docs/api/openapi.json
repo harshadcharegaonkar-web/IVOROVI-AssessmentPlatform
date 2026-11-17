@@ -728,6 +728,70 @@
         }
       }
     },
+    "/api/v1/proctoring/schedules/{id}/settings" : {
+      "get" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "The proctoring level of a scheduled examination (NONE when never set)",
+        "operationId" : "setting",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProctoringSetting"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "Set the proctoring level, snapshot interval and evidence retention (only before the window opens)",
+        "operationId" : "configure",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProctoringSettingRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProctoringSetting"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notifications/preferences" : {
       "get" : {
         "tags" : [ "Notifications" ],
@@ -4632,6 +4696,44 @@
         }
       }
     },
+    "/api/v1/proctoring/flags/{flagId}/decisions" : {
+      "post" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "Decide a flag: dismiss, warn the candidate, record an incident, or request termination (four-eyes; someone else decides)",
+        "operationId" : "decide_1",
+        "parameters" : [ {
+          "name" : "flagId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ProctoringDecisionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProctoringFlagDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/org-units" : {
       "get" : {
         "tags" : [ "Organization" ],
@@ -6325,7 +6427,7 @@
       "post" : {
         "tags" : [ "Approvals" ],
         "summary" : "Approve or reject (not by the requester; approver must hold the required permission now)",
-        "operationId" : "decide_1",
+        "operationId" : "decide_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -10151,6 +10253,130 @@
         }
       }
     },
+    "/api/v1/proctoring/snapshots/{snapshotId}/image" : {
+      "get" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "A webcam snapshot kept as evidence (every view audited; never cached)",
+        "operationId" : "evidence",
+        "parameters" : [ {
+          "name" : "snapshotId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "image/jpeg" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "byte"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proctoring/schedules/{id}/summary" : {
+      "get" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "Counts for the invigilation monitor: open and high-severity flags, decided flags, consents given and declined",
+        "operationId" : "summary",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProctoringScheduleSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proctoring/schedules/{id}/flags" : {
+      "get" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "Review queue: flags of the examination, open ones first (high severity first)",
+        "operationId" : "flags",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "pattern" : "OPEN|DECIDED"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ProctoringFlag"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/proctoring/flags/{flagId}" : {
+      "get" : {
+        "tags" : [ "Proctoring" ],
+        "summary" : "One flag with the attempt's signal timeline and snapshot list (images only through the evidence endpoint)",
+        "operationId" : "flag",
+        "parameters" : [ {
+          "name" : "flagId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProctoringFlagDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/permissions" : {
       "get" : {
         "tags" : [ "Roles" ],
@@ -10246,7 +10472,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Counts by type and status, and campuses/departments per institution (visible units)",
-        "operationId" : "summary",
+        "operationId" : "summary_1",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -13539,6 +13765,70 @@
           }
         }
       },
+      "ProctoringSettingRequest" : {
+        "type" : "object",
+        "properties" : {
+          "level" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "NONE|BASIC|SNAPSHOTS"
+          },
+          "snapshotIntervalSeconds" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 600,
+            "minimum" : 60
+          },
+          "retentionDays" : {
+            "type" : "integer",
+            "format" : "int32",
+            "maximum" : 90,
+            "minimum" : 7
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        },
+        "required" : [ "level" ]
+      },
+      "ProctoringSetting" : {
+        "type" : "object",
+        "properties" : {
+          "scheduleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "level" : {
+            "type" : "string"
+          },
+          "snapshotIntervalSeconds" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "retentionDays" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "consentVersion" : {
+            "type" : "string"
+          },
+          "editable" : {
+            "type" : "boolean"
+          },
+          "updatedByName" : {
+            "type" : "string"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "version" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
       "NotificationPreference" : {
         "type" : "object",
         "properties" : {
@@ -16769,6 +17059,166 @@
           }
         },
         "required" : [ "token" ]
+      },
+      "ProctoringDecisionRequest" : {
+        "type" : "object",
+        "description" : "A person's decision on a flag. WARN needs warningText (shown to the candidate).",
+        "properties" : {
+          "decision" : {
+            "type" : "string",
+            "minLength" : 1,
+            "pattern" : "DISMISS|WARN|INCIDENT|TERMINATION_REQUESTED"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 1000,
+            "minLength" : 0
+          },
+          "warningText" : {
+            "type" : "string",
+            "maxLength" : 300,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "decision", "reason" ]
+      },
+      "ProctoringDecision" : {
+        "type" : "object",
+        "properties" : {
+          "decision" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "warningText" : {
+            "type" : "string"
+          },
+          "incidentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "approvalId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "decidedByName" : {
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ProctoringFlag" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "attemptId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "enrolmentId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "candidateName" : {
+            "type" : "string"
+          },
+          "rule" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "severity" : {
+            "type" : "string"
+          },
+          "firstAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "lastAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "signalCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "decision" : {
+            "$ref" : "#/components/schemas/ProctoringDecision"
+          }
+        }
+      },
+      "ProctoringFlagDetail" : {
+        "type" : "object",
+        "properties" : {
+          "flag" : {
+            "$ref" : "#/components/schemas/ProctoringFlag"
+          },
+          "signals" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProctoringSignal"
+            }
+          },
+          "snapshots" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProctoringSnapshot"
+            }
+          },
+          "evidenceVisible" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ProctoringSignal" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "at" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "durationMs" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ProctoringSnapshot" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "takenAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "scanStatus" : {
+            "type" : "string"
+          },
+          "available" : {
+            "type" : "boolean"
+          },
+          "expiresAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
       },
       "OrgUnitCreateRequest" : {
         "type" : "object",
@@ -20679,6 +21129,34 @@
           "updatedAt" : {
             "type" : "string",
             "format" : "date-time"
+          }
+        }
+      },
+      "ProctoringScheduleSummary" : {
+        "type" : "object",
+        "properties" : {
+          "level" : {
+            "type" : "string"
+          },
+          "open" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "high" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "decided" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "consentsGiven" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "consentsDeclined" : {
+            "type" : "integer",
+            "format" : "int32"
           }
         }
       },
