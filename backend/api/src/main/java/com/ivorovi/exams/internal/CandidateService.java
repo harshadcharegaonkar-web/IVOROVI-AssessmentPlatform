@@ -201,6 +201,24 @@ public class CandidateService {
         return new Mfa(p.mfaPolicy(), enrolled, enrolled || !"REQUIRED".equals(p.mfaPolicy()));
     }
 
+    /** S-8: the signed-in candidate as other modules' candidate screens see it (admissions applicant portal). */
+    public record CandidateRef(UUID candidateId, UUID portalId, String portalKey, String email, String displayName) {}
+
+    /**
+     * S-8: the signed-in, linked, active candidate of a portal who satisfies its MFA policy, with the same checks (and
+     * audited refusals) as delivery. Refused with {@code not_enrolled} until the candidate has opened the portal once.
+     */
+    public CandidateRef current(String key) {
+        return run(() -> {
+            Portal p = portal(key);
+            UUID id = requireCandidate(p);
+            record Row(String email, String name) {}
+            Row r = jdbc.sql("SELECT email_enc, display_name FROM candidate_account WHERE id = ?").param(id)
+                    .query((rs, n) -> new Row(rs.getString(1), rs.getString(2))).single();
+            return new CandidateRef(id, p.id(), p.key(), cipher.decrypt(r.email(), ExamAdminService.EMAIL_FIELD, TenantContext.requireTenantId()), r.name());
+        });
+    }
+
     /** The linked, active candidate who satisfies the portal's MFA policy. */
     UUID requireCandidate(Portal p) {
         CandidateAuthentication c = candidate();
