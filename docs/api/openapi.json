@@ -179,8 +179,8 @@
     "/api/v1/tenant/security-policy" : {
       "get" : {
         "tags" : [ "Organization" ],
-        "summary" : "Organization security policy for staff sessions: second factor, idle and session limits; the password policy is platform-wide and read-only (requires tenant.security.manage)",
-        "operationId" : "get_2",
+        "summary" : "Organization security policy for staff sessions: second factor, idle and session limits. The password policy is platform-wide (the shared staff realm) and not part of it (requires tenant.security.manage)",
+        "operationId" : "getSecurityPolicy",
         "responses" : {
           "200" : {
             "description" : "OK",
@@ -197,7 +197,7 @@
       "put" : {
         "tags" : [ "Organization" ],
         "summary" : "Change the security policy. Stronger rules apply at once (APPLIED); any weaker rule needs a second administrator's approval (PENDING_APPROVAL). Turning the second factor on requires the caller's own sign-in to have used one (requires tenant.security.manage)",
-        "operationId" : "update_2",
+        "operationId" : "updateSecurityPolicy",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -422,7 +422,7 @@
       "put" : {
         "tags" : [ "Staff" ],
         "summary" : "Update a staff profile (optimistic version required)",
-        "operationId" : "update_3",
+        "operationId" : "update_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -536,7 +536,7 @@
       "get" : {
         "tags" : [ "Questions" ],
         "summary" : "A question with its current and approved versions, reviews, policy and the actions open to the caller (no answer key)",
-        "operationId" : "get_3",
+        "operationId" : "get_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -562,7 +562,7 @@
       "put" : {
         "tags" : [ "Questions" ],
         "summary" : "Edit the open version (author only); editing a version in review returns it to draft and invalidates its reviews",
-        "operationId" : "update_4",
+        "operationId" : "update_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -676,7 +676,7 @@
     "/api/v1/question-banks/{id}" : {
       "get" : {
         "tags" : [ "Question banks" ],
-        "operationId" : "get_4",
+        "operationId" : "get_3",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -702,7 +702,7 @@
       "put" : {
         "tags" : [ "Question banks" ],
         "summary" : "Update a bank; a weaker approval policy needs a second administrator's approval before it applies",
-        "operationId" : "update_5",
+        "operationId" : "update_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -833,7 +833,7 @@
       "get" : {
         "tags" : [ "Integrations" ],
         "summary" : "Integration with adapter details, recent runs and 30-day run counts",
-        "operationId" : "get_5",
+        "operationId" : "get_4",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -859,7 +859,7 @@
       "put" : {
         "tags" : [ "Integrations" ],
         "summary" : "Change name, description, configuration or secret (optimistic version check)",
-        "operationId" : "update_6",
+        "operationId" : "update_5",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1213,7 +1213,7 @@
       "put" : {
         "tags" : [ "Assessments" ],
         "summary" : "Replace the open version's definition (a version in review returns to draft)",
-        "operationId" : "update_7",
+        "operationId" : "update_6",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1251,7 +1251,7 @@
       "get" : {
         "tags" : [ "API clients" ],
         "summary" : "API client with its keys (id and last four characters only) and daily usage",
-        "operationId" : "get_6",
+        "operationId" : "get_5",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -1277,7 +1277,7 @@
       "put" : {
         "tags" : [ "API clients" ],
         "summary" : "Change name, description, IP allow-list or expiry (scopes are fixed)",
-        "operationId" : "update_8",
+        "operationId" : "update_7",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -8003,7 +8003,7 @@
       "patch" : {
         "tags" : [ "Users" ],
         "summary" : "Edit profile fields (email only before the first sign-in)",
-        "operationId" : "update_9",
+        "operationId" : "update_8",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -8216,7 +8216,7 @@
       "patch" : {
         "tags" : [ "Students" ],
         "summary" : "Edit a student profile (optimistic version; omit 'personal' to leave personal details unchanged)",
-        "operationId" : "update_10",
+        "operationId" : "update_9",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -8306,7 +8306,7 @@
       "patch" : {
         "tags" : [ "Roles" ],
         "summary" : "Edit a custom role (system roles are protected); changes apply to every holder immediately",
-        "operationId" : "update_11",
+        "operationId" : "update_10",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -8344,7 +8344,7 @@
       "get" : {
         "tags" : [ "Organization" ],
         "summary" : "Unit details with ancestors (breadcrumb), child counts and dependents",
-        "operationId" : "get_7",
+        "operationId" : "get_6",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -8397,7 +8397,7 @@
       "patch" : {
         "tags" : [ "Organization" ],
         "summary" : "Edit code, name, short name, attributes or branding (optimistic version)",
-        "operationId" : "update_12",
+        "operationId" : "update_11",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -9379,7 +9379,7 @@
       "get" : {
         "tags" : [ "Service identities" ],
         "summary" : "Identity with role assignments, API clients and current effective permissions",
-        "operationId" : "get_8",
+        "operationId" : "get_7",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -10809,7 +10809,7 @@
     "/api/v1/exam/schedules/{id}" : {
       "get" : {
         "tags" : [ "Examination scheduling" ],
-        "operationId" : "get_9",
+        "operationId" : "get_8",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -11111,7 +11111,7 @@
     "/api/v1/assessments/{id}" : {
       "get" : {
         "tags" : [ "Assessments" ],
-        "operationId" : "get_10",
+        "operationId" : "get_9",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -11528,7 +11528,7 @@
       "get" : {
         "tags" : [ "Approvals" ],
         "summary" : "One request (requester or eligible approvers only)",
-        "operationId" : "get_11",
+        "operationId" : "get_10",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -12204,9 +12204,6 @@
             "type" : "string",
             "format" : "date-time"
           },
-          "passwordPolicy" : {
-            "type" : "string"
-          },
           "passwordPolicyScope" : {
             "type" : "string"
           },
@@ -12217,7 +12214,7 @@
           "pendingChange" : {
             "$ref" : "#/components/schemas/SecurityPolicyChange"
           },
-          "callerUsedSecondFactor" : {
+          "callerHasSecondFactor" : {
             "type" : "boolean"
           }
         }
