@@ -53,6 +53,32 @@ class ItemResultService implements ItemResults {
 
     @Override
     @Transactional(readOnly = true)
+    public List<UUID> deferredAttempts(UUID scheduleId, Source source) {
+        String column = source == Source.EVALUATION ? "evaluation_positions" : "execution_positions";
+        return jdbc.sql("SELECT d.attempt_id FROM exam_attempt_deferred d JOIN exam_attempt a ON a.id = d.attempt_id WHERE a.schedule_id = ? AND cardinality(d."
+                + column + ") > 0 ORDER BY d.created_at, d.attempt_id").param(scheduleId).query(UUID.class).list();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<UUID> scheduleUnit(UUID scheduleId) {
+        return jdbc.sql("SELECT rs.org_unit_id FROM exam_attempt a JOIN readiness_session rs ON rs.id = a.session_id WHERE a.schedule_id = ? LIMIT 1")
+                .param(scheduleId).query(UUID.class).optional();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public Object response(UUID attemptId, int position) {
+        String status = jdbc.sql("SELECT status FROM exam_attempt WHERE id = ?").param(attemptId).query(String.class).optional()
+                .orElseThrow(() -> ApiException.notFound("Attempt"));
+        if ("IN_PROGRESS".equals(status)) throw ApiException.conflict("attempt_in_progress", "The attempt is still in progress.");
+        return jdbc.sql("SELECT response::text FROM exam_answer WHERE attempt_id = ? AND position = ?").params(attemptId, position).query(String.class).optional()
+                .map(t -> ((Map<String, Object>) json.readValue(t, Map.class)).get("value")).orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Item> deferred(UUID attemptId) {
         Deferred d = load(attemptId, false);
         if (d == null) return List.of();

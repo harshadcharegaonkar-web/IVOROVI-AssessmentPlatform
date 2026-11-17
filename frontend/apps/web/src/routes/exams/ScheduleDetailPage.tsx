@@ -6,6 +6,7 @@ import { Link, useParams } from "react-router";
 import { errorInfo, useApi } from "../../api/ApiProvider";
 import { formatDateTime } from "../../lib/format";
 import { useSession } from "../../session/SessionProvider";
+import { EvaluationCard } from "../evaluation/EvaluationCard";
 
 /** One scheduled examination: details, enrolment by upload, invitations, extra time, session codes, cancellation. */
 export function ScheduleDetailPage() {
@@ -111,6 +112,7 @@ export function ScheduleDetailPage() {
             error={e.isError ? errorInfo(e.error) : null} empty={{ title: "Nobody enrolled yet", description: "Upload a list of candidates above." }} />
         </Card>}
         <ResultsCard scheduleId={id} />
+        {access.hasAnywhere("evaluation.manage") && <EvaluationCard scheduleId={id} />}
       </div>
       {codes && (
         <Modal open onOpenChange={(o) => !o && setCodes(null)} title="Session codes" description="Shown only now. Hand one code to each candidate at the examination; each works once."

@@ -27,7 +27,7 @@ public class AnswerKeyStore {
     public static final String KEY_FIELD = "question_answer_key.key";
     public static final String EXPLANATION_FIELD = "question_answer_key.explanation";
 
-    public enum Purpose { EDIT, REVIEW, VIEW, MARKING_PREVIEW }
+    public enum Purpose { EDIT, REVIEW, VIEW, MARKING_PREVIEW, EVALUATION }
 
     /** Decrypted key and explanation. {@link #toString()} never prints them. */
     public record Plain(Map<String, Object> key, String explanation) {
@@ -90,6 +90,16 @@ public class AnswerKeyStore {
         audit.recordSuccess("question.answer_key.viewed", "question_version", versionId.toString(), Map.of("purpose", purpose.name(), "state", t.state()));
         return row.map(r -> new Plain(json.readValue(cipher.decrypt(r.key(), KEY_FIELD, tenant), Map.class),
                 r.explanation() == null ? null : cipher.decrypt(r.explanation(), EXPLANATION_FIELD, tenant)));
+    }
+
+    /**
+     * The model answer of a manually marked (descriptive) version, for an evaluator the evaluation module has already
+     * authorized for a task on it (contract C-2). Only the model answer, never another type's key; audited per read.
+     */
+    public Optional<String> modelAnswerForEvaluation(UUID versionId, String taskId) {
+        Optional<Map<String, Object>> key = readForValidation(versionId);
+        audit.recordSuccess("question.answer_key.viewed", "question_version", versionId.toString(), Map.of("purpose", Purpose.EVALUATION.name(), "task", taskId));
+        return key.map(k -> k.get("modelAnswer")).map(String::valueOf);
     }
 
     /**

@@ -1163,6 +1163,70 @@
         }
       }
     },
+    "/api/v1/evaluation/schedules/{scheduleId}/setup" : {
+      "get" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Evaluation setup of a scheduled examination: mode, moderation tolerance, evaluators, and who may evaluate",
+        "operationId" : "setup",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluationSetup"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Set single or double marking, the moderation tolerance and the evaluator pool",
+        "operationId" : "saveSetup",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EvaluationSetupRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluationSetup"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/assessments/{id}/draft" : {
       "put" : {
         "tags" : [ "Assessments" ],
@@ -5960,6 +6024,103 @@
         }
       }
     },
+    "/api/v1/evaluation/tasks/{taskId}/submission" : {
+      "post" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Submit my marks for a task (per rubric criterion, or one mark without a rubric); final",
+        "operationId" : "submit_1",
+        "parameters" : [ {
+          "name" : "taskId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EvaluationSubmission"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluationTaskDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/schedules/{scheduleId}/allocate" : {
+      "post" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Create anonymous scripts for submitted answers awaiting evaluation and allocate them to evaluators",
+        "operationId" : "allocate",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluationProgress"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/moderation/{itemId}" : {
+      "post" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Set the final mark of an answer in moderation, with a reason (never by one of its evaluators)",
+        "operationId" : "moderate",
+        "parameters" : [ {
+          "name" : "itemId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ModerationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        }
+      }
+    },
     "/api/v1/assessments" : {
       "get" : {
         "tags" : [ "Assessments" ],
@@ -6064,7 +6225,7 @@
     "/api/v1/assessments/{id}/submit" : {
       "post" : {
         "tags" : [ "Assessments" ],
-        "operationId" : "submit_1",
+        "operationId" : "submit_2",
         "parameters" : [ {
           "name" : "id",
           "in" : "path",
@@ -10964,6 +11125,123 @@
         }
       }
     },
+    "/api/v1/evaluation/tasks" : {
+      "get" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "My evaluation tasks (anonymous scripts)",
+        "operationId" : "tasks",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/EvaluationTaskSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/tasks/{taskId}" : {
+      "get" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "One of my tasks: question, rubric, model answer (audited) and the answer to evaluate",
+        "operationId" : "task",
+        "parameters" : [ {
+          "name" : "taskId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluationTaskDetail"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/schedules/{scheduleId}/progress" : {
+      "get" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Evaluation progress: scripts, answers open, in moderation and final; tasks per evaluator",
+        "operationId" : "progress",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/EvaluationProgress"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/evaluation/schedules/{scheduleId}/moderation" : {
+      "get" : {
+        "tags" : [ "Evaluation" ],
+        "summary" : "Answers whose two evaluations differ by more than the tolerance",
+        "operationId" : "moderation",
+        "parameters" : [ {
+          "name" : "scheduleId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ModerationItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit-events" : {
       "get" : {
         "tags" : [ "Audit" ],
@@ -14004,6 +14282,72 @@
           "version" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "EvaluationSetupRequest" : {
+        "type" : "object",
+        "properties" : {
+          "mode" : {
+            "type" : "string"
+          },
+          "tolerancePercent" : {
+            "type" : "number"
+          },
+          "evaluatorIds" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string",
+              "format" : "uuid"
+            },
+            "maxItems" : 200,
+            "minItems" : 0
+          }
+        },
+        "required" : [ "evaluatorIds", "mode" ]
+      },
+      "EvaluationSetup" : {
+        "type" : "object",
+        "properties" : {
+          "scheduleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "mode" : {
+            "type" : "string"
+          },
+          "tolerancePercent" : {
+            "type" : "number"
+          },
+          "evaluators" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EvaluatorOption"
+            }
+          },
+          "eligible" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EvaluatorOption"
+            }
+          },
+          "locked" : {
+            "type" : "boolean"
+          },
+          "configured" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "EvaluatorOption" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
           }
         }
       },
@@ -17816,6 +18160,181 @@
           }
         },
         "required" : [ "reason" ]
+      },
+      "EvaluationSubmission" : {
+        "type" : "object",
+        "properties" : {
+          "criteria" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "number"
+            }
+          },
+          "holistic" : {
+            "type" : "number"
+          },
+          "comment" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Criterion" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "weight" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "EvaluationCriterionMark" : {
+        "type" : "object",
+        "properties" : {
+          "criterionId" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "max" : {
+            "type" : "number"
+          },
+          "awarded" : {
+            "type" : "number"
+          }
+        }
+      },
+      "EvaluationTaskDetail" : {
+        "type" : "object",
+        "properties" : {
+          "taskId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scriptCode" : {
+            "type" : "string"
+          },
+          "itemNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "statement" : {
+            "type" : "object",
+            "additionalProperties" : { }
+          },
+          "maxWords" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "rubric" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Criterion"
+            }
+          },
+          "modelAnswer" : {
+            "type" : "string"
+          },
+          "responseText" : {
+            "type" : "string"
+          },
+          "criterionMarks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EvaluationCriterionMark"
+            }
+          },
+          "total" : {
+            "type" : "number"
+          },
+          "comment" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EvaluationProgress" : {
+        "type" : "object",
+        "properties" : {
+          "scheduleId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scripts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemsOpen" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemsInModeration" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "itemsFinal" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "awaitingScripts" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "evaluators" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EvaluatorLoad"
+            }
+          }
+        }
+      },
+      "EvaluatorLoad" : {
+        "type" : "object",
+        "properties" : {
+          "evaluatorId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "assigned" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "submitted" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ModerationRequest" : {
+        "type" : "object",
+        "properties" : {
+          "awarded" : {
+            "type" : "number"
+          },
+          "reason" : {
+            "type" : "string",
+            "maxLength" : 2000,
+            "minLength" : 0
+          }
+        },
+        "required" : [ "awarded", "reason" ]
       },
       "AssessmentCreateRequest" : {
         "type" : "object",
@@ -22124,6 +22643,87 @@
             "type" : "string"
           },
           "url" : {
+            "type" : "string"
+          }
+        }
+      },
+      "EvaluationTaskSummary" : {
+        "type" : "object",
+        "properties" : {
+          "taskId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scriptCode" : {
+            "type" : "string"
+          },
+          "itemNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "assignedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "submittedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ModerationItem" : {
+        "type" : "object",
+        "properties" : {
+          "itemId" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "scriptCode" : {
+            "type" : "string"
+          },
+          "itemNo" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "marks" : {
+            "type" : "number"
+          },
+          "tolerance" : {
+            "type" : "number"
+          },
+          "marksGiven" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ModerationMark"
+            }
+          },
+          "mayModerate" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ModerationMark" : {
+        "type" : "object",
+        "properties" : {
+          "label" : {
+            "type" : "string"
+          },
+          "total" : {
+            "type" : "number"
+          },
+          "criterionMarks" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/EvaluationCriterionMark"
+            }
+          },
+          "comment" : {
             "type" : "string"
           }
         }

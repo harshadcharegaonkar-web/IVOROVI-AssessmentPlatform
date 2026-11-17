@@ -17,6 +17,15 @@ public interface ItemResults {
     /** One deferred item of an attempt; {@code awarded} is null until its marks are recorded. */
     record Item(UUID attemptId, int position, UUID questionVersionId, BigDecimal marks, Source source, BigDecimal awarded) {}
 
+    /** Submitted attempts of a schedule that have answers deferred to {@code source} (marked or not). */
+    List<UUID> deferredAttempts(UUID scheduleId, Source source);
+
+    /** The institution (organization unit) a schedule's examinations belong to; empty when it has no attempts. */
+    java.util.Optional<UUID> scheduleUnit(UUID scheduleId);
+
+    /** The saved answer value of one position of a submitted attempt (null when unanswered). Never for an attempt in progress. */
+    Object response(UUID attemptId, int position);
+
     /** The deferred items of an attempt (empty when the attempt has none or is not yet scored). */
     List<Item> deferred(UUID attemptId);
 
